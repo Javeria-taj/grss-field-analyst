@@ -1,0 +1,137 @@
+'use client';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { useGameStore } from '@/stores/useGameStore';
+import { useTimerStore } from '@/stores/useTimerStore';
+import { calcScore } from '@/lib/scoring';
+import { SFX } from '@/lib/sfx';
+import { toast } from '@/components/ui/Toast';
+import HUD from '@/components/ui/HUD';
+import TimerBar from '@/components/ui/TimerBar';
+import FeedbackOverlay from '@/components/ui/FeedbackOverlay';
+import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
+import Toast from '@/components/ui/Toast';
+import DATA from '@/lib/gameData';
+
+type FBState = { type: 'ok' | 'bad' | 'timeout'; icon: string; title: string; body: string } | null;
+
+export default function Level4Play() {
+  const router = useRouter();
+  const gs = useGameStore();
+  const { startTimer, stopTimer, timeVal } = useTimerStore();
+  const [fb, setFb] = useState<FBState>(null);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [locked, setLocked] = useState(false);
+  const [revealState, setRevealState] = useState<Record<number, 'correct' | 'wrong' | ''>>({});
+  const qStateRef = useRef<{ ans: number; timeWhenSubmitted: number } | null>(null);
+
+  const qs = DATA.level4.qs;
+  const q = qs[gs.l4idx];
+
+  const goNext = useCallback(() => {
+    setFb(null); setSelected(null); setLocked(false); setRevealState({});
+    qStateRef.current = null;
+    gs.incL4Idx();
+  }, [gs]);
+
+  const onTimerDone = useCallback(() => {
+    const qs2 = qStateRef.current;
+    if (!qs2) {
+      SFX.wrong();
+      setFb({ type: 'timeout', icon: '⏰', title: "TIME'S UP!", body: `Correct: <strong>${q.opts[q.ans]}</strong><br><br>${q.expl}` });
+    } else {
+      const i = qs2.ans;
+      const reveal: Record<number, 'correct' | 'wrong' | ''> = {};
+      q.opts.forEach((_, j) => { reveal[j] = j === q.ans ? 'correct' : j === i ? 'wrong' : ''; });
+      setRevealState(reveal);
+      if (i === q.ans) {
+        const earned = calcScore(true, qs2.timeWhenSubmitted, 90, q.pts);
+        gs.addL4Score(earned); gs.incL4Correct();
+        SFX.correct();
+        setTimeout(() => setFb({ type: 'ok', icon: '✅', title: 'CORRECT!', body: `+${earned} pts!<br><br>${q.expl}` }), 400);
+      } else {
+        SFX.wrong();
+        setTimeout(() => setFb({ type: 'bad', icon: '❌', title: 'INCORRECT!', body: `Correct: <strong>${q.opts[q.ans]}</strong><br><br>${q.expl}` }), 400);
+      }
+    }
+  }, [q, gs]);
+
+  useEffect(() => {
+    if (!gs.user) { router.replace('/'); return; }
+    gs.startL4();
+  }, []); // eslint-disable-line
+
+  useEffect(() => {
+    if (!q) return;
+    gs.setCurrentHint('Think carefully about each option in the context of satellite remote sensing and Earth observation science.');
+    gs.setCurrentLevel(4);
+    setFb(null); setSelected(null); setLocked(false); setRevealState({});
+    qStateRef.current = null;
+    startTimer(90, onTimerDone);
+    return () => stopTimer();
+  }, [gs.l4idx]); // eslint-disable-line
+
+  useEffect(() => {
+    const handleSkip = () => { stopTimer(); onTimerDone(); };
+    window.addEventListener('grss-skip', handleSkip);
+    return () => window.removeEventListener('grss-skip', handleSkip);
+  }, [onTimerDone]);
+
+  const submit = (i: number) => {
+    if (locked) return;
+    qStateRef.current = { ans: i, timeWhenSubmitted: timeVal };
+    setSelected(i); setLocked(true);
+    SFX.click();
+    toast('Answer locked! Waiting for timer...', 'inf');
+  };
+
+  if (gs.l4idx >= qs.length) {
+    gs.finishL4(); stopTimer();
+    router.replace('/results?level=4'); return null;
+  }
+  if (!q) return null;
+
+  const diffColors: Record<number, string> = { 1: 'var(--diff1)', 2: 'var(--diff2)', 3: 'var(--diff3)' };
+  const diffBadge: Record<number, string> = { 1: 'badge-blue', 2: 'badge-warn', 3: 'badge-red' };
+
+  return (
+    <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <StarfieldCanvas />
+      <Toast />
+      <div className="earth-deco" />
+      <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <HUD levelName="LEVEL 4 — RAPID ASSESSMENT" totalQuestions={qs.length} currentQuestion={gs.l4idx} />
+        <TimerBar />
+        <div className="page-content">
+          <div style={{ maxWidth: 620, width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
+              <span className="badge badge-blue">Q{gs.l4idx + 1}/10</span>
+              <span className={`badge ${diffBadge[q.diff]}`}>{'⭐'.repeat(q.diff)} DIFFICULTY {q.diff}/3</span>
+              <span className="badge badge-gold">+{q.pts} pts</span>
+            </div>
+            <div className={`card diff-${q.diff}`} style={{ marginBottom: 14, borderLeft: `3px solid ${diffColors[q.diff]}` }}>
+              <p style={{ fontSize: '0.98rem', fontWeight: 500, color: 'var(--white)', lineHeight: 1.7 }}>{q.q}</p>
+            </div>
+            {q.opts.map((opt, i) => {
+              const rv = revealState[i];
+              return (
+                <button
+                  key={i}
+                  className={`option ${rv === 'correct' ? 'correct' : rv === 'wrong' ? 'wrong' : selected === i && !rv ? 'selected' : ''}`}
+                  onClick={() => submit(i)}
+                  disabled={locked}
+                  id={`l4opt${i}`}
+                  style={locked && !rv ? { pointerEvents: 'none' } : undefined}
+                >
+                  <span className="option-letter">{'ABCD'[i]}</span>
+                  {opt}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        {fb && <FeedbackOverlay {...fb} onContinue={goNext} />}
+      </div>
+    </div>
+  );
+}

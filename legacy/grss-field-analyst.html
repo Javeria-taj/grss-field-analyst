@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="description" content="IEEE GRSS Field Analyst — A gamified geoscience platform for live events. 5 missions across remote sensing, satellite imagery, disaster response and more.">
+<meta name="theme-color" content="#03070f">
+<meta property="og:title" content="IEEE GRSS Field Analyst">
+<meta property="og:description" content="Gamified geoscience platform — 5 missions, 200+ participants, one Earth to save.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>IEEE GRSS | Field Analyst Mission</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#03070f;--bg2:#070d1c;--bg3:#0a1428;
+  --card:rgba(10,20,45,0.92);--card2:rgba(15,30,60,0.88);
+  --border:rgba(0,180,255,0.18);--border2:rgba(0,255,150,0.18);
+  --accent:#00c8ff;--accent2:#00ff9d;--accent3:#7c3aed;--accent4:#ff6b35;
+  --danger:#ff2d55;--warning:#ffaa00;--success:#00e676;--gold:#ffd700;
+  --text:#ccdeff;--text2:#5577aa;--text3:#7a99cc;--white:#e8f4ff;
+  --shadow:0 0 40px rgba(0,200,255,0.12);--glow:0 0 20px rgba(0,200,255,0.4);
+  --diff1:#00c8ff;--diff2:#ffaa00;--diff3:#ff2d55;
+}
+body{background:var(--bg);color:var(--text);font-family:'Exo 2',sans-serif;font-size:16px;line-height:1.6;min-height:100vh;overflow-x:hidden}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);pointer-events:none;z-index:2}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--accent);border-radius:3px}
+canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none}
+#starCanvas{z-index:0}#confettiCanvas{z-index:9999}
+#app{position:relative;z-index:3;min-height:100vh}
+.screen{display:none;min-height:100vh;animation:fadeUp 0.35s ease}
+.screen.active{display:flex}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideInLeft{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideInRight{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes scaleIn{from{opacity:0;transform:scale(0.85)}to{opacity:1;transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}15%,45%,75%{transform:translateX(-8px)}30%,60%{transform:translateX(8px)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes borderPulse{0%,100%{border-color:rgba(0,200,255,0.3)}50%{border-color:rgba(0,200,255,0.9)}}
+@keyframes rankReveal{0%{opacity:0;transform:scale(0.6) translateY(15px)}60%{transform:scale(1.08) translateY(-3px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes countUp{from{opacity:0.5;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
+@keyframes optimalPulse{0%,100%{box-shadow:0 0 8px rgba(0,255,136,0.3)}50%{box-shadow:0 0 20px rgba(0,255,136,0.7)}}
+@keyframes metricFill{from{width:0}to{width:var(--target-w)}}
+@keyframes letterPop{0%{transform:scale(1)}50%{transform:scale(1.35);color:var(--accent2)}100%{transform:scale(1)}}
+@keyframes wrongShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+.center-col{flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.full-col{flex-direction:column;width:100%}
+.page-content{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:16px;overflow-y:auto}
+.font-orb{font-family:'Orbitron',monospace}
+.t-accent{color:var(--accent)}.t-accent2{color:var(--accent2)}.t-danger{color:var(--danger)}
+.t-warning{color:var(--warning)}.t-gold{color:var(--gold)}.t-muted{color:var(--text2)}.t-center{text-align:center}
+.glow-txt{text-shadow:0 0 15px rgba(0,200,255,0.6)}
+.label{font-size:.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--text2);font-weight:600}
+
+/* --- CARDS --- */
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;backdrop-filter:blur(16px)}
+.card-sm{padding:14px;border-radius:12px}
+.card-glow{box-shadow:var(--shadow);border-color:rgba(0,200,255,0.3)}
+.card-green{border-color:var(--border2);box-shadow:0 0 20px rgba(0,255,136,0.4)}
+.card-danger{border-color:rgba(255,45,85,0.35);box-shadow:0 0 30px rgba(255,45,85,0.12)}
+.card-gold{border-color:rgba(255,215,0,0.35);box-shadow:0 0 20px rgba(255,215,0,0.15)}
+.card-active-border{animation:borderPulse 2s infinite}
+
+/* --- BUTTONS --- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;border-radius:10px;border:none;cursor:pointer;font-family:'Exo 2',sans-serif;font-size:.92rem;font-weight:700;letter-spacing:.5px;transition:all .2s;text-transform:uppercase;white-space:nowrap;position:relative;overflow:hidden;min-height:44px}
+.btn::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,0.08);opacity:0;transition:opacity .2s}
+.btn:hover::after{opacity:1}.btn:hover{transform:translateY(-2px)}.btn:active{transform:translateY(0)}
+.btn-primary{background:linear-gradient(135deg,#006ba6,#00c8ff);color:#fff;box-shadow:0 4px 20px rgba(0,200,255,0.3)}
+.btn-success{background:linear-gradient(135deg,#008a5c,#00ff9d);color:#000;box-shadow:0 4px 20px rgba(0,255,136,0.3)}
+.btn-danger{background:linear-gradient(135deg,#990022,#ff2d55);color:#fff;box-shadow:0 4px 20px rgba(255,45,85,0.3)}
+.btn-warning{background:linear-gradient(135deg,#996600,#ffaa00);color:#000}
+.btn-purple{background:linear-gradient(135deg,#4a1d8a,#7c3aed);color:#fff}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--accent)}
+.btn-outline:hover{background:rgba(0,200,255,0.08);border-color:var(--accent)}
+.btn-sm{padding:8px 16px;font-size:.78rem;min-height:36px}.btn-lg{padding:15px 34px;font-size:1.05rem}
+.btn-full{width:100%}.btn:disabled{opacity:.3;cursor:not-allowed;transform:none!important}
+.btn-shake{animation:shake 0.45s ease}
+
+/* --- BADGES --- */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.badge-blue{background:rgba(0,200,255,.12);color:var(--accent);border:1px solid rgba(0,200,255,.3)}
+.badge-green{background:rgba(0,255,136,.12);color:var(--accent2);border:1px solid rgba(0,255,136,.3)}
+.badge-red{background:rgba(255,45,85,.12);color:var(--danger);border:1px solid rgba(255,45,85,.3)}
+.badge-gold{background:rgba(255,215,0,.12);color:var(--gold);border:1px solid rgba(255,215,0,.3)}
+.badge-purple{background:rgba(124,58,237,.15);color:#a78bfa;border:1px solid rgba(124,58,237,.3)}
+.badge-warn{background:rgba(255,170,0,.12);color:var(--warning);border:1px solid rgba(255,170,0,.3)}
+
+/* --- INPUTS --- */
+.input{width:100%;padding:13px 16px;background:rgba(0,200,255,.04);border:1px solid var(--border);border-radius:10px;color:var(--white);font-family:'Exo 2',sans-serif;font-size:1rem;outline:none;transition:border-color .2s,box-shadow .2s}
+.input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,200,255,.2)}
+.input::placeholder{color:var(--text2)}
+.input-lg{font-size:1.15rem;padding:14px 18px;text-align:center;font-family:'Orbitron',monospace;letter-spacing:4px;text-transform:uppercase}
+.input-error{border-color:var(--danger)!important;box-shadow:0 0 0 2px rgba(255,45,85,.2)!important;animation:shake 0.45s ease}
+
+/* --- HUD --- */
+.hud{display:flex;justify-content:space-between;align-items:center;padding:10px 20px;background:rgba(3,7,15,.96);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:50}
+.hud-score{font-family:'Orbitron',monospace;font-size:.95rem;color:var(--accent2)}
+.hud-level{font-family:'Orbitron',monospace;font-size:.82rem;color:var(--accent)}
+.timer-wrap{width:100%;padding:0 20px;margin:3px 0}
+.timer-track{width:100%;height:8px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden}
+.timer-fill{height:100%;border-radius:4px;transition:width .9s linear,background .5s;background:linear-gradient(90deg,var(--accent2),var(--accent))}
+.timer-fill.warn{background:linear-gradient(90deg,#ff6600,var(--warning))}
+.timer-fill.crit{background:linear-gradient(90deg,#880000,var(--danger));animation:critFlash .4s infinite alternate}
+@keyframes critFlash{from{opacity:1}to{opacity:.35}}
+.timer-txt{font-family:'Orbitron',monospace;font-size:.78rem;text-align:right;margin-top:3px;color:var(--accent);padding:0 20px}
+.timer-txt.warn{color:var(--warning)}.timer-txt.crit{color:var(--danger);animation:critFlash .4s infinite alternate}
+
+/* --- POWER-UPS --- */
+.pu-bar{display:flex;gap:5px}
+.pu-btn{display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:8px;cursor:pointer;transition:all .2s;font-family:'Exo 2',sans-serif;min-height:44px;min-width:44px;justify-content:center}
+.pu-btn:hover:not(:disabled){background:rgba(0,200,255,.1);border-color:var(--accent);color:var(--accent)}
+.pu-btn:disabled{opacity:.22;cursor:not-allowed}
+.pu-icon{font-size:.95rem}.pu-label{font-size:.58rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.pu-count{font-family:'Orbitron',monospace;font-size:.62rem;color:var(--accent2)}
+
+/* --- PROGRESS DOTS --- */
+.prog-dots{display:flex;gap:5px;align-items:center}
+.prog-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);transition:all .3s}
+.prog-dot.done{background:var(--accent2);border-color:var(--accent2);box-shadow:0 0 6px var(--accent2)}
+.prog-dot.cur{background:var(--accent);border-color:var(--accent);animation:dotPulse 1s infinite;box-shadow:0 0 8px var(--accent)}
+@keyframes dotPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.45)}}
+
+/* --- OPTIONS --- */
+.option{width:100%;padding:13px 18px;text-align:left;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:10px;color:var(--text);cursor:pointer;transition:all .2s;font-family:'Exo 2',sans-serif;font-size:.95rem;display:flex;align-items:center;gap:12px;margin-bottom:8px;font-weight:500;min-height:50px}
+.option:hover{background:rgba(0,200,255,.07);border-color:rgba(0,200,255,.4)}
+.option.correct{background:rgba(0,230,118,.12);border-color:var(--success);color:var(--success)}
+.option.wrong{background:rgba(255,45,85,.12);border-color:var(--danger);color:var(--danger)}
+.option-letter{width:27px;height:27px;border-radius:6px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-family:'Orbitron',monospace;font-size:.72rem;flex-shrink:0;transition:all .2s}
+.option.correct .option-letter{background:var(--success);color:#000}
+.option.wrong .option-letter{background:var(--danger);color:#fff}
+
+/* --- LEVEL 1 SCRAMBLE --- */
+.scramble-disp{font-family:'Orbitron',monospace;font-size:clamp(1.4rem,4vw,2.1rem);letter-spacing:10px;color:var(--accent);text-align:center;padding:22px;background:rgba(0,200,255,.04);border:1px solid var(--border);border-radius:14px;text-shadow:0 0 20px rgba(0,200,255,.5)}
+
+/* --- LEVEL 3 HANGMAN --- */
+.em-clue{font-size:clamp(2rem,6vw,3rem);text-align:center;padding:20px;background:rgba(255,255,255,.03);border-radius:12px;letter-spacing:10px}
+.word-slots{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin:14px 0}
+.letter-slot{width:36px;height:44px;border-bottom:3px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:700;color:var(--accent);transition:all .3s;font-family:'Orbitron',monospace}
+.letter-slot.space{border-bottom-color:transparent;width:16px}
+.letter-slot.shown{color:var(--accent2);border-bottom-color:var(--accent2)}
+.letter-slot.pop{animation:letterPop 0.35s ease}
+.word-slots.wrong-shake{animation:wrongShake 0.4s ease}
+.alpha-grid{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:430px;margin:10px auto}
+.alpha-key{width:36px;height:36px;border-radius:7px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:var(--text);cursor:pointer;font-size:.82rem;font-weight:600;transition:all .2s;font-family:'Orbitron',monospace;min-height:36px}
+.alpha-key:hover:not(:disabled){background:rgba(0,200,255,.1);border-color:var(--accent);color:var(--accent)}
+.alpha-key.hit{background:rgba(0,230,118,.15);border-color:var(--success);color:var(--success);cursor:default}
+.alpha-key.miss{background:rgba(255,45,85,.08);border-color:rgba(255,45,85,.22);color:var(--danger);cursor:default;opacity:.55}
+.lives{display:flex;gap:4px}.life{font-size:1rem;transition:all .3s}.life.dead{opacity:.13;filter:grayscale(1);transform:scale(.75)}
+
+/* --- LEVEL 4 DIFFICULTY CARDS --- */
+.diff-1{border-color:rgba(0,200,255,0.35)!important}
+.diff-2{border-color:rgba(255,170,0,0.35)!important}
+.diff-3{border-color:rgba(255,45,85,0.35)!important;box-shadow:0 0 14px rgba(255,45,85,0.08)}
+
+/* --- LEVEL 5 AUCTION --- */
+.tool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:10px}
+.tool-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:13px;transition:all .3s;cursor:pointer;position:relative;overflow:hidden}
+.tool-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:12px 12px 0 0;background:linear-gradient(90deg,var(--accent),var(--accent2));opacity:0;transition:opacity .3s}
+.tool-card:hover::before,.tool-card.bought::before{opacity:1}
+.tool-card.bought{border-color:rgba(0,255,136,.35);background:rgba(0,255,136,.04)}
+.tool-card.optimal-hint{border-color:rgba(255,215,0,0.4);box-shadow:0 0 12px rgba(255,215,0,0.15)}
+.tool-price{font-family:'Orbitron',monospace;font-size:.95rem;color:var(--warning);font-weight:700}
+.tool-price.rising{color:var(--danger);animation:priceRise .5s ease}
+@keyframes priceRise{0%{transform:scale(1)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
+.eff-bar-wrap{margin-top:6px}
+.eff-bar-label{font-size:.64rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.eff-bar-track{width:100%;height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden}
+.eff-bar-fill{height:100%;border-radius:2px;transition:width .5s ease}
+.budget-track{width:100%;height:9px;background:rgba(255,255,255,.07);border-radius:5px;overflow:hidden}
+.budget-fill{height:100%;background:linear-gradient(90deg,var(--danger),var(--warning),var(--success));transition:width .5s}
+.combo-tag{font-size:.72rem;padding:3px 8px;background:rgba(255,215,0,.12);border:1px solid rgba(255,215,0,.3);border-radius:5px;color:var(--gold)}
+.combo-active-card{animation:optimalPulse 2s infinite}
+
+/* --- LEVEL 5B DISASTER --- */
+.disaster-banner{background:linear-gradient(135deg,rgba(255,45,85,.15),rgba(255,170,0,.1));border:1px solid rgba(255,45,85,.35);border-radius:16px;padding:22px;text-align:center}
+.metric-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.metric-val{font-family:'Orbitron',monospace;font-size:.95rem;color:var(--accent2)}
+.metric-bar-wrap{margin-top:4px}
+.metric-bar-track{width:100%;height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.metric-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px;width:0;transition:width .7s cubic-bezier(0.4,0,0.2,1)}
+.apply-card{padding:11px;border-radius:10px;background:rgba(0,200,255,.03);border:1px solid var(--border);color:var(--text);cursor:pointer;text-align:center;transition:all .3s;min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.apply-card:hover{background:rgba(0,200,255,.08);border-color:var(--accent)}
+.apply-card.on{background:rgba(0,255,136,.08);border-color:var(--accent2);color:var(--accent2)}
+.apply-card.optimal-deployed{box-shadow:0 0 12px rgba(255,215,0,0.3);border-color:var(--gold)!important}
+
+/* --- LEADERBOARD --- */
+.lb-row{display:flex;align-items:center;gap:14px;padding:11px 16px;border-radius:10px;margin-bottom:5px;background:rgba(255,255,255,.02);transition:background .3s}
+.lb-row.me{background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.25)}
+.lb-row.r1{background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.22)}
+.lb-row.new-entry{animation:slideInRight 0.5s ease}
+.lb-rank{font-family:'Orbitron',monospace;font-size:.88rem;width:26px;color:var(--text2)}
+.lb-name-col{flex:1}.lb-name{font-weight:600;font-size:.92rem}.lb-usn{font-size:.73rem;color:var(--text2)}
+.lb-score{font-family:'Orbitron',monospace;color:var(--accent2);font-size:.9rem}
+
+/* --- FEEDBACK OVERLAY --- */
+.fb-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:100;background:rgba(0,0,0,.78);backdrop-filter:blur(4px)}
+.fb-card{max-width:460px;width:90%;text-align:center;border-radius:20px;padding:30px;animation:popIn .3s cubic-bezier(.175,.885,.32,1.275)}
+.fb-card.ok{background:linear-gradient(135deg,rgba(0,50,25,.97),rgba(0,85,42,.97));border:2px solid var(--success)}
+.fb-card.bad{background:linear-gradient(135deg,rgba(70,0,15,.97),rgba(100,0,22,.97));border:2px solid var(--danger)}
+.fb-card.timeout{background:linear-gradient(135deg,rgba(60,40,0,.97),rgba(100,70,0,.97));border:2px solid var(--warning)}
+.fb-card.info{background:linear-gradient(135deg,rgba(10,15,60,.97),rgba(20,30,90,.97));border:2px solid var(--accent3)}
+@keyframes popIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+.fb-icon{font-size:2.8rem;display:block;margin-bottom:10px}
+
+/* --- TOAST --- */
+.toast{position:fixed;top:20px;right:20px;padding:11px 18px;border-radius:10px;font-weight:600;z-index:10001;animation:slideR .3s ease,fadeR .3s ease 2.7s forwards;max-width:300px;font-size:.88rem;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.toast.ok{background:rgba(0,200,80,.92);color:#000}.toast.err{background:rgba(220,30,60,.92);color:#fff}.toast.inf{background:rgba(0,180,240,.92);color:#000}
+@keyframes slideR{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes fadeR{from{opacity:1}to{transform:translateX(120%);opacity:0}}
+
+/* --- LEVEL MAP --- */
+.lv-map{display:flex;align-items:flex-start;gap:4px;justify-content:center;flex-wrap:wrap;padding:8px}
+.lv-node{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer}
+.lv-icon{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.7rem;border:2px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);transition:all .3s}
+.lv-icon.open{border-color:var(--accent);box-shadow:0 0 20px rgba(0,200,255,.3)}
+.lv-icon.open:hover{transform:scale(1.1);box-shadow:0 0 32px rgba(0,200,255,.6)}
+.lv-icon.done{border-color:var(--accent2);box-shadow:0 0 16px rgba(0,255,136,.3)}
+.lv-icon.lock{opacity:.3;cursor:not-allowed}
+.lv-icon.lock-shake{animation:shake .45s ease}
+.lv-connector{width:24px;height:2px;background:rgba(0,200,255,.18);flex-shrink:0;margin-top:36px}
+.lv-connector.done{background:linear-gradient(90deg,var(--accent2),rgba(0,200,255,.2))}
+
+/* --- LOGO / BRANDING --- */
+.logo-icon{font-size:3.4rem;animation:floatAnim 3s ease-in-out infinite;display:block;text-align:center}
+@keyframes floatAnim{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.logo-title{font-family:'Orbitron',monospace;font-size:clamp(1.1rem,3vw,1.7rem);color:var(--accent);text-shadow:0 0 18px rgba(0,200,255,.5);text-align:center}
+.logo-sub{font-size:.78rem;letter-spacing:3px;color:var(--text2);text-transform:uppercase;text-align:center}
+
+/* --- IMAGE LEVEL 2 --- */
+.img-container{border-radius:12px;overflow:hidden;border:1px solid var(--border);max-height:250px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);position:relative}
+.img-container img{width:100%;max-height:250px;object-fit:cover;transition:transform .3s ease}
+.img-container:hover img{transform:scale(1.03)}
+.img-skeleton{position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,255,255,.03) 25%,rgba(255,255,255,.07) 50%,rgba(255,255,255,.03) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:.9rem}
+
+/* --- RESULTS / FINAL --- */
+.final-score{font-family:'Orbitron',monospace;font-size:clamp(2.2rem,7vw,3.8rem);color:var(--accent2);text-shadow:0 0 28px rgba(0,255,136,.5)}
+.title-badge-big{font-size:1.2rem;padding:11px 26px;border-radius:999px;background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(0,200,255,.2));border:2px solid var(--accent3);color:var(--white);display:inline-block;font-family:'Orbitron',monospace;letter-spacing:1px}
+.title-badge-big.revealed{animation:rankReveal .65s cubic-bezier(.175,.885,.32,1.275) forwards}
+.score-counter{animation:countUp .1s ease}
+
+/* --- TABS --- */
+.tabs{display:flex;gap:3px;background:rgba(255,255,255,.05);padding:4px;border-radius:10px;margin-bottom:16px}
+.tab{flex:1;padding:8px;text-align:center;cursor:pointer;border-radius:7px;font-weight:600;transition:all .2s;font-size:.88rem;min-height:36px;display:flex;align-items:center;justify-content:center}
+.tab.on{background:var(--accent);color:#000}.tab:not(.on){color:var(--text2)}.tab:not(.on):hover{background:rgba(255,255,255,.08)}
+
+/* --- DEMO MODE --- */
+.demo-step{display:none}.demo-step.on{display:block;animation:slideInLeft .4s ease}
+.demo-nav{display:flex;justify-content:center;gap:8px;margin-bottom:16px}
+.demo-dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.15);cursor:pointer;transition:all .2s;min-width:24px;min-height:24px;display:flex;align-items:center;justify-content:center}
+.demo-dot::after{content:'';width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.15);transition:all .2s}
+.demo-dot.on::after{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+
+/* --- DECORATIONS --- */
+.earth-deco{position:fixed;bottom:-80px;right:-80px;width:270px;height:270px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#1a5276,#0e2745 40%,#050e20);box-shadow:0 0 60px rgba(0,100,200,.28);opacity:.18;z-index:0;animation:earthSpin 60s linear infinite}
+@keyframes earthSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+/* --- SKELETON LOADER --- */
+.skeleton{background:linear-gradient(90deg,rgba(255,255,255,.03) 25%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.03) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px}
+
+/* --- RESPONSIVE --- */
+@media(max-width:600px){
+  .hud{flex-direction:column;gap:6px;padding:8px 12px}
+  .tool-grid{grid-template-columns:1fr 1fr}
+  .card{padding:14px}.btn-lg{padding:12px 22px;font-size:.95rem}
+  .alpha-key{width:30px;height:30px;font-size:.7rem;min-height:30px}
+  .letter-slot{width:30px;height:38px;font-size:1.1rem}
+  .lv-icon{width:58px;height:58px;font-size:1.3rem}
+  #disasterCols{grid-template-columns:1fr!important}
+  .logo-title{font-size:1.2rem}
+  .final-score{font-size:2.2rem}
+}
+</style>
+</head>
+<body>
+<canvas id="starCanvas"></canvas>
+<div class="earth-deco"></div>
+<canvas id="confettiCanvas"></canvas>
+<div id="app">
+
+<!-- AUTH -->
+<div id="screen-auth" class="screen center-col active">
+  <div style="max-width:410px;width:100%">
+    <div style="margin-bottom:26px">
+      <span class="logo-icon">🛰️</span>
+      <div class="logo-title" style="margin:8px 0 4px">GRSS FIELD ANALYST</div>
+      <div class="logo-sub">IEEE Geoscience &amp; Remote Sensing Society</div>
+      <div style="text-align:center;margin-top:10px"><span class="badge badge-red">⚡ LIVE MISSION EVENT</span></div>
+    </div>
+    <div class="card card-glow">
+      <div class="tabs" id="authTabs">
+        <div class="tab on" onclick="switchAuthTab('login')" id="tabLogin">LOGIN</div>
+        <div class="tab" onclick="switchAuthTab('register')" id="tabReg">REGISTER</div>
+      </div>
+      <div id="loginPane">
+        <div style="margin-bottom:11px"><div class="label" style="margin-bottom:5px">Agent Name</div><input class="input" id="loginName" placeholder="Enter your name" /></div>
+        <div style="margin-bottom:16px"><div class="label" style="margin-bottom:5px">USN / Reg. No.</div><input class="input" id="loginUsn" placeholder="e.g. 1MS21CS001" /></div>
+        <button class="btn btn-primary btn-full btn-lg" id="loginBtn" onclick="doLogin()">🚀 DEPLOY AGENT</button>
+      </div>
+      <div id="registerPane" style="display:none">
+        <div style="margin-bottom:11px"><div class="label" style="margin-bottom:5px">Full Name</div><input class="input" id="regName" placeholder="Enter your full name" /></div>
+        <div style="margin-bottom:16px"><div class="label" style="margin-bottom:5px">USN / Reg. No.</div><input class="input" id="regUsn" placeholder="e.g. 1MS21CS001" /></div>
+        <button class="btn btn-success btn-full btn-lg" id="regBtn" onclick="doRegister()">🛡️ ENLIST AS ANALYST</button>
+      </div>
+      <div style="margin-top:13px;text-align:center">
+        <button class="btn btn-outline btn-sm" onclick="showDemo()">▶ Watch Demo Mode</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="screen-dashboard" class="screen full-col">
+  <div style="padding:14px 20px;background:rgba(3,7,15,.96);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;backdrop-filter:blur(12px)">
+    <div><div class="font-orb t-accent" style="font-size:.9rem" id="dbUsername">FIELD ANALYST</div><div style="font-size:.73rem;color:var(--text2)" id="dbUsn">USN: —</div></div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div style="text-align:right"><div class="label">TOTAL SCORE</div><div class="hud-score" id="dbScore" style="font-size:1.15rem">0</div></div>
+      <button class="btn btn-outline btn-sm" onclick="showScreen('screen-lb');renderLB()">🏆 Leaderboard</button>
+      <button class="btn btn-outline btn-sm" onclick="doLogout()">↩ Logout</button>
+    </div>
+  </div>
+  <div class="page-content" style="justify-content:center;gap:14px">
+    <div class="t-center" style="margin-bottom:4px">
+      <div class="font-orb t-accent" style="font-size:1.05rem">MISSION BRIEFING</div>
+      <div style="font-size:.88rem;color:var(--text2);max-width:480px;margin:7px auto 0">Earth is under threat. Complete all 5 missions as a GRSS Field Analyst. Speed, accuracy and strategy determine your rank.</div>
+    </div>
+    <div class="lv-map" id="levelMap"></div>
+    <div class="card card-sm" style="max-width:440px;width:100%">
+      <div class="label t-center" style="margin-bottom:11px">⚡ POWER-UP ARSENAL</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+        <div style="text-align:center;padding:11px;background:rgba(0,200,255,.05);border:1px solid var(--border);border-radius:9px"><div style="font-size:1.4rem">💡</div><div style="font-size:.72rem;color:var(--text2);margin:3px 0">HINT</div><div class="font-orb t-accent2" id="dbHint">2</div></div>
+        <div style="text-align:center;padding:11px;background:rgba(0,200,255,.05);border:1px solid var(--border);border-radius:9px"><div style="font-size:1.4rem">⏭</div><div style="font-size:.72rem;color:var(--text2);margin:3px 0">SKIP</div><div class="font-orb t-accent2" id="dbSkip">1</div></div>
+        <div style="text-align:center;padding:11px;background:rgba(0,200,255,.05);border:1px solid var(--border);border-radius:9px"><div style="font-size:1.4rem">❄️</div><div style="font-size:.72rem;color:var(--text2);margin:3px 0">FREEZE</div><div class="font-orb t-accent2" id="dbFreeze">1</div></div>
+      </div>
+    </div>
+    <div style="text-align:center"><div class="label">CURRENT RANK</div><div class="title-badge-big" id="dbTitle" style="font-size:.95rem;margin-top:8px">GRSS TRAINEE</div></div>
+  </div>
+</div>
+
+<!-- GAMEPLAY -->
+<div id="screen-gameplay" class="screen full-col">
+  <div class="hud" id="gameHud">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-outline btn-sm" onclick="goToDashboard()">← ABORT</button>
+      <div class="hud-level font-orb" id="hudLevel">LEVEL 1</div>
+      <div id="hudDots" class="prog-dots"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div class="pu-bar">
+        <button class="pu-btn" id="puHint" onclick="usePU('hint')" aria-label="Use Hint power-up"><span class="pu-icon">💡</span><span class="pu-label">Hint</span><span class="pu-count" id="puHintC">2</span></button>
+        <button class="pu-btn" id="puSkip" onclick="usePU('skip')" aria-label="Use Skip power-up"><span class="pu-icon">⏭</span><span class="pu-label">Skip</span><span class="pu-count" id="puSkipC">1</span></button>
+        <button class="pu-btn" id="puFreeze" onclick="usePU('freeze')" aria-label="Use Freeze power-up"><span class="pu-icon">❄️</span><span class="pu-label">Freeze</span><span class="pu-count" id="puFreezeC">1</span></button>
+      </div>
+      <div class="hud-score" id="hudScore">0 pts</div>
+    </div>
+  </div>
+  <div class="timer-wrap"><div class="timer-track"><div class="timer-fill" id="timerFill" style="width:100%"></div></div></div>
+  <div class="timer-txt" id="timerTxt">60s</div>
+  <div class="page-content" id="gameContent"></div>
+</div>
+
+<!-- LEVEL INTRO -->
+<div id="screen-intro" class="screen center-col">
+  <div style="max-width:500px;width:100%;text-align:center">
+    <div style="font-size:3rem;margin-bottom:10px" id="introIcon">🎯</div>
+    <span class="badge badge-blue" id="introBadge" style="margin-bottom:10px">MISSION 1</span>
+    <h2 class="font-orb t-accent glow-txt" id="introTitle" style="margin:10px 0 14px;font-size:clamp(1.1rem,3vw,1.5rem)">TRAINING MISSION</h2>
+    <p style="font-size:.9rem;color:var(--text3);line-height:1.85;margin-bottom:18px" id="introStory"></p>
+    <div class="card card-sm" style="margin-bottom:18px;text-align:left"><div id="introRules" style="font-size:.88rem;color:var(--text2);line-height:1.8"></div></div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn btn-outline" onclick="goToDashboard()">← Back</button>
+      <button class="btn btn-primary btn-lg" onclick="beginLevel()">🚀 BEGIN MISSION</button>
+    </div>
+  </div>
+</div>
+
+<!-- AUCTION -->
+<div id="screen-auction" class="screen full-col">
+  <div class="hud">
+    <div class="hud-level font-orb">LEVEL 5A — TOOL AUCTION</div>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div><div class="label">BUDGET</div><div class="font-orb t-warning" style="font-size:1.1rem" id="auctBudget">$10,000</div></div>
+      <div><div class="label">TOOLS</div><div class="font-orb t-accent2"><span id="auctToolCount">0</span>/5</div></div>
+      <div><div class="label">PRICE HIKE</div><div class="font-orb" id="auctPriceTimer" style="color:var(--warning)">20s</div></div>
+    </div>
+  </div>
+  <div style="padding:4px 20px"><div class="budget-track" style="max-width:680px;margin:0 auto"><div class="budget-fill" id="budgetBar" style="width:100%"></div></div></div>
+  <div class="page-content" style="gap:12px">
+    <div style="max-width:680px;width:100%">
+      <div class="timer-track"><div class="timer-fill" id="auctTimerFill" style="width:100%"></div></div>
+      <div class="timer-txt" id="auctTimerTxt" style="padding:0">3:00</div>
+    </div>
+    <div style="max-width:680px;width:100%;font-size:.83rem;color:var(--text2);background:rgba(0,200,255,.04);border:1px solid var(--border);border-radius:10px;padding:11px">
+      💼 Budget: <strong class="t-accent">$10,000</strong> &nbsp;|&nbsp; Max tools: <strong class="t-accent">5</strong> &nbsp;|&nbsp; Prices ↑10% every 20s &nbsp;|&nbsp; Sell back at 70% &nbsp;|&nbsp; Combos = bonus points!
+    </div>
+    <div id="disasterPreviewBanner" style="max-width:680px;width:100%"></div>
+    <div class="tool-grid" id="toolGrid" style="max-width:680px;width:100%"></div>
+    <div id="comboDisplay" style="max-width:680px;width:100%"></div>
+    <button class="btn btn-success btn-lg" onclick="finishAuction()" style="max-width:260px;width:100%">✅ FINALIZE LOADOUT</button>
+  </div>
+</div>
+
+<!-- DISASTER -->
+<div id="screen-disaster" class="screen full-col">
+  <div class="hud">
+    <div class="hud-level font-orb">LEVEL 5B — DISASTER RESPONSE</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="label">STRATEGY SCORE</div>
+      <div class="font-orb t-accent2" id="stratScore">0 pts</div>
+    </div>
+  </div>
+  <div class="page-content" style="gap:14px">
+    <div class="disaster-banner" style="max-width:660px;width:100%" id="disasterBanner"></div>
+    <div style="max-width:660px;width:100%;display:grid;grid-template-columns:1fr 1fr;gap:14px" id="disasterCols">
+      <div>
+        <div class="label" style="margin-bottom:8px">🛠 YOUR TOOLS</div>
+        <div id="disasterTools" style="display:grid;gap:8px"></div>
+        <div style="margin-top:8px;font-size:.78rem;color:var(--text2)">Tap a tool to deploy/un-deploy it.</div>
+      </div>
+      <div>
+        <div class="label" style="margin-bottom:8px">📋 MISSION METRICS</div>
+        <div id="disasterMetrics"></div>
+      </div>
+    </div>
+    <div style="max-width:660px;width:100%">
+      <div class="label" style="margin-bottom:8px">🎯 DEPLOYED TOOLS</div>
+      <div id="deployedTools" style="min-height:54px;background:rgba(0,200,255,.03);border:1px dashed var(--border);border-radius:10px;padding:11px;display:flex;flex-wrap:wrap;gap:7px;align-items:flex-start">
+        <span style="color:var(--text2);font-size:.83rem" id="noDeployMsg">No tools deployed yet.</span>
+      </div>
+    </div>
+    <button class="btn btn-danger btn-lg" onclick="submitDisaster()" style="max-width:260px;width:100%">📡 SUBMIT RESPONSE PLAN</button>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div id="screen-results" class="screen center-col">
+  <div style="max-width:540px;width:100%;text-align:center">
+    <div style="font-size:3rem" id="resIcon">🎯</div>
+    <div class="font-orb t-accent" style="font-size:.85rem;letter-spacing:2px;margin:8px 0" id="resLevelName">LEVEL 1 COMPLETE</div>
+    <div class="final-score" id="resScore">0</div>
+    <div style="font-size:.88rem;color:var(--text2);margin-bottom:18px">points earned this level</div>
+    <div class="card" style="margin-bottom:18px" id="resDetails"></div>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button class="btn btn-outline" onclick="goToDashboard()">← Dashboard</button>
+      <button class="btn btn-primary btn-lg" id="resNextBtn" onclick="goNextLevel()">NEXT MISSION →</button>
+    </div>
+  </div>
+</div>
+
+<!-- FINAL RESULTS -->
+<div id="screen-final" class="screen center-col">
+  <div style="max-width:580px;width:100%;text-align:center">
+    <div style="font-size:4rem;margin-bottom:8px">🌍</div>
+    <div class="font-orb t-accent" style="font-size:.85rem;letter-spacing:3px;margin-bottom:4px">ALL MISSIONS COMPLETE</div>
+    <h2 class="font-orb" style="margin-bottom:14px">FINAL DEBRIEF</h2>
+    <div class="final-score" id="finalScore">0</div>
+    <div style="color:var(--text2);margin-bottom:14px">total mission score</div>
+    <div class="title-badge-big" id="finalTitle">GRSS TRAINEE</div>
+    <div class="card" style="margin:18px 0" id="finalBreakdown"></div>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button class="btn btn-outline" onclick="showScreen('screen-lb');renderLB()">🏆 Leaderboard</button>
+      <button class="btn btn-primary btn-lg" onclick="restartGame()">🔄 Play Again</button>
+    </div>
+  </div>
+</div>
+
+<!-- LEADERBOARD -->
+<div id="screen-lb" class="screen full-col">
+  <div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);background:rgba(3,7,15,.96);backdrop-filter:blur(12px)">
+    <div class="font-orb t-accent" style="font-size:1.05rem">🏆 GLOBAL LEADERBOARD</div>
+    <button class="btn btn-outline btn-sm" onclick="showScreen('screen-dashboard');renderDash()">← Back</button>
+  </div>
+  <div class="page-content" style="gap:8px">
+    <div style="max-width:600px;width:100%">
+      <div id="lbList"></div>
+      <div class="t-center t-muted" style="margin-top:14px;font-size:.78rem">Scores persist across all sessions. Play all 5 levels for a final score!</div>
+    </div>
+  </div>
+</div>
+
+<!-- DEMO -->
+<div id="screen-demo" class="screen full-col">
+  <div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);background:rgba(3,7,15,.96);backdrop-filter:blur(12px)">
+    <div class="font-orb t-accent">▶ DEMO MODE — INTERACTIVE TOUR</div>
+    <button class="btn btn-outline btn-sm" onclick="showScreen('screen-auth')">← Exit Demo</button>
+  </div>
+  <div class="page-content">
+    <div style="max-width:620px;width:100%">
+      <div class="demo-nav" id="demoNav"></div>
+      <!-- Step 0: Welcome -->
+      <div class="demo-step on" id="demoStep0">
+        <div class="card card-glow" style="text-align:center;padding:30px">
+          <div style="font-size:3rem;margin-bottom:12px">🛰️</div>
+          <h2 class="font-orb t-accent" style="margin-bottom:8px;font-size:1.3rem">Welcome, Analyst</h2>
+          <p style="color:var(--text2);margin-bottom:18px;font-size:.92rem;line-height:1.8">You're about to join the IEEE GRSS Field Analyst mission. 5 levels, 200+ participants, one Earth to save. This tour will show you the interface before you dive in.</p>
+          <button class="btn btn-primary btn-lg" onclick="demoNext()">Start Tour →</button>
+        </div>
+      </div>
+      <!-- Step 1: HUD -->
+      <div class="demo-step" id="demoStep1">
+        <div class="label" style="margin-bottom:9px">THE MISSION HUD</div>
+        <div class="card card-glow" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <div><div class="font-orb t-accent" style="font-size:.82rem">LEVEL 2 — INTEL</div><div class="prog-dots" style="margin-top:4px"><div class="prog-dot done"></div><div class="prog-dot done"></div><div class="prog-dot cur"></div><div class="prog-dot"></div><div class="prog-dot"></div></div></div>
+            <div class="pu-bar"><div class="pu-btn"><span class="pu-icon">💡</span><span class="pu-label">Hint</span><span class="pu-count">2</span></div><div class="pu-btn"><span class="pu-icon">⏭</span><span class="pu-label">Skip</span><span class="pu-count">1</span></div><div class="pu-btn"><span class="pu-icon">❄️</span><span class="pu-label">Freeze</span><span class="pu-count">1</span></div></div>
+            <div class="font-orb t-accent2">340 pts</div>
+          </div>
+          <div class="timer-wrap" style="margin-top:10px;padding:0"><div class="timer-track"><div class="timer-fill warn" id="demoTimerFill" style="width:100%"></div></div></div>
+          <div style="font-size:.78rem;color:var(--warning);text-align:right;margin-top:3px;font-family:'Orbitron',monospace" id="demoTimerTxt">1:12</div>
+        </div>
+        <p style="color:var(--text2);font-size:.88rem;margin-bottom:12px;line-height:1.7">The HUD tracks your level, question progress (dots), power-ups and live score. Timer bar turns orange then red as urgency builds. Power-ups can turn the tide — use them wisely!</p>
+        <div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="demoPrev()">← Back</button><button class="btn btn-primary btn-sm" onclick="demoNext()">Next →</button></div>
+      </div>
+      <!-- Step 2: Auction -->
+      <div class="demo-step" id="demoStep2">
+        <div class="label" style="margin-bottom:9px">LEVEL 5A — TOOL AUCTION</div>
+        <div class="card card-glow" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+            <div><div class="label">BUDGET</div><div class="font-orb t-warning" style="font-size:1.1rem">$6,800</div></div>
+            <div><div class="label">TOOLS</div><div class="font-orb t-accent2">2/5</div></div>
+            <div><div class="label">PRICE HIKE IN</div><div class="font-orb t-danger">9s</div></div>
+          </div>
+          <div class="budget-track" style="margin-bottom:13px"><div class="budget-fill" style="width:68%"></div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="tool-card bought"><div style="font-size:1.4rem;margin-bottom:3px">📡</div><div style="font-weight:700;font-size:.85rem;margin-bottom:3px">SAR Satellite Feed</div><div class="tool-price">$2,500</div><div style="font-size:.73rem;color:var(--accent2);margin-top:4px">✅ ACQUIRED — tap to sell</div></div>
+            <div class="tool-card"><div style="font-size:1.4rem;margin-bottom:3px">🌡️</div><div style="font-weight:700;font-size:.85rem;margin-bottom:3px">Thermal Camera</div><div class="tool-price rising">$1,980</div><div style="font-size:.73rem;color:var(--text2);margin-top:4px">Tap to acquire</div></div>
+          </div>
+        </div>
+        <p style="color:var(--text2);font-size:.88rem;margin-bottom:12px;line-height:1.7">Prices rise 10% every 20 seconds! Certain tool combinations unlock powerful combo bonuses. Your purchases directly affect your Disaster Response score in Part B.</p>
+        <div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="demoPrev()">← Back</button><button class="btn btn-primary btn-sm" onclick="demoNext()">Next →</button></div>
+      </div>
+      <!-- Step 3: Glossary -->
+      <div class="demo-step" id="demoStep3">
+        <div class="label" style="margin-bottom:9px">📖 GEOSCIENCE QUICK GLOSSARY</div>
+        <div class="card" style="margin-bottom:12px">
+          <div style="display:grid;gap:6px">
+            <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)"><span class="t-accent font-orb" style="font-size:.82rem">SAR</span><span style="color:var(--text2);font-size:.83rem">Synthetic Aperture Radar — cloud-piercing microwave imaging</span></div>
+            <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)"><span class="t-accent font-orb" style="font-size:.82rem">NDVI</span><span style="color:var(--text2);font-size:.83rem">Normalized Difference Vegetation Index (-1 to +1)</span></div>
+            <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)"><span class="t-accent font-orb" style="font-size:.82rem">LiDAR</span><span style="color:var(--text2);font-size:.83rem">Laser-based 3D terrain mapping from aerial platforms</span></div>
+            <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)"><span class="t-accent font-orb" style="font-size:.82rem">InSAR</span><span style="color:var(--text2);font-size:.83rem">Interferometric SAR — detects mm-level ground deformation</span></div>
+            <div style="display:flex;justify-content:space-between;padding:7px 0"><span class="t-accent font-orb" style="font-size:.82rem">GRSS</span><span style="color:var(--text2);font-size:.83rem">IEEE Geoscience &amp; Remote Sensing Society</span></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="demoPrev()">← Back</button><button class="btn btn-primary btn-sm" onclick="demoNext()">Next →</button></div>
+      </div>
+      <!-- Step 4: Scoring -->
+      <div class="demo-step" id="demoStep4">
+        <div class="label" style="margin-bottom:9px">🏅 SCORING &amp; RANKS</div>
+        <div class="card" style="margin-bottom:12px">
+          <div style="display:grid;gap:0">
+            <div class="metric-row"><span style="font-size:.88rem">Answer correctness (base)</span><span class="metric-val">100–250 pts</span></div>
+            <div class="metric-row"><span style="font-size:.88rem">Speed bonus (time remaining)</span><span class="metric-val">Up to +50%</span></div>
+            <div class="metric-row"><span style="font-size:.88rem">Budget efficiency (Level 5A)</span><span class="metric-val">Up to +300 pts</span></div>
+            <div class="metric-row"><span style="font-size:.88rem">Tool combo bonus</span><span class="metric-val">+300–500 pts</span></div>
+            <div class="metric-row" style="border:none"><span style="font-size:.88rem">Disaster effectiveness (Level 5B)</span><span class="metric-val">Up to +800 pts</span></div>
+          </div>
+          <div style="margin-top:13px;padding:12px;background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.2);border-radius:9px">
+            <div style="color:var(--gold);font-weight:700;margin-bottom:7px;font-size:.88rem">🏆 RANK TITLES</div>
+            <div style="font-size:.8rem;color:var(--text2);display:grid;gap:3px">
+              <div>≥ 3000 pts → <strong style="color:var(--white)">Disaster Strategist</strong></div>
+              <div>≥ 2500 pts → <strong style="color:var(--white)">Climate Guardian</strong></div>
+              <div>≥ 2000 pts → <strong style="color:var(--white)">Resource Optimizer</strong></div>
+              <div>≥ 1500 pts → <strong style="color:var(--white)">Earth Observer</strong></div>
+              <div>≥ 1000 pts → <strong style="color:var(--white)">Field Analyst</strong></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-outline btn-sm" onclick="demoPrev()">← Back</button>
+          <button class="btn btn-success" onclick="showScreen('screen-auth')">🚀 Start Playing!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- #app -->
+<script>
+/* ====== GAME DATA ====== */
+const DATA={
+  level1:{
+    scrambles:[
+      {word:'LIDAR',sc:'RIDAL',hint:'Light Detection And Ranging — uses laser pulses to measure distance to the ground surface',cat:'Remote Sensing',pts:100},
+      {word:'RADAR',sc:'ARRAD',hint:'Radio Detection And Ranging — uses radio waves to detect objects and measure distances',cat:'Remote Sensing',pts:100},
+      {word:'PIXEL',sc:'XELIP',hint:'The smallest discrete unit of a digital satellite image — think of it as one tiny square of colour data',cat:'Image Basics',pts:100},
+      {word:'THERMAL',sc:'LAHRMET',hint:'Related to heat energy; infrared satellite sensors detect this to map surface temperatures',cat:'Electromagnetics',pts:150},
+      {word:'LANDSAT',sc:'TASLAND',hint:'The world\'s longest-running Earth observation satellite programme, operated since 1972 by NASA and USGS',cat:'Satellites',pts:200}
+    ],
+    riddles:[
+      {q:"I have 8 spectral bands but can't play music. I've orbited Earth since 1972, and my latest version is number 9. What am I?",ans:'LANDSAT',hint:'A famous NASA/USGS satellite programme for continuous Earth observation since 1972',cat:'Satellites',pts:150},
+      {q:"Scientists love me when I'm between 0.6 and 0.9. Healthy forests make me high; concrete and deserts keep me low. I compare red and near-infrared light. What am I?",ans:'NDVI',hint:'A vegetation health index calculated from two spectral bands captured by satellites',cat:'Vegetation',pts:200},
+      {q:"I was drilled from 3 km below Antarctic ice. I hold tiny air bubbles from 800,000 years ago. Climate scientists treasure me. What am I?",ans:'ICE CORE',hint:'A cylindrical sample extracted from glaciers — contains ancient atmospheric gas records',cat:'Climate Science',pts:200},
+      {q:"30 of my siblings orbit Earth at 20,200 km altitude. Together we help ships, pilots, and hikers know exactly where they are. What system are we?",ans:'GPS',hint:'A satellite-based navigation system originally developed by the US Department of Defense',cat:'Navigation',pts:150},
+      {q:"I am a Copernicus mission launched by ESA. I see through clouds using C-band microwaves. Floods, earthquakes, and ship movements cannot hide from me. What am I?",ans:'SENTINEL',hint:'ESA\'s Earth observation satellite constellation — provides free open data globally',cat:'Satellites',pts:250}
+    ]
+  },
+  level2:{
+    qs:[
+      {img:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/500px-The_Earth_seen_from_Apollo_17.jpg',q:'This iconic photograph known as "The Blue Marble" was captured from space. What type of satellite imaging does it represent?',opts:['True Color Composite','False Color Infrared','Synthetic Aperture Radar (SAR)','Thermal Infrared Mosaic'],ans:0,expl:'The Blue Marble is a true color composite — showing Earth as human eyes would see it, using Red, Green and Blue spectral bands to produce natural-looking imagery.',pts:150},
+      {img:'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Hurricane_Isabel_from_ISS.jpg/500px-Hurricane_Isabel_from_ISS.jpg',q:'This photo was captured from the International Space Station. What extreme weather phenomenon is shown?',opts:['Tornado','Hurricane / Tropical Cyclone','Dust Storm','Volcanic Ash Plume'],ans:1,expl:'Hurricane Isabel (2003) shows the characteristic spiral bands and clear eye of a tropical cyclone. Geostationary satellites track these storms 24/7, enabling early warnings that save thousands of lives.',pts:150},
+      {img:'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Amazon_deforestation.jpg/500px-Amazon_deforestation.jpg',q:'This Landsat satellite image of the Amazon Basin reveals a major environmental crisis. What is being shown?',opts:['River Flooding','Systematic Deforestation','Agricultural Irrigation Grid','Oil Spill from Pipeline'],ans:1,expl:'The geometric clearing pattern is a classic signature of systematic deforestation. Satellites like Landsat and Sentinel-2 track global forest loss — Brazil lost over 11,000 km² in 2022 alone, primarily detected via satellite remote sensing.',pts:200},
+      {img:'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/NOAA-NASA_Suomi_NPP_satellite_image_of_northern_India_and_surrounding_countries_at_night.jpg/500px-NOAA-NASA_Suomi_NPP_satellite_image_of_northern_India_and_surrounding_countries_at_night.jpg',q:'This nighttime satellite composite from Suomi NPP is used by economists and geographers to measure what?',opts:['Lightning Activity Patterns','Human Settlement Density & Economic Activity','Volcanic Hotspot Activity','Aurora Borealis Distribution'],ans:1,expl:'Night lights detected by the VIIRS instrument are a powerful proxy for economic activity, electrification and urbanisation. The "light pollution index" correlates strongly with GDP per capita across nations.',pts:200},
+      {img:'https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Aletschgletscher_mit_Jungfrau.jpg/500px-Aletschgletscher_mit_Jungfrau.jpg',q:'Multi-temporal satellite imagery of Alpine glaciers like this one is used to track which critical environmental indicator?',opts:['Tectonic Uplift of Mountain Ranges','Glacial Retreat due to Climate Change','New Volcanic Formation','Increased Snowfall from La Niña'],ans:1,expl:'Repeat satellite observations (Landsat archives go back to 1972!) document Alpine glacier retreat at 50+ metres per year. SAR interferometry can detect millimetre-scale surface changes from orbit, making it invaluable for climate science.',pts:250}
+    ]
+  },
+  level3:{
+    chs:[
+      {em:'🛰️💡🌍',word:'LIDAR',hint:'Pulses of laser light measure precise distance to the ground surface — creates 3D terrain maps',expl:'Satellite platform + Laser light + Earth surface = LiDAR. Creates 3D elevation models with centimetre accuracy — used for flood depth mapping and urban planning!',pts:150},
+      {em:'🌊⚠️🌏',word:'TSUNAMI',hint:'A massive ocean wave triggered by a submarine earthquake or undersea landslide',expl:'Ocean wave + hazard warning + global coastline impact = TSUNAMI. GRSS scientists use SAR satellites to measure wave run-up extents within minutes of a seismic event!',pts:200},
+      {em:'❄️🏔️📉',word:'GLACIER',hint:'A slow-moving mass of compacted ice that shapes mountain valleys over millennia',expl:'Ice + mountain terrain + shrinking over time = GLACIER. Monitoring glaciers from space is one of the most critical datasets in global climate science!',pts:200},
+      {em:'🌪️👁️🌀',word:'CYCLONE',hint:'A large rotating storm system tracked continuously by geostationary weather satellites',expl:'Rotating winds + eye + spiral structure = CYCLONE. Geostationary satellites like INSAT-3D provide 15-minute imagery of developing cyclones over the Indian Ocean!',pts:250},
+      {em:'🔥🌲🗺️',word:'WILDFIRE',hint:'An uncontrolled fire spreading through vegetation, monitored by thermal infrared satellite sensors',expl:'Fire + forest/vegetation + mapped from space = WILDFIRE. NASA FIRMS delivers near-real-time active fire data from MODIS and VIIRS instruments — updated every few hours!',pts:250}
+    ]
+  },
+  level4:{
+    qs:[
+      {q:'What does NDVI stand for in remote sensing?',opts:['Normalized Difference Vegetation Index','National Digital Vegetation Interface','Natural Data Visualization Index','Normalized Distribution Visual Index'],ans:0,expl:'NDVI = (NIR − Red)/(NIR + Red). Values range from −1 (water/bare rock) to +1 (dense rainforest). It is the most widely used spectral index for monitoring vegetation health and land cover change from space.',diff:1,pts:100},
+      {q:'Which type of radar sensor does the ESA Sentinel-1 satellite carry?',opts:['X-band Radar','L-band Radar','C-band SAR','P-band SAR'],ans:2,expl:'Sentinel-1 carries a C-band Synthetic Aperture Radar operating at 5.4 GHz. C-band balances cloud-penetration capability with spatial resolution, making it ideal for flood mapping, ship detection and ground deformation monitoring.',diff:2,pts:150},
+      {q:'Which spectral band combination is BEST for delineating water bodies from a satellite image?',opts:['Red + Green bands','NIR + SWIR bands','Blue + Green bands','Thermal + Panchromatic'],ans:1,expl:'Water strongly absorbs Near-Infrared (NIR) and Short-Wave Infrared (SWIR) energy, appearing very dark in these bands. Combining NIR+SWIR creates high contrast between water and surrounding land, enabling accurate water body mapping.',diff:2,pts:150},
+      {q:'IEEE GRSS (Geoscience and Remote Sensing Society) is primarily focused on:',opts:['GPS navigation and positioning systems','Geoscience and remote sensing science and technology','Geological rock formation studies','Ground robotics and spatial computing'],ans:1,expl:'IEEE GRSS is the premier professional society for Earth observation scientists. It publishes IEEE TGRS — one of the highest-impact journals in the field — and organises IGARSS, the world\'s largest annual remote sensing conference.',diff:1,pts:100},
+      {q:'What is the PRIMARY advantage of SAR over optical satellite sensors?',opts:['Higher spatial resolution','All-weather, day-and-night imaging capability','More spectral bands available','Significantly lower cost per scene'],ans:1,expl:'SAR uses microwave energy (1–30 GHz) that penetrates cloud cover and operates independently of sunlight. This makes it essential for monitoring floods under storm clouds, detecting ship movements in fog, and measuring post-earthquake ground deformation.',diff:2,pts:150},
+      {q:'Which programme provides FREE and OPEN access to the full Sentinel satellite data archive?',opts:['NASA Earthdata','The Copernicus Programme (ESA)','JAXA EORC','ISRO Bhuvan'],ans:1,expl:'The EU Copernicus Programme, implemented by ESA, provides completely free and open access to all Sentinel data. This open data policy has democratised Earth observation, enabling research in over 100 countries and spawning a multi-billion-dollar downstream services industry.',diff:2,pts:150},
+      {q:'In remote sensing, what does "temporal resolution" refer to?',opts:['The pixel size on the ground','How often a satellite revisits and images the same location','The number of spectral bands a sensor records','The altitude of the satellite orbit'],ans:1,expl:'Temporal resolution = revisit time. Geostationary satellites (e.g., GOES, Meteosat) image continuously every 10–15 minutes. Landsat revisits every 16 days; Sentinel-2 every 5 days. High temporal resolution is critical for tracking fast-changing events like floods and wildfires.',diff:2,pts:150},
+      {q:'Which satellite spectral band is MOST useful for highlighting vegetation health in a false-color composite?',opts:['Blue band (0.45–0.52 μm)','Green band (0.52–0.60 μm)','Near-Infrared band (0.76–0.90 μm)','Thermal Infrared band (10–12 μm)'],ans:2,expl:'Healthy vegetation strongly reflects Near-Infrared (NIR) while absorbing Red light. In a false-color composite displaying NIR as red, healthy vegetation appears bright red — instantly revealing forest health, crop stress and vegetation density from space.',diff:3,pts:200},
+      {q:'What is "orthorectification" in remote sensing image processing?',opts:['Enhancing image brightness and contrast levels','Correcting geometric distortions caused by terrain relief and sensor geometry','Removing atmospheric scattering and haze effects','Classifying pixels into land cover categories'],ans:1,expl:'Orthorectification removes spatial distortions caused by terrain relief displacement and sensor tilt. The result is a geometrically accurate orthophoto equivalent to a true map — essential for measuring distances, areas and overlaying multiple datasets in GIS.',diff:3,pts:200},
+      {q:'The Landsat 9 satellite was launched in which year, continuing a 50-year Earth observation legacy?',opts:['2015','2018','2021','2023'],ans:2,expl:'Landsat 9 launched on September 27, 2021, carrying OLI-2 (Operational Land Imager) and TIRS-2 (Thermal Infrared Sensor). Together with Landsat 8, it achieves 8-day global coverage — the most scientifically valuable long-term Earth observation dataset ever collected.',diff:3,pts:200}
+    ]
+  },
+  level5:{
+    tools:[
+      {id:'sar',name:'SAR Satellite Feed',price:2500,icon:'📡',desc:'All-weather C-band radar imagery through cloud cover',eff:{flood:10,wildfire:6,earthquake:8}},
+      {id:'thermal',name:'Thermal Camera Array',price:1800,icon:'🌡️',desc:'Infrared heat signature detection from orbit',eff:{flood:5,wildfire:10,earthquake:4}},
+      {id:'lidar',name:'LiDAR Terrain Scanner',price:2200,icon:'💡',desc:'Precise 3D elevation models for flood depth analysis',eff:{flood:9,wildfire:5,earthquake:9}},
+      {id:'ndvi',name:'NDVI Vegetation Analyzer',price:800,icon:'🌿',desc:'Vegetation health index and fire risk mapping',eff:{flood:4,wildfire:8,earthquake:3}},
+      {id:'gps',name:'GPS Ground Network',price:600,icon:'📍',desc:'Millimetre-precision ground displacement tracking',eff:{flood:6,wildfire:3,earthquake:10}},
+      {id:'flood_ai',name:'Flood Prediction AI',price:1500,icon:'🌊',desc:'ML-based flood extent and inundation depth forecasting',eff:{flood:10,wildfire:2,earthquake:4}},
+      {id:'comm',name:'Emergency Comm Relay',price:900,icon:'📻',desc:'Satellite communications for connectivity-denied zones',eff:{flood:7,wildfire:7,earthquake:8}},
+      {id:'drone',name:'Multispectral UAV',price:1400,icon:'🚁',desc:'Close-range aerial recon with real-time multispectral data',eff:{flood:7,wildfire:9,earthquake:6}},
+      {id:'seismic',name:'Seismic Sensor Array',price:1600,icon:'📊',desc:'Ground motion monitoring and aftershock prediction',eff:{flood:3,wildfire:2,earthquake:10}},
+      {id:'optical',name:'High-Res Optical Satellite',price:2000,icon:'🔭',desc:'30 cm resolution imagery for detailed damage assessment',eff:{flood:8,wildfire:7,earthquake:7}}
+    ],
+    combos:[
+      {tools:['sar','lidar'],name:'3D Flood Intelligence Suite',bonus:500,desc:'SAR + LiDAR generates the most accurate flood depth maps in the world!',icon:'🏆'},
+      {tools:['thermal','ndvi'],name:'Fire Risk Sentinel System',bonus:350,desc:'Thermal + NDVI perfectly maps active fire perimeters and burn severity!',icon:'🔥'},
+      {tools:['gps','seismic'],name:'Earthquake Intelligence System',bonus:450,desc:'GPS + Seismic arrays predict aftershocks and ground failure with high accuracy!',icon:'⚠️'},
+      {tools:['drone','comm'],name:'Tactical Response Unit',bonus:300,desc:'UAV drones + Comm relay enable coordinated real-time rescue operations!',icon:'📡'}
+    ],
+    disasters:[
+      {id:'flood',name:'BANGLADESH MEGA-FLOOD',icon:'🌊',color:'#00c8ff',desc:'Catastrophic monsoon flooding has inundated 30% of Bangladesh. 2.3 million people are displaced. Rising waters are cutting off villages and communication towers. The government needs a satellite-based damage assessment and evacuation corridor map within 6 hours.',optTools:['sar','flood_ai','lidar','comm'],metrics:['Flood extent mapping accuracy','Population exposure quantification','Infrastructure damage detection','Evacuation route planning quality']},
+      {id:'wildfire',name:'CALIFORNIA MEGA-FIRE',icon:'🔥',color:'#ff6b35',desc:'A rapidly spreading wildfire in Northern California has consumed 80,000 acres in 12 hours. Dense smoke is grounding all aircraft. 80,000 residents may need emergency evacuation. Satellite-based monitoring is the only viable real-time assessment tool available.',optTools:['thermal','ndvi','drone','comm'],metrics:['Active fire perimeter mapping','Fire spread direction forecast','Air quality hazard monitoring','Evacuation zone prioritisation']},
+      {id:'earthquake',name:'TURKEY M7.8 EARTHQUAKE',icon:'⚠️',color:'#ffaa00',desc:'A catastrophic 7.8 magnitude earthquake has struck southeastern Turkey. Thousands of buildings have collapsed. International rescue teams are mobilising but need ground displacement maps, structural damage grids and aftershock risk zones to prioritise search-and-rescue operations.',optTools:['sar','seismic','gps','optical'],metrics:['Ground displacement (InSAR) mapping','Building collapse detection accuracy','Aftershock risk zone delineation','Search & rescue prioritisation score']}
+    ]
+  }
+};
+
+/* ====== STATE ====== */
+let G={
+  user:null,unlocked:new Set([1]),completed:new Set(),scores:{},
+  powerups:{hint:2,skip:1,freeze:1},
+  currentLevel:0,currentHint:'',
+  l1q:[],l1idx:0,l1score:0,l1correct:0,
+  l2idx:0,l2score:0,l2correct:0,
+  l3idx:0,l3score:0,l3correct:0,l3guessed:new Set(),l3lives:6,l3hintGiven:false,
+  l4idx:0,l4score:0,l4correct:0,
+  budget:10000,bought:[],priceMulti:1.0,
+  auctTimer:null,priceTimer:null,auctTime:180,priceTime:20,auctScore:0,
+  disaster:null,applied:new Set(),disasterScore:0,
+  timerInterval:null,timerVal:0,timerMax:0,frozen:false,
+  l3HintTimeout:null,
+  demoStep:0,demoTimerAnim:null,qState:null
+};
+let advanceQuestion=()=>{};
+
+/* ====== AUDIO ====== */
+let _actx=null;
+const getACtx=()=>{if(!_actx)_actx=new(window.AudioContext||window.webkitAudioContext)();return _actx;};
+const tone=(freq,dur,type='sine',vol=0.22,delay=0)=>{
+  try{const c=getACtx(),o=c.createOscillator(),g=c.createGain();
+    o.connect(g);g.connect(c.destination);o.type=type;
+    o.frequency.setValueAtTime(freq,c.currentTime+delay);
+    g.gain.setValueAtTime(0,c.currentTime+delay);
+    g.gain.linearRampToValueAtTime(vol,c.currentTime+delay+0.01);
+    g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+delay+dur);
+    o.start(c.currentTime+delay);o.stop(c.currentTime+delay+dur+0.05);
+  }catch(e){}
+};
+const SFX={
+  click:()=>tone(700,0.04,'square',0.07),
+  correct:()=>{tone(523,.1,'sine',.2);tone(659,.1,'sine',.22,.1);tone(784,.3,'sine',.22,.2);},
+  wrong:()=>{tone(200,.2,'sawtooth',.22);tone(150,.3,'sawtooth',.18,.22);},
+  levelUp:()=>[523,587,659,698,784,880,988].forEach((f,i)=>tone(f,.18,'sine',.22,i*.07)),
+  tick:()=>tone(1000,.03,'square',.05),
+  urgency:()=>tone(440,.1,'square',.12),
+  buy:()=>{tone(400,.1,'sine',.18);tone(600,.2,'sine',.18,.1);},
+  powerup:()=>{tone(1000,.08,'sine',.18);tone(1200,.08,'sine',.18,.08);tone(1400,.2,'sine',.22,.16);},
+  final:()=>[523,659,784,1047].forEach((f,i)=>{tone(f,.3,'sine',.2,i*.12);tone(f*2,.3,'sine',.1,i*.12);})
+};
+
+/* ====== STARFIELD ====== */
+(function(){
+  const cv=document.getElementById('starCanvas'),cx=cv.getContext('2d');
+  const resize=()=>{cv.width=window.innerWidth;cv.height=window.innerHeight;};
+  resize();window.addEventListener('resize',resize);
+  const stars=Array.from({length:220},()=>({
+    x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,
+    r:Math.random()*1.5+0.2,spd:Math.random()*.35+.04,
+    tw:Math.random()*Math.PI*2,tws:Math.random()*.03+.004,
+    col:Math.random()>.92?'#00c8ff':Math.random()>.96?'#00ff9d':'#b8d8ff'
+  }));
+  (function draw(){
+    cx.clearRect(0,0,cv.width,cv.height);
+    stars.forEach(s=>{
+      s.tw+=s.tws;const a=.3+.7*Math.abs(Math.sin(s.tw));
+      cx.globalAlpha=a;cx.fillStyle=s.col;
+      cx.beginPath();cx.arc(s.x,s.y,s.r,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
+      s.y+=s.spd*.12;if(s.y>cv.height){s.y=0;s.x=Math.random()*cv.width;}
+    });
+    requestAnimationFrame(draw);
+  })();
+})();
+
+/* ====== CONFETTI ====== */
+function fireConfetti(colors){
+  const cv=document.getElementById('confettiCanvas');
+  cv.width=window.innerWidth;cv.height=window.innerHeight;
+  const cx=cv.getContext('2d');
+  const cols=colors||['#00c8ff','#00ff9d','#7c3aed','#ffd700','#ff6b35','#ff2d55'];
+  const ps=Array.from({length:150},()=>({
+    x:Math.random()*cv.width,y:cv.height*Math.random()*.25-20,
+    vx:(Math.random()-.5)*9,vy:Math.random()*5+2,
+    col:cols[Math.floor(Math.random()*cols.length)],
+    w:Math.random()*12+4,h:Math.random()*6+2,
+    rot:Math.random()*360,rsp:(Math.random()-.5)*14
+  }));
+  let frame=0;
+  (function loop(){
+    cx.clearRect(0,0,cv.width,cv.height);let any=false;
+    ps.forEach(p=>{
+      if(p.y>cv.height+30)return;any=true;
+      p.x+=p.vx;p.y+=p.vy;p.vy+=.13;p.rot+=p.rsp;
+      const a=Math.max(0,1-p.y/cv.height);
+      cx.save();cx.translate(p.x,p.y);cx.rotate(p.rot*Math.PI/180);
+      cx.globalAlpha=a;cx.fillStyle=p.col;cx.fillRect(-p.w/2,-p.h/2,p.w,p.h);cx.restore();
+    });
+    frame++;if(any&&frame<400)requestAnimationFrame(loop);else cx.clearRect(0,0,cv.width,cv.height);
+  })();
+}
+
+/* ====== SCREENS ====== */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=document.getElementById(id);if(el)el.classList.add('active');
+}
+
+/* ====== TOAST ====== */
+function toast(msg,type='inf'){
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;el.textContent=msg;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),3200);
+}
+
+/* ====== ANIMATED COUNTER ====== */
+function animateCounter(el,target,duration=900){
+  if(!el)return;
+  const start=parseInt(el.textContent.replace(/,/g,''))||0;
+  const diff=target-start;
+  if(diff===0){el.textContent=target.toLocaleString();return;}
+  const steps=Math.min(60,Math.abs(diff));
+  const stepTime=duration/steps;
+  let current=start,count=0;
+  const timer=setInterval(()=>{
+    count++;
+    current=Math.round(start+(diff*(count/steps)));
+    el.textContent=current.toLocaleString();
+    el.classList.remove('score-counter');void el.offsetWidth;el.classList.add('score-counter');
+    if(count>=steps){clearInterval(timer);el.textContent=target.toLocaleString();}
+  },stepTime);
+}
+
+/* ====== TIMER ====== */
+function stopTimer(){
+  if(G.timerInterval){clearInterval(G.timerInterval);G.timerInterval=null;}
+  if(G.l3HintTimeout){clearTimeout(G.l3HintTimeout);G.l3HintTimeout=null;}
+}
+function startTimer(sec,onDone,onHalfway){
+  stopTimer();G.timerVal=sec;G.timerMax=sec;G.frozen=false;updateTimerUI();
+  if(onHalfway){
+    G.l3HintTimeout=setTimeout(()=>{if(!G.frozen)onHalfway();},Math.floor(sec/2)*1000);
+  }
+  G.timerInterval=setInterval(()=>{
+    if(G.frozen)return;G.timerVal--;updateTimerUI();
+    if(G.timerVal<=10&&G.timerVal>0)SFX.tick();
+    if(G.timerVal<=5&&G.timerVal>0)SFX.urgency();
+    if(G.timerVal<=0){stopTimer();onDone();}
+  },1000);
+}
+function updateTimerUI(){
+  const fill=document.getElementById('timerFill'),txt=document.getElementById('timerTxt');
+  if(!fill||!txt)return;
+  const pct=(G.timerVal/G.timerMax)*100;
+  fill.style.width=pct+'%';
+  const m=Math.floor(G.timerVal/60),s=G.timerVal%60;
+  txt.textContent=m>0?`${m}:${s.toString().padStart(2,'0')}`:`${G.timerVal}s`;
+  const cls=pct<25?'crit':pct<50?'warn':'';
+  fill.className='timer-fill '+cls;txt.className='timer-txt '+cls;
+}
+
+/* ====== POWER-UPS ====== */
+function updatePUUI(){
+  const map={hint:'Hint',skip:'Skip',freeze:'Freeze'};
+  Object.keys(map).forEach(k=>{
+    const ci=document.getElementById(`pu${map[k]}C`);
+    const bi=document.getElementById(`pu${map[k]}`);
+    if(ci)ci.textContent=G.powerups[k];
+    if(bi)bi.disabled=G.powerups[k]<=0;
+  });
+  const dbH=document.getElementById('dbHint');const dbS=document.getElementById('dbSkip');const dbF=document.getElementById('dbFreeze');
+  if(dbH)dbH.textContent=G.powerups.hint;
+  if(dbS)dbS.textContent=G.powerups.skip;
+  if(dbF)dbF.textContent=G.powerups.freeze;
+}
+function usePU(type){
+  if(G.powerups[type]<=0){toast('No '+type+' charges left!','err');return;}
+  SFX.powerup();G.powerups[type]--;updatePUUI();
+  if(type==='hint'){
+    if(!G.currentHint){toast('No hint available for this question!','err');return;}
+    showFeedback('info','💡','INTEL UNLOCKED',G.currentHint,null);
+  }else if(type==='skip'){
+    toast('⏭ Question skipped — no points awarded','inf');
+    stopTimer();setTimeout(()=>advanceQuestion(),500);
+  }else if(type==='freeze'){
+    G.frozen=true;toast('❄️ Timer frozen for 15 seconds!','inf');
+    setTimeout(()=>{G.frozen=false;toast('▶ Time resumed!','inf');},15000);
+  }
+}
+
+/* ====== PERSISTENCE ====== */
+function saveState(){
+  if(!G.user)return;
+  try{localStorage.setItem('grss_state_'+G.user.usn,JSON.stringify({
+    scores:G.scores,
+    powerups:G.powerups,
+    unlocked:[...G.unlocked],
+    completed:[...G.completed]
+  }));}catch(e){}
+}
+function loadState(){
+  if(!G.user)return;
+  try{
+    const raw=localStorage.getItem('grss_state_'+G.user.usn);
+    if(!raw)return;
+    const s=JSON.parse(raw);
+    if(s.scores)G.scores=s.scores;
+    if(s.powerups)G.powerups=s.powerups;
+    if(s.unlocked)G.unlocked=new Set(s.unlocked);
+    if(s.completed)G.completed=new Set(s.completed);
+  }catch(e){}
+}
+
+/* ====== LEADERBOARD ====== */
+function getLB(){try{return JSON.parse(localStorage.getItem('grss_lb')||'[]');}catch{return[];}}
+function saveLB(){
+  if(!G.user)return;
+  const lb=getLB(),total=getTotalScore();
+  const idx=lb.findIndex(e=>e.usn===G.user.usn);
+  const entry={name:G.user.name,usn:G.user.usn,score:total,levels:[...G.completed].length,date:new Date().toLocaleDateString()};
+  if(idx>=0){if(total>lb[idx].score)lb[idx]=entry;}else lb.push(entry);
+  lb.sort((a,b)=>b.score-a.score);
+  localStorage.setItem('grss_lb',JSON.stringify(lb.slice(0,50)));
+  saveState();
+}
+function renderLB(){
+  const lb=getLB(),el=document.getElementById('lbList');
+  if(!lb.length){el.innerHTML='<div class="t-center t-muted" style="padding:40px">No entries yet. Complete all 5 levels to appear here!</div>';return;}
+  const medals=['🥇','🥈','🥉'];
+  el.innerHTML=lb.map((e,i)=>{
+    const isMe=G.user&&e.usn===G.user.usn;
+    const medal=i<3?`<span style="font-size:1.1rem">${medals[i]}</span>`:`<span class="lb-rank">${i+1}</span>`;
+    const lvls=e.levels||0;
+    const lvlStr=Array.from({length:5},(_,j)=>j<lvls?'✅':'⬜').join('');
+    return `<div class="lb-row ${isMe?'me':''} ${i===0?'r1':''}">
+      ${medal}
+      <div class="lb-name-col"><div class="lb-name">${e.name}${isMe?' <span class="badge badge-blue">YOU</span>':''}</div><div class="lb-usn">${e.usn} · ${lvlStr}</div></div>
+      <div class="lb-score">${e.score.toLocaleString()} pts</div>
+    </div>`;
+  }).join('');
+}
+
+/* ====== UTILS ====== */
+function getTotalScore(){return Object.values(G.scores).reduce((a,b)=>a+b,0);}
+function getTitle(s){
+  if(s>=3000)return'Disaster Strategist';if(s>=2500)return'Climate Guardian';
+  if(s>=2000)return'Resource Optimizer';if(s>=1500)return'Earth Observer';
+  if(s>=1000)return'Field Analyst';return'GRSS Trainee';
+}
+function calcScore(correct,timeLeft,maxTime,base){
+  if(!correct)return 0;
+  return base+Math.round(base*.5*(timeLeft/maxTime));
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+/* ====== AUTH ====== */
+function switchAuthTab(tab){
+  document.getElementById('loginPane').style.display=tab==='login'?'':'none';
+  document.getElementById('registerPane').style.display=tab==='register'?'':'none';
+  document.querySelectorAll('#authTabs .tab').forEach((t,i)=>t.classList.toggle('on',(tab==='login'&&i===0)||(tab==='register'&&i===1)));
+}
+function doLogin(){
+  const name=document.getElementById('loginName').value.trim();
+  const usn=document.getElementById('loginUsn').value.trim();
+  if(!name){shakeInput('loginName');toast('Please enter your name','err');return;}
+  if(!usn){shakeInput('loginUsn');toast('Please enter your USN','err');return;}
+  G.user={name,usn};loadState();SFX.click();
+  toast(`Welcome back, ${name}! 🛰️`,'ok');showDash();
+}
+function doRegister(){
+  const name=document.getElementById('regName').value.trim();
+  const usn=document.getElementById('regUsn').value.trim();
+  if(!name){shakeInput('regName');toast('Please enter your full name','err');return;}
+  if(name.length<2){shakeInput('regName');toast('Name is too short','err');return;}
+  if(!usn){shakeInput('regUsn');toast('Please enter your USN','err');return;}
+  G.user={name,usn};SFX.correct();
+  toast(`Agent ${name} enlisted! Mission briefing incoming... 🛰️`,'ok');showDash();
+}
+function doLogout(){
+  G.user=null;
+  G={...G,unlocked:new Set([1]),completed:new Set(),scores:{},
+    powerups:{hint:2,skip:1,freeze:1},currentLevel:0,qState:null,
+    l1q:[],l1idx:0,l1score:0,l1correct:0,
+    l2idx:0,l2score:0,l2correct:0,
+    l3idx:0,l3score:0,l3correct:0,l3guessed:new Set(),l3lives:6,
+    l4idx:0,l4score:0,l4correct:0,
+    budget:10000,bought:[],priceMulti:1,auctScore:0,
+    applied:new Set(),disasterScore:0};
+  showScreen('screen-auth');
+}
+function shakeInput(id){
+  const el=document.getElementById(id);if(!el)return;
+  el.classList.remove('input-error');void el.offsetWidth;el.classList.add('input-error');
+  setTimeout(()=>el.classList.remove('input-error'),600);
+}
+
+/* Enter-key submit */
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('loginName').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+  document.getElementById('loginUsn').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+  document.getElementById('regName').addEventListener('keydown',e=>{if(e.key==='Enter')doRegister();});
+  document.getElementById('regUsn').addEventListener('keydown',e=>{if(e.key==='Enter')doRegister();});
+});
+
+/* ====== DASHBOARD ====== */
+function showDash(){renderDash();showScreen('screen-dashboard');}
+function renderDash(){
+  if(!G.user)return;
+  document.getElementById('dbUsername').textContent=G.user.name.toUpperCase();
+  document.getElementById('dbUsn').textContent='USN: '+G.user.usn;
+  const total=getTotalScore();
+  document.getElementById('dbScore').textContent=total.toLocaleString()+' pts';
+  document.getElementById('dbTitle').textContent=getTitle(total).toUpperCase();
+  updatePUUI();
+  const levels=[
+    {n:1,icon:'🔤',name:'Training Mission',sub:'Scramble & Riddles'},
+    {n:2,icon:'🛰️',name:'Intel Gathering',sub:'Image Recognition'},
+    {n:3,icon:'🔐',name:'Code Breaking',sub:'Emoji Hangman'},
+    {n:4,icon:'⚡',name:'Rapid Assessment',sub:'Fast MCQs'},
+    {n:5,icon:'🌍',name:'Core Simulation',sub:'Auction + Disaster'}
+  ];
+  document.getElementById('levelMap').innerHTML=levels.map((l,i)=>{
+    const open=G.unlocked.has(l.n),done=G.completed.has(l.n);
+    const cls=done?'done':open?'open':'lock';
+    const ico=done?'✅':open?l.icon:'🔒';
+    const sc=G.scores[l.n]||0;
+    const connector=i<levels.length-1?`<div class="lv-connector ${done?'done':''}"></div>`:'';
+    const onclick=open?`startLevelFlow(${l.n})`:`shakeLvl(this)`;
+    return `<div class="lv-node" onclick="${onclick}" title="${l.name}">
+        <div class="lv-icon ${cls}" id="lvIcon${l.n}">${ico}</div>
+        <div style="text-align:center;font-size:.72rem">
+          <div style="font-weight:700;color:${done?'var(--accent2)':open?'var(--text)':'var(--text2)'}">LVL ${l.n}</div>
+          <div style="color:var(--text2)">${l.name}</div>
+          ${done?`<div class="font-orb" style="font-size:.68rem;color:var(--gold)">${sc.toLocaleString()} pts</div>`:''}
+        </div>
+      </div>${connector}`;
+  }).join('');
+}
+function shakeLvl(el){
+  toast('Complete previous levels first!','err');
+  const icon=el.querySelector('.lv-icon');
+  if(icon){icon.classList.remove('lock-shake');void icon.offsetWidth;icon.classList.add('lock-shake');
+  setTimeout(()=>icon.classList.remove('lock-shake'),500);}
+}
+function goToDashboard(){stopTimer();stopAuctionTimers();showDash();}
+
+/* ====== LEVEL INTRO ====== */
+const INTROS={
+  1:{icon:'🔤',badge:'MISSION 01',title:'TRAINING MISSION',
+    story:'You\'ve just been deployed as a GRSS Field Analyst. Your first test: prove you understand the core language of geoscience. Unscramble classified satellite terminology and decode encrypted field riddles. Your accuracy and response speed are being evaluated.',
+    rules:'<b>📋 Mission Rules</b><br>• 10 questions: 5 Word Scrambles + 5 Riddles (randomised)<br>• ⏱ 60 seconds per question<br>• Type your answer and press Enter or click Submit<br>• Speed bonus awarded for fast correct answers<br>• Power-ups (Hint / Skip / Freeze) available at any time'},
+  2:{icon:'🛰️',badge:'MISSION 02',title:'INTELLIGENCE GATHERING',
+    story:'Ground sensors are offline. Your only asset is a constellation of satellites. Analyse incoming imagery and correctly identify what Earth\'s orbit is revealing. Every second of hesitation costs lives.',
+    rules:'<b>📋 Mission Rules</b><br>• 5 satellite image analysis questions<br>• ⏱ 2 minutes per image<br>• Select the correct interpretation from 4 options<br>• Progressive difficulty — later images are harder<br>• Speed bonus applies throughout'},
+  3:{icon:'🔐',badge:'MISSION 03',title:'CODE BREAKING',
+    story:'Intercepted transmissions contain encrypted geoscience terminology — but the enemy has replaced all text with emoji sequences. Your decoder unit must reconstruct the original words. Six wrong guesses and the mission fails.',
+    rules:'<b>📋 Mission Rules</b><br>• 5 Emoji Hangman challenges<br>• ⏱ 2 minutes per challenge<br>• Click letters to guess — 6 wrong guesses allowed<br>• 💡 A letter auto-reveals at the 1-minute mark<br>• Use Hint power-up for an extra clue!'},
+  4:{icon:'⚡',badge:'MISSION 04',title:'RAPID ASSESSMENT',
+    story:'Incoming alert — decision time. A cascade of satellite data is flooding your terminal. You must rapidly assess and classify each data feed. There\'s no time for hesitation. Trust your training.',
+    rules:'<b>📋 Mission Rules</b><br>• 10 multiple-choice questions<br>• ⏱ 90 seconds per question<br>• Progressive difficulty (⭐ → ⭐⭐⭐)<br>• Higher difficulty questions = more base points<br>• Time bonus on every correct answer'},
+  5:{icon:'🌍',badge:'MISSION 05',title:'CORE SIMULATION',
+    story:'This is the final challenge. A real disaster is unfolding. First, acquire the best satellite monitoring tools from a live auction — but prices are rising. Then deploy your tools to respond to a real-world crisis scenario. The Earth is counting on your strategy.',
+    rules:'<b>📋 Mission Rules</b><br>• Part A: Auction — $10,000 budget, max 5 tools, prices rise +10% every 20s<br>• You can sell tools back at 70% value<br>• Part B: Disaster Response — deploy tools to address the crisis<br>• Scoring = tool effectiveness + budget efficiency + combo bonuses<br>• Tool combo combinations earn big bonus points!'}
+};
+function startLevelFlow(n){
+  G.currentLevel=n;SFX.click();
+  const intro=INTROS[n];
+  document.getElementById('introIcon').textContent=intro.icon;
+  document.getElementById('introBadge').textContent=intro.badge;
+  document.getElementById('introTitle').textContent=intro.title;
+  document.getElementById('introStory').textContent=intro.story;
+  document.getElementById('introRules').innerHTML=intro.rules;
+  showScreen('screen-intro');
+}
+function beginLevel(){
+  SFX.click();const n=G.currentLevel;
+  if(n===1)startL1();else if(n===2)startL2();else if(n===3)startL3();else if(n===4)startL4();else startL5();
+}
+
+/* ====== FEEDBACK OVERLAY ====== */
+function showFeedback(type,icon,title,body,cb){
+  const ov=document.createElement('div');ov.className='fb-overlay';
+  ov.innerHTML=`<div class="fb-card ${type}">
+    <span class="fb-icon">${icon}</span>
+    <h3 style="margin-bottom:8px;font-family:'Orbitron',monospace;font-size:1rem">${title}</h3>
+    <p style="color:var(--text);margin-bottom:16px;font-size:.9rem;line-height:1.65">${body}</p>
+    <button class="btn btn-primary" id="fbContinueBtn">CONTINUE</button>
+  </div>`;
+  document.body.appendChild(ov);
+  document.getElementById('fbContinueBtn').onclick=()=>{ov.remove();if(cb)cb();};
+}
+
+/* ====== HUD HELPERS ====== */
+function setupHUD(levelName){
+  document.getElementById('hudLevel').textContent=levelName;
+  document.getElementById('hudScore').textContent=(G.scores[G.currentLevel]||0)+' pts';
+  updatePUUI();
+}
+function updateHUDScore(s){document.getElementById('hudScore').textContent=s+' pts';}
+function renderDots(total,current){
+  document.getElementById('hudDots').innerHTML=Array.from({length:total},(_,i)=>
+    `<div class="prog-dot ${i<current?'done':i===current?'cur':''}"></div>`).join('');
+}
+
+/* ====== LEVEL 1 — SCRAMBLES + RIDDLES ====== */
+function startL1(){
+  const sc=DATA.level1.scrambles.map(q=>({...q,type:'scramble'}));
+  const ri=DATA.level1.riddles.map(q=>({...q,type:'riddle'}));
+  G.l1q=shuffle([...sc,...ri]);G.l1idx=0;G.l1score=0;G.l1correct=0;
+  showScreen('screen-gameplay');setupHUD('LEVEL 1 — TRAINING');renderL1Q();
+}
+function renderL1Q(){
+  if(G.l1idx>=G.l1q.length){finishL1();return;}
+  G.qState=null;
+  const q=G.l1q[G.l1idx];renderDots(G.l1q.length,G.l1idx);G.currentHint=q.hint;
+  const gc=document.getElementById('gameContent');
+  if(q.type==='scramble'){
+    gc.innerHTML=`<div style="max-width:620px;width:100%">
+      <div style="display:flex;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:6px">
+        <span class="badge badge-blue">WORD SCRAMBLE ${G.l1idx+1}/10</span>
+        <span class="badge badge-purple">${q.cat}</span><span class="badge badge-gold">+${q.pts} pts</span>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="label t-center" style="margin-bottom:10px">UNSCRAMBLE THIS SATELLITE TERM</div>
+        <div class="scramble-disp">${q.sc}</div>
+        <div style="font-size:.78rem;color:var(--text2);text-align:center;margin-top:7px">${q.sc.length} letters</div>
+      </div>
+      <input class="input input-lg" id="l1answer" placeholder="TYPE YOUR ANSWER" maxlength="20" />
+      <button class="btn btn-primary btn-full" style="margin-top:10px" onclick="submitL1()">✅ SUBMIT ANSWER</button>
+    </div>`;
+  }else{
+    gc.innerHTML=`<div style="max-width:620px;width:100%">
+      <div style="display:flex;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:6px">
+        <span class="badge badge-green">FIELD RIDDLE ${G.l1idx+1}/10</span>
+        <span class="badge badge-purple">${q.cat}</span><span class="badge badge-gold">+${q.pts} pts</span>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="label t-center" style="margin-bottom:10px">DECODE THE FIELD RIDDLE</div>
+        <p style="font-size:1rem;line-height:1.75;color:var(--white)">${q.q}</p>
+      </div>
+      <input class="input input-lg" id="l1answer" placeholder="YOUR ANSWER" maxlength="20" />
+      <button class="btn btn-primary btn-full" style="margin-top:10px" onclick="submitL1()">✅ SUBMIT ANSWER</button>
+    </div>`;
+  }
+  advanceQuestion=()=>{G.l1idx++;renderL1Q();};
+  startTimer(60,()=>{
+    if(!G.qState) {
+      SFX.wrong();const correct=q.word||q.ans;
+      showFeedback('timeout','⏰','TIME\'S UP!',`The answer was: <strong>${correct}</strong>.<br><br>${q.hint}`,()=>{G.l1idx++;renderL1Q();});
+    } else {
+      const correct=(q.word||q.ans).toUpperCase();
+      const isCorrect = (G.qState.ans===correct||G.qState.ans===correct.replace(/\s+/g,''));
+      if(isCorrect){
+        const earned=calcScore(true,G.qState.timeWhenSubmitted, 60, q.pts);
+        G.l1score+=earned;G.l1correct++;updateHUDScore(G.l1score);
+        SFX.correct();
+        showFeedback('ok','✅','CORRECT!',`+${earned} pts earned!<br><br>${q.hint}`,()=>{G.l1idx++;renderL1Q();});
+      } else {
+        SFX.wrong();
+        showFeedback('bad','❌','INCORRECT!',`Answer: <strong>${correct}</strong><br><br>${q.hint}`,()=>{G.l1idx++;renderL1Q();});
+      }
+    }
+  });
+  const el=document.getElementById('l1answer');
+  if(el){
+    el.focus();
+    el.addEventListener('keydown',e=>{if(e.key==='Enter')submitL1();});
+  }
+}
+function submitL1(){
+  if(G.qState) return;
+  const inputEl = document.getElementById('l1answer');
+  const ans=(inputEl?.value||'').trim().toUpperCase();
+  if(!ans) return;
+  G.qState = { ans, timeWhenSubmitted: G.timerVal };
+  if(inputEl) inputEl.disabled = true;
+  SFX.click();
+  toast('Answer locked! Waiting for timer...', 'inf');
+}
+function finishL1(){
+  stopTimer();const bonus=G.l1correct===10?200:G.l1correct>=8?100:0;
+  G.l1score+=bonus;G.scores[1]=G.l1score;G.completed.add(1);G.unlocked.add(2);
+  SFX.levelUp();fireConfetti(['#00c8ff','#00ff9d','#7c3aed']);saveLB();
+  showLevelResults(1,'🔤','TRAINING MISSION COMPLETE',G.l1score,G.l1correct,10,bonus);
+}
+
+/* ====== LEVEL 2 — IMAGE RECOGNITION ====== */
+function startL2(){G.l2idx=0;G.l2score=0;G.l2correct=0;showScreen('screen-gameplay');setupHUD('LEVEL 2 — INTEL GATHERING');renderL2Q();}
+function renderL2Q(){
+  if(G.l2idx>=DATA.level2.qs.length){finishL2();return;}
+  G.qState=null;
+  const q=DATA.level2.qs[G.l2idx];renderDots(DATA.level2.qs.length,G.l2idx);
+  G.currentHint='Study the image carefully — colour patterns, geometric shapes and textures reveal the land process shown.';
+  document.getElementById('gameContent').innerHTML=`<div style="max-width:640px;width:100%">
+    <div style="display:flex;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px">
+      <span class="badge badge-green">IMAGE ANALYSIS ${G.l2idx+1}/5</span><span class="badge badge-gold">+${q.pts} pts</span>
+    </div>
+    <div class="img-container" style="margin-bottom:13px" id="imgWrap">
+      <div class="img-skeleton" id="imgSkeleton">🛰️ Loading satellite imagery…</div>
+    </div>
+    <div class="card" style="margin-bottom:13px"><p style="font-size:.95rem;font-weight:500;color:var(--white);line-height:1.65">${q.q}</p></div>
+    <div id="l2opts"></div>
+  </div>`;
+  const img=new Image();
+  img.onload=()=>{
+    const wrap=document.getElementById('imgWrap');
+    const skel=document.getElementById('imgSkeleton');
+    if(wrap&&skel){skel.remove();wrap.appendChild(img); img.style.cssText='width:100%;max-height:240px;object-fit:cover';}
+  };
+  img.onerror=()=>{
+    const skel=document.getElementById('imgSkeleton');
+    if(skel)skel.innerHTML='🛰️ Satellite image unavailable — check connection';
+  };
+  img.src=q.img; img.alt='Satellite imagery';
+  const optsEl=document.getElementById('l2opts');
+  optsEl.innerHTML=q.opts.map((o,i)=>`<button class="option" id="l2opt${i}" onclick="submitL2(${i})"><span class="option-letter">${'ABCD'[i]}</span>${o}</button>`).join('');
+  advanceQuestion=()=>{G.l2idx++;renderL2Q();};
+  startTimer(120,()=>{
+    if(!G.qState) {
+        SFX.wrong();showFeedback('timeout','⏰','TIME\'S UP!',`Correct: <strong>${q.opts[q.ans]}</strong><br><br>${q.expl}`,()=>{G.l2idx++;renderL2Q();});
+    } else {
+        const i = G.qState.ans;
+        document.querySelectorAll('.option').forEach((b,j)=>{if(j===q.ans)b.classList.add('correct');else if(j===i)b.classList.add('wrong');b.onclick=null;});
+        if(i===q.ans){
+            SFX.correct();const earned=calcScore(true,G.qState.timeWhenSubmitted,120,q.pts);
+            G.l2score+=earned;G.l2correct++;updateHUDScore(G.l2score);
+            setTimeout(()=>showFeedback('ok','✅','CORRECT ANALYSIS!',`+${earned} pts!<br><br>${q.expl}`,()=>{G.l2idx++;renderL2Q();}),400);
+        } else {
+            SFX.wrong();setTimeout(()=>showFeedback('bad','❌','MISIDENTIFIED!',`Correct: <strong>${q.opts[q.ans]}</strong><br><br>${q.expl}`,()=>{G.l2idx++;renderL2Q();}),400);
+        }
+    }
+  });
+}
+function submitL2(i){
+  if(G.qState) return;
+  G.qState = { ans: i, timeWhenSubmitted: G.timerVal };
+  document.querySelectorAll('.option').forEach(b=>b.style.pointerEvents='none');
+  const btn = document.getElementById('l2opt'+i);
+  if(btn) btn.style.border = '2px solid var(--accent)';
+  SFX.click();
+  toast('Answer locked! Waiting for timer...', 'inf');
+}
+function finishL2(){
+  stopTimer();const bonus=G.l2correct===5?200:0;G.l2score+=bonus;G.scores[2]=G.l2score;
+  G.completed.add(2);G.unlocked.add(3);SFX.levelUp();fireConfetti(['#00ff9d','#00c8ff','#ffd700']);saveLB();
+  showLevelResults(2,'🛰️','INTEL GATHERING COMPLETE',G.l2score,G.l2correct,5,bonus);
+}
+
+/* ====== LEVEL 3 — EMOJI HANGMAN ====== */
+function startL3(){G.l3idx=0;G.l3score=0;G.l3correct=0;showScreen('screen-gameplay');setupHUD('LEVEL 3 — CODE BREAKING');renderL3Q();}
+function renderL3Q(){
+  if(G.l3idx>=DATA.level3.chs.length){finishL3();return;}
+  G.qState=null;
+  const ch=DATA.level3.chs[G.l3idx];
+  G.l3guessed=new Set();G.l3lives=6;G.l3hintGiven=false;G.currentHint=ch.hint;
+  renderDots(DATA.level3.chs.length,G.l3idx);renderHangman();
+  advanceQuestion=()=>{G.l3idx++;renderL3Q();};
+  // Timer: 120s, callback when 60s remains (halfway) = auto-hint
+  startTimer(120,()=>{
+    if(G.qState?.status === 'win') {
+       SFX.correct();const earned=calcScore(true,G.qState.timeWhenSubmitted,120,ch.pts);
+       G.l3score+=earned;G.l3correct++;updateHUDScore(G.l3score);
+       showFeedback('ok','✅',`DECODED: ${ch.word}`,`+${earned} pts!<br><br>${ch.expl}`,()=>{G.l3idx++;renderL3Q();});
+    } else {
+       SFX.wrong();
+       const title = G.qState?.status === 'lose' ? 'DECRYPTION FAILED' : 'TIME\'S UP!';
+       showFeedback(G.qState?.status==='lose'?'bad':'timeout',G.qState?.status==='lose'?'💀':'⏰',title,`The word was: <strong>${ch.word}</strong><br><br>${ch.expl}`,()=>{G.l3idx++;renderL3Q();});
+    }
+  },()=>{
+    // Auto-hint at 60s remaining (halfway mark of 120s timer)
+    if(!G.l3hintGiven){
+      G.l3hintGiven=true;
+      const ch2=DATA.level3.chs[G.l3idx];
+      const hidden=ch2.word.split('').filter(c=>c!==' '&&!G.l3guessed.has(c));
+      if(hidden.length){
+        const r=hidden[Math.floor(Math.random()*hidden.length)];
+        G.l3guessed.add(r);
+        toast(`💡 Auto-hint: Letter "${r}" revealed at 1-minute mark!`,'inf');
+        renderHangman();
+      }
+    }
+  });
+}
+function renderHangman(){
+  const ch=DATA.level3.chs[G.l3idx];const word=ch.word;
+  const wrong=[...G.l3guessed].filter(c=>!word.includes(c));
+  document.getElementById('gameContent').innerHTML=`<div style="max-width:580px;width:100%;text-align:center">
+    <div style="display:flex;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px">
+      <span class="badge badge-purple">EMOJI DECODE ${G.l3idx+1}/5</span>
+      <div class="lives">${Array.from({length:6},(_,i)=>`<span class="life${i>=G.l3lives?' dead':''}">❤️</span>`).join('')}</div>
+      <span class="badge badge-gold">+${ch.pts} pts</span>
+    </div>
+    <div class="em-clue">${ch.em}</div>
+    <div class="word-slots" id="wordSlots">${word.split('').map(c=>c===' '?'<div class="letter-slot space"></div>':`<div class="letter-slot ${G.l3guessed.has(c)?'shown':''}">${G.l3guessed.has(c)?c:''}</div>`).join('')}</div>
+    <div style="margin-bottom:10px;font-size:.8rem;color:var(--text2)">Wrong guesses (${wrong.length}/6): <span style="color:var(--danger)">${wrong.join(' ')||'None'}</span></div>
+    <div class="alpha-grid" id="alphaGrid"></div>
+    <div style="margin-top:8px;font-size:.75rem;color:var(--text2)">💡 A letter auto-reveals at the 1-minute mark</div>
+  </div>`;
+  const grid=document.getElementById('alphaGrid');
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(c=>{
+    const btn=document.createElement('button');btn.className='alpha-key';btn.textContent=c;
+    if(G.l3guessed.has(c)){btn.className+=(word.includes(c)?' hit':' miss');btn.disabled=true;}
+    else btn.onclick=()=>guessLetter(c);
+    grid.appendChild(btn);
+  });
+}
+function guessLetter(c){
+  if(G.qState) return;
+  SFX.click();const ch=DATA.level3.chs[G.l3idx];
+  const wasCorrect=ch.word.includes(c);
+  G.l3guessed.add(c);
+  if(!wasCorrect){
+    G.l3lives--;
+    // Shake word slots on wrong guess
+    const slots=document.getElementById('wordSlots');
+    if(slots){slots.classList.remove('wrong-shake');void slots.offsetWidth;slots.classList.add('wrong-shake');}
+  }
+  const allDone=ch.word.split('').every(lc=>lc===' '||G.l3guessed.has(lc));
+  if(allDone){
+    G.qState = { status: 'win', timeWhenSubmitted: G.timerVal };
+    document.querySelectorAll('.alpha-key').forEach(b=>b.disabled=true);
+    toast('Word completed! Waiting for timer...', 'inf');
+  } else if(G.l3lives<=0){
+    G.qState = { status: 'lose', timeWhenSubmitted: G.timerVal };
+    document.querySelectorAll('.alpha-key').forEach(b=>b.disabled=true);
+    toast('Decryption failed! Waiting for timer...', 'inf');
+  }
+  renderHangman();
+}
+function finishL3(){
+  stopTimer();const bonus=G.l3correct===5?200:0;G.l3score+=bonus;G.scores[3]=G.l3score;
+  G.completed.add(3);G.unlocked.add(4);SFX.levelUp();fireConfetti(['#7c3aed','#a78bfa','#00c8ff']);saveLB();
+  showLevelResults(3,'🔐','CODE BREAKING COMPLETE',G.l3score,G.l3correct,5,bonus);
+}
+
+/* ====== LEVEL 4 — MCQ ====== */
+function startL4(){G.l4idx=0;G.l4score=0;G.l4correct=0;showScreen('screen-gameplay');setupHUD('LEVEL 4 — RAPID ASSESSMENT');renderL4Q();}
+function renderL4Q(){
+  if(G.l4idx>=DATA.level4.qs.length){finishL4();return;}
+  G.qState=null;
+  const q=DATA.level4.qs[G.l4idx];renderDots(DATA.level4.qs.length,G.l4idx);
+  G.currentHint='Think carefully about each option in the context of satellite remote sensing and Earth observation science.';
+  const diffClass=`diff-${q.diff}`;
+  const diffColors={1:'var(--diff1)',2:'var(--diff2)',3:'var(--diff3)'};
+  document.getElementById('gameContent').innerHTML=`<div style="max-width:620px;width:100%">
+    <div style="display:flex;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px">
+      <span class="badge badge-blue">Q${G.l4idx+1}/10</span>
+      <span class="badge badge-${q.diff===1?'blue':q.diff===2?'warn':'red'}">${'⭐'.repeat(q.diff)} Difficulty ${q.diff}/3</span>
+      <span class="badge badge-gold">+${q.pts} pts</span>
+    </div>
+    <div class="card ${diffClass}" style="margin-bottom:14px;border-left:3px solid ${diffColors[q.diff]}"><p style="font-size:.98rem;font-weight:500;color:var(--white);line-height:1.7">${q.q}</p></div>
+    ${q.opts.map((o,i)=>`<button class="option" id="l4opt${i}" onclick="submitL4(${i})"><span class="option-letter">${'ABCD'[i]}</span>${o}</button>`).join('')}
+  </div>`;
+  advanceQuestion=()=>{G.l4idx++;renderL4Q();};
+  startTimer(90,()=>{
+    if(!G.qState) {
+        SFX.wrong();showFeedback('timeout','⏰','TIME\'S UP!',`Correct: <strong>${q.opts[q.ans]}</strong><br><br>${q.expl}`,()=>{G.l4idx++;renderL4Q();});
+    } else {
+        const i = G.qState.ans;
+        document.querySelectorAll('.option').forEach((b,j)=>{if(j===q.ans)b.classList.add('correct');else if(j===i)b.classList.add('wrong');b.onclick=null;});
+        if(i===q.ans){
+            SFX.correct();const earned=calcScore(true,G.qState.timeWhenSubmitted,90,q.pts);
+            G.l4score+=earned;G.l4correct++;updateHUDScore(G.l4score);
+            setTimeout(()=>showFeedback('ok','✅','CORRECT!',`+${earned} pts!<br><br>${q.expl}`,()=>{G.l4idx++;renderL4Q();}),400);
+        } else {
+            SFX.wrong();setTimeout(()=>showFeedback('bad','❌','INCORRECT!',`Correct: <strong>${q.opts[q.ans]}</strong><br><br>${q.expl}`,()=>{G.l4idx++;renderL4Q();}),400);
+        }
+    }
+  });
+}
+function submitL4(i){
+  if(G.qState) return;
+  G.qState = { ans: i, timeWhenSubmitted: G.timerVal };
+  document.querySelectorAll('.option').forEach(b=>b.style.pointerEvents='none');
+  const btn = document.getElementById('l4opt'+i);
+  if(btn) btn.style.border = '2px solid var(--accent)';
+  SFX.click();
+  toast('Answer locked! Waiting for timer...', 'inf');
+}
+function finishL4(){
+  stopTimer();const bonus=G.l4correct>=9?300:G.l4correct>=7?150:G.l4correct>=5?75:0;
+  G.l4score+=bonus;G.scores[4]=G.l4score;G.completed.add(4);G.unlocked.add(5);
+  SFX.levelUp();fireConfetti(['#ffaa00','#ffd700','#ff6b35']);saveLB();
+  showLevelResults(4,'⚡','RAPID ASSESSMENT COMPLETE',G.l4score,G.l4correct,10,bonus);
+}
+
+/* ====== LEVEL 5A — AUCTION ====== */
+function startL5(){
+  G.budget=10000;G.bought=[];G.priceMulti=1.0;G.auctScore=0;
+  G.disaster=DATA.level5.disasters[Math.floor(Math.random()*DATA.level5.disasters.length)];
+  showScreen('screen-auction');renderAuction();renderDisasterPreview();startAuctionTimers();
+}
+function stopAuctionTimers(){
+  if(G.auctTimer){clearInterval(G.auctTimer);G.auctTimer=null;}
+  if(G.priceTimer){clearInterval(G.priceTimer);G.priceTimer=null;}
+}
+function startAuctionTimers(){
+  stopAuctionTimers();G.auctTime=180;G.priceTime=20;
+  G.auctTimer=setInterval(()=>{
+    G.auctTime--;
+    const fill=document.getElementById('auctTimerFill'),txt=document.getElementById('auctTimerTxt');
+    if(fill&&txt){
+      const pct=(G.auctTime/180)*100;fill.style.width=pct+'%';
+      const m=Math.floor(G.auctTime/60),s=G.auctTime%60;
+      txt.textContent=`${m}:${s.toString().padStart(2,'0')}`;
+      fill.className='timer-fill '+(pct<25?'crit':pct<50?'warn':'');
+    }
+    if(G.auctTime<=0){stopAuctionTimers();finishAuction();}
+  },1000);
+  G.priceTimer=setInterval(()=>{
+    G.priceTime--;
+    const el=document.getElementById('auctPriceTimer');
+    if(el){
+      el.textContent=G.priceTime+'s';
+      el.style.color=G.priceTime<=5?'var(--danger)':'var(--warning)';
+    }
+    if(G.priceTime<=0){
+      G.priceMulti*=1.10;G.priceTime=20;if(el){el.textContent='20s';el.style.color='var(--warning)';}
+      toast('📈 All prices increased by 10%!','err');SFX.urgency();renderToolGrid();
+    }
+  },1000);
+}
+function renderDisasterPreview(){
+  const d=G.disaster;
+  const el=document.getElementById('disasterPreviewBanner');
+  if(!el||!d)return;
+  el.innerHTML=`<div style="background:linear-gradient(135deg,rgba(${d.id==='flood'?'0,200,255':''}${d.id==='wildfire'?'255,107,53':''}${d.id==='earthquake'?'255,170,0':''},0.08),transparent);border:1px solid rgba(${d.id==='flood'?'0,200,255':''}${d.id==='wildfire'?'255,107,53':''}${d.id==='earthquake'?'255,170,0':''},0.25);border-radius:12px;padding:14px;max-width:680px">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="font-size:1.8rem">${d.icon}</span>
+      <div><div class="font-orb" style="font-size:.85rem;color:${d.color}">INCOMING DISASTER: ${d.name}</div>
+      <div style="font-size:.78rem;color:var(--text2);margin-top:3px">Choose tools wisely — your loadout directly determines your disaster score</div></div>
+    </div>
+  </div>`;
+}
+function renderAuction(){
+  document.getElementById('auctBudget').textContent='$'+Math.round(G.budget).toLocaleString();
+  document.getElementById('auctToolCount').textContent=G.bought.length;
+  const fill=document.getElementById('budgetBar');
+  if(fill){
+    const pct=G.budget/10000*100;
+    fill.style.width=pct+'%';
+    // Budget bar color change
+    if(pct<20)fill.style.background='linear-gradient(90deg,#880000,var(--danger))';
+    else if(pct<50)fill.style.background='linear-gradient(90deg,#996600,var(--warning))';
+    else fill.style.background='linear-gradient(90deg,var(--danger),var(--warning),var(--success))';
+  }
+  renderToolGrid();renderComboDisplay();
+}
+function renderToolGrid(){
+  const el=document.getElementById('toolGrid');
+  const d=G.disaster;
+  el.innerHTML=DATA.level5.tools.map(t=>{
+    const price=Math.round(t.price*G.priceMulti);
+    const owned=G.bought.includes(t.id);
+    const canBuy=!owned&&G.budget>=price&&G.bought.length<5;
+    const isOptimal=d&&d.optTools.includes(t.id);
+    const eff=d?t.eff[d.id]:0;
+    const effPct=Math.round(eff*10);
+    const effColor=eff>=8?'var(--accent2)':eff>=5?'var(--warning)':'var(--danger)';
+    const btnLabel=owned?'🔴 Tap to Sell Back ($'+Math.round(price*.7).toLocaleString()+')':canBuy?'🟢 Acquire':'⚫ '+(G.bought.length>=5?'Loadout Full':'Insufficient Budget');
+    return `<div class="tool-card ${owned?'bought':''} ${isOptimal&&!owned?'optimal-hint':''}" onclick="${owned?`sellTool('${t.id}')`:`buyTool('${t.id}')`}">
+      ${isOptimal?'<div style="position:absolute;top:6px;right:6px;font-size:.6rem;color:var(--gold)">⭐ OPTIMAL</div>':''}
+      <div style="font-size:1.5rem;margin-bottom:4px">${t.icon}</div>
+      <div style="font-weight:700;font-size:.85rem;margin-bottom:3px">${t.name}</div>
+      <div style="font-size:.73rem;color:var(--text2);margin-bottom:7px">${t.desc}</div>
+      <div class="tool-price ${!owned&&G.priceMulti>1?'rising':''}">${owned?'ACQUIRED':'$'+price.toLocaleString()}</div>
+      ${d?`<div class="eff-bar-wrap"><div class="eff-bar-label" style="color:${effColor}">Effectiveness: ${eff}/10</div><div class="eff-bar-track"><div class="eff-bar-fill" style="width:${effPct}%;background:${effColor}"></div></div></div>`:''}
+      <div style="font-size:.7rem;margin-top:5px;color:${owned?'var(--accent2)':canBuy?'var(--text2)':'var(--danger)'}">${btnLabel}</div>
+    </div>`;
+  }).join('');
+}
+function buyTool(id){
+  const t=DATA.level5.tools.find(x=>x.id===id);
+  const price=Math.round(t.price*G.priceMulti);
+  if(G.bought.length>=5){toast('Loadout full — max 5 tools!','err');return;}
+  if(G.budget<price){toast('Insufficient budget!','err');return;}
+  G.budget-=price;G.bought.push(id);SFX.buy();
+  toast(`✅ ${t.name} acquired!`,'ok');renderAuction();
+}
+function sellTool(id){
+  const t=DATA.level5.tools.find(x=>x.id===id);
+  const price=Math.round(t.price*G.priceMulti*.7);
+  G.budget+=price;G.bought=G.bought.filter(x=>x!==id);SFX.click();
+  toast(`💰 ${t.name} sold for $${price.toLocaleString()}`,'inf');renderAuction();
+}
+function renderComboDisplay(){
+  const el=document.getElementById('comboDisplay');if(!el)return;
+  const active=DATA.level5.combos.filter(c=>c.tools.every(t=>G.bought.includes(t)));
+  if(!active.length){el.innerHTML='<div style="font-size:.8rem;color:var(--text2);text-align:center;padding:8px">No active tool combos yet — acquire compatible tools to unlock bonuses!</div>';return;}
+  el.innerHTML=`<div class="label" style="margin-bottom:8px">⚡ ACTIVE COMBOS</div>`+
+    active.map(c=>`<div class="card card-sm combo-active-card" style="margin-bottom:8px;border-color:rgba(255,215,0,.35)">
+      <span class="combo-tag">${c.icon} ${c.name}</span>
+      <span style="float:right;font-family:'Orbitron',monospace;color:var(--gold)">+${c.bonus} pts</span>
+      <div style="font-size:.8rem;color:var(--text2);margin-top:6px">${c.desc}</div>
+    </div>`).join('');
+}
+function finishAuction(){
+  stopAuctionTimers();
+  if(G.bought.length===0){toast('You must acquire at least 1 tool!','err');startAuctionTimers();return;}
+  const budgetLeft=G.budget;
+  const eff=Math.round((budgetLeft/10000)*300);
+  const comboBonus=DATA.level5.combos.filter(c=>c.tools.every(t=>G.bought.includes(t))).reduce((a,c)=>a+c.bonus,0);
+  G.auctScore=eff+comboBonus;
+  toast(`Loadout finalised! Budget efficiency: +${eff} pts${comboBonus?` | Combos: +${comboBonus} pts`:''}!`,'ok');
+  setTimeout(()=>startDisaster(),800);
+}
+
+/* ====== LEVEL 5B — DISASTER RESPONSE ====== */
+function startDisaster(){
+  G.applied=new Set();G.disasterScore=0;
+  const d=G.disaster;
+  showScreen('screen-disaster');
+  document.getElementById('disasterBanner').innerHTML=`
+    <div style="font-size:2.8rem;margin-bottom:8px">${d.icon}</div>
+    <div class="font-orb" style="font-size:1.15rem;color:var(--danger);margin-bottom:8px">${d.name}</div>
+    <p style="font-size:.88rem;color:var(--text2);line-height:1.75;max-width:560px;margin:0 auto">${d.desc}</p>`;
+  const toolsEl=document.getElementById('disasterTools');
+  toolsEl.innerHTML=G.bought.map(id=>{
+    const t=DATA.level5.tools.find(x=>x.id===id);
+    const isOpt=d.optTools.includes(id);
+    return `<div class="apply-card" id="applyCard_${id}" onclick="toggleApply('${id}')">
+      <div style="font-size:1.3rem">${t.icon}</div>
+      <div style="font-weight:600;font-size:.82rem;margin-top:3px">${t.name}</div>
+      ${isOpt?'<div style="font-size:.65rem;color:var(--gold)">⭐ Optimal</div>':''}
+    </div>`;
+  }).join('');
+  const metricsEl=document.getElementById('disasterMetrics');
+  metricsEl.innerHTML=d.metrics.map(m=>`<div style="margin-bottom:12px">
+    <div class="metric-row" style="border:none;padding:4px 0">
+      <span style="font-size:.85rem">${m}</span>
+      <span class="metric-val" id="metric_${m.replace(/\W+/g,'_')}">—</span>
+    </div>
+    <div class="metric-bar-wrap"><div class="metric-bar-track"><div class="metric-bar-fill" id="metricbar_${m.replace(/\W+/g,'_')}"></div></div></div>
+  </div>`).join('');
+  renderDeployed();
+}
+function toggleApply(id){
+  SFX.click();
+  const d=G.disaster;
+  const t=DATA.level5.tools.find(x=>x.id===id);
+  if(G.applied.has(id))G.applied.delete(id);else G.applied.add(id);
+  document.querySelectorAll('[id^="applyCard_"]').forEach(el=>{
+    const tid=el.id.replace('applyCard_','');
+    const isApplied=G.applied.has(tid);
+    el.classList.toggle('on',isApplied);
+    // Highlight optimal deployed tools
+    const isOpt=d.optTools.includes(tid);
+    el.classList.toggle('optimal-deployed',isApplied&&isOpt);
+  });
+  renderDeployed();updateStratScore();
+}
+function renderDeployed(){
+  const el=document.getElementById('deployedTools');
+  if(G.applied.size===0){el.innerHTML='<span style="color:var(--text2);font-size:.83rem">No tools deployed yet.</span>';return;}
+  el.innerHTML=[...G.applied].map(id=>{
+    const t=DATA.level5.tools.find(x=>x.id===id);
+    return `<div style="padding:7px 12px;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.3);border-radius:8px;font-size:.83rem;font-weight:600;color:var(--accent2)">${t.icon} ${t.name}</div>`;
+  }).join('');
+}
+function updateStratScore(){
+  const d=G.disaster;
+  let score=0;
+  const metricCount=d.metrics.length;
+  [...G.applied].forEach(id=>{
+    const t=DATA.level5.tools.find(x=>x.id===id);
+    if(t&&t.eff[d.id])score+=t.eff[d.id]*12;
+  });
+  G.disasterScore=score;
+  document.getElementById('stratScore').textContent=score+' pts';
+  // Animate metric bars
+  const appliedArr=[...G.applied];
+  d.metrics.forEach((m,idx)=>{
+    const key=m.replace(/\W+/g,'_');
+    const valEl=document.getElementById('metric_'+key);
+    const barEl=document.getElementById('metricbar_'+key);
+    if(!valEl||!barEl)return;
+    // Calculate per-metric contribution
+    let metricScore=0;
+    appliedArr.forEach(id=>{
+      const t=DATA.level5.tools.find(x=>x.id===id);
+      if(t&&t.eff[d.id])metricScore+=t.eff[d.id];
+    });
+    const pct=Math.min(100,Math.round((metricScore/(10*Math.max(appliedArr.length,1)))*100));
+    valEl.textContent=pct>75?'Excellent':pct>50?'Good':pct>25?'Fair':'Low';
+    valEl.style.color=pct>75?'var(--accent2)':pct>50?'var(--warning)':'var(--danger)';
+    barEl.style.width=pct+'%';
+    barEl.style.background=pct>75?'linear-gradient(90deg,var(--accent),var(--accent2))':pct>50?'linear-gradient(90deg,var(--warning),var(--gold))':'linear-gradient(90deg,#880000,var(--danger))';
+  });
+}
+function submitDisaster(){
+  if(G.applied.size===0){toast('Deploy at least one tool first!','err');return;}
+  const d=G.disaster;let score=0;
+  [...G.applied].forEach(id=>{const t=DATA.level5.tools.find(x=>x.id===id);if(t&&t.eff[d.id])score+=t.eff[d.id]*12;});
+  const optBonus=d.optTools.filter(id=>G.applied.has(id)).length*100;
+  const total5=score+optBonus+G.auctScore;
+  G.scores[5]=total5;G.completed.add(5);
+  SFX.final();fireConfetti(['#ffd700','#ff6b35','#00ff9d','#00c8ff']);saveLB();
+  showFinalResults();
+}
+
+/* ====== LEVEL RESULTS ====== */
+function showLevelResults(lvl,icon,name,score,correct,total,bonus){
+  document.getElementById('resIcon').textContent=icon;
+  document.getElementById('resLevelName').textContent=name;
+  // Animate score count-up
+  const resScoreEl=document.getElementById('resScore');
+  resScoreEl.textContent='0';
+  document.getElementById('resDetails').innerHTML=`
+    <div class="metric-row"><span>Questions answered correctly</span><span class="metric-val">${correct}/${total}</span></div>
+    <div class="metric-row"><span>Accuracy rate</span><span class="metric-val">${Math.round(correct/total*100)}%</span></div>
+    ${bonus?`<div class="metric-row" style="border:none"><span>🏆 Accuracy bonus</span><span class="metric-val t-gold">+${bonus} pts</span></div>`:'<div class="metric-row" style="border:none"><span>Perfect bonus (all correct)</span><span class="metric-val t-muted">Not achieved</span></div>'}`;
+  const nextBtn=document.getElementById('resNextBtn');
+  if(lvl>=5){nextBtn.textContent='SEE FINAL RESULTS';nextBtn.onclick=showFinalResults;}
+  else{nextBtn.textContent=`NEXT MISSION (${lvl+1}) →`;nextBtn.onclick=goNextLevel;}
+  showScreen('screen-results');
+  setTimeout(()=>animateCounter(resScoreEl,score),200);
+}
+function goNextLevel(){SFX.click();startLevelFlow(G.currentLevel+1);}
+
+/* ====== FINAL RESULTS ====== */
+function showFinalResults(){
+  const total=getTotalScore();
+  const finalScoreEl=document.getElementById('finalScore');
+  finalScoreEl.textContent='0';
+  const finalTitleEl=document.getElementById('finalTitle');
+  finalTitleEl.textContent=getTitle(total).toUpperCase();
+  finalTitleEl.classList.remove('revealed');
+  document.getElementById('finalBreakdown').innerHTML=`
+    <div class="metric-row"><span>🔤 Level 1 — Training Mission</span><span class="metric-val">${(G.scores[1]||0).toLocaleString()} pts</span></div>
+    <div class="metric-row"><span>🛰️ Level 2 — Intel Gathering</span><span class="metric-val">${(G.scores[2]||0).toLocaleString()} pts</span></div>
+    <div class="metric-row"><span>🔐 Level 3 — Code Breaking</span><span class="metric-val">${(G.scores[3]||0).toLocaleString()} pts</span></div>
+    <div class="metric-row"><span>⚡ Level 4 — Rapid Assessment</span><span class="metric-val">${(G.scores[4]||0).toLocaleString()} pts</span></div>
+    <div class="metric-row" style="border:none"><span>🌍 Level 5 — Core Simulation</span><span class="metric-val">${(G.scores[5]||0).toLocaleString()} pts</span></div>
+    <div style="border-top:2px solid var(--accent);margin-top:10px;padding-top:10px;display:flex;justify-content:space-between">
+      <strong class="font-orb">TOTAL MISSION SCORE</strong>
+      <strong class="font-orb t-accent2">${total.toLocaleString()} pts</strong>
+    </div>`;
+  fireConfetti();SFX.final();
+  saveLB();showScreen('screen-final');
+  setTimeout(()=>animateCounter(finalScoreEl,total,1200),300);
+  setTimeout(()=>{finalTitleEl.classList.add('revealed');},1400);
+}
+function restartGame(){
+  G={...G,unlocked:new Set([1]),completed:new Set(),scores:{},
+    powerups:{hint:2,skip:1,freeze:1},currentLevel:0,qState:null,
+    l1q:[],l1idx:0,l1score:0,l1correct:0,
+    l2idx:0,l2score:0,l2correct:0,
+    l3idx:0,l3score:0,l3correct:0,l3guessed:new Set(),l3lives:6,
+    l4idx:0,l4score:0,l4correct:0,
+    budget:10000,bought:[],priceMulti:1,auctScore:0,
+    applied:new Set(),disasterScore:0};
+  saveState();showDash();
+}
+
+/* ====== DEMO MODE ====== */
+const DEMO_STEPS=5;
+function showDemo(){
+  G.demoStep=0;showScreen('screen-demo');
+  renderDemoNav();showDemoStep(0);
+}
+function renderDemoNav(){
+  document.getElementById('demoNav').innerHTML=Array.from({length:DEMO_STEPS},(_,i)=>
+    `<div class="demo-dot ${i===G.demoStep?'on':''}" onclick="jumpDemo(${i})" aria-label="Demo step ${i+1}"></div>`).join('');
+}
+function showDemoStep(n){
+  document.querySelectorAll('.demo-step').forEach(el=>el.classList.remove('on'));
+  const el=document.getElementById('demoStep'+n);if(el)el.classList.add('on');
+  renderDemoNav();
+  // Animate demo timer bar when showing step 1
+  if(n===1){
+    if(G.demoTimerAnim)clearInterval(G.demoTimerAnim);
+    const fill=document.getElementById('demoTimerFill');
+    const txt=document.getElementById('demoTimerTxt');
+    if(fill&&txt){
+      fill.style.width='100%';fill.className='timer-fill';
+      let pct=100,secs=72; // Start from 1:12
+      G.demoTimerAnim=setInterval(()=>{
+        pct=Math.max(0,pct-0.7);secs=Math.max(0,secs-0.5);
+        fill.style.width=pct+'%';
+        const cls=pct<25?'crit':pct<50?'warn':'';
+        fill.className='timer-fill '+cls;
+        const s=Math.floor(secs);
+        txt.textContent=`${s}s`;txt.style.color=pct<25?'var(--danger)':pct<50?'var(--warning)':'var(--accent)';
+        if(pct<=0){clearInterval(G.demoTimerAnim);}
+      },80);
+    }
+  }else{
+    if(G.demoTimerAnim){clearInterval(G.demoTimerAnim);G.demoTimerAnim=null;}
+  }
+}
+function demoNext(){if(G.demoStep<DEMO_STEPS-1){G.demoStep++;showDemoStep(G.demoStep);}}
+function demoPrev(){if(G.demoStep>0){G.demoStep--;showDemoStep(G.demoStep);}}
+function jumpDemo(n){G.demoStep=n;showDemoStep(n);}
+</script>
+</body>
+</html>
