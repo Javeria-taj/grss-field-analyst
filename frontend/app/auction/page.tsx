@@ -82,6 +82,7 @@ export default function AuctionPage() {
     const comboBonus = activeCombos.reduce((s, c) => s + c.bonus, 0);
     gs.setAuctScore(budgetBonus + comboBonus);
     gs.setDisasterScore(0);
+    SFX.click();
     router.push('/disaster');
   };
 

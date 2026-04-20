@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { useGameStore } from '@/stores/useGameStore';
 import { getTitle, getTotalScore } from '@/lib/scoring';
 import { SFX } from '@/lib/sfx';
@@ -19,18 +20,24 @@ const LEVEL_META: Record<number, { icon: string; name: string; confetti: string[
   5: { icon: '🌍', name: 'CORE SIMULATION COMPLETE', confetti: ['#ff6b35', '#ffd700', '#00ff9d'], next: null },
 };
 
+const STAT_ROWS = [
+  { label: 'Questions Correct', key: 'correct' },
+  { label: 'Accuracy', key: 'accuracy' },
+];
+
 function ResultsContent() {
   const router = useRouter();
   const params = useSearchParams();
-  const lvl = parseInt(params.get('level') || '1');
+  const lvl = parseInt(params.get('level') ?? '1');
   const gs = useGameStore();
   const { fire } = useConfetti();
   const fired = useRef(false);
   const meta = LEVEL_META[lvl];
-  const levelScore = gs.scores[lvl] || 0;
+  const levelScore = gs.scores[lvl] ?? 0;
   const total = getTotalScore(gs.scores);
-  const correct = [gs.l1correct, gs.l2correct, gs.l3correct, gs.l4correct][lvl - 1] || 0;
-  const totalQ = [10, 5, 5, 10][lvl - 1] || 1;
+  const correct = [gs.l1correct, gs.l2correct, gs.l3correct, gs.l4correct][lvl - 1] ?? 0;
+  const totalQ = [10, 5, 5, 10][lvl - 1] ?? 1;
+  const accuracy = Math.round((correct / totalQ) * 100);
 
   useEffect(() => {
     if (!gs.user) { router.replace('/'); return; }
@@ -55,48 +62,122 @@ function ResultsContent() {
       <ConfettiCanvas />
       <Toast />
       <div className="earth-deco" />
+
       <div className="center-col" style={{ position: 'relative', zIndex: 3 }}>
         <div style={{ maxWidth: 540, width: '100%', textAlign: 'center' }}>
-          <div style={{ fontSize: '3rem' }}>{meta.icon}</div>
-          <div className="font-orb t-accent" style={{ fontSize: '0.85rem', letterSpacing: 2, margin: '8px 0' }}>
+
+          {/* Icon */}
+          <motion.div
+            style={{ fontSize: '3.2rem', display: 'block', marginBottom: 12 }}
+            initial={{ scale: 0, rotate: -20 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', stiffness: 240, damping: 14 }}
+          >
+            {meta.icon}
+          </motion.div>
+
+          {/* Mission name */}
+          <motion.div
+            className="font-orb t-accent"
+            style={{ fontSize: '0.85rem', letterSpacing: 2, marginBottom: 6 }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+          >
             {meta.name}
-          </div>
-          <div className="final-score">
+          </motion.div>
+
+          {/* Score */}
+          <motion.div
+            className="final-score"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.35, type: 'spring', stiffness: 220 }}
+          >
             <AnimatedCounter target={levelScore} />
-          </div>
-          <div style={{ fontSize: '0.88rem', color: 'var(--text2)', marginBottom: 18 }}>points earned this level</div>
+          </motion.div>
 
-          <div className="card" style={{ marginBottom: 18 }}>
-            <div style={{ display: 'grid', gap: 0 }}>
-              {lvl <= 4 && (
-                <>
-                  <div className="metric-row">
-                    <span style={{ fontSize: '0.88rem' }}>Questions Correct</span>
-                    <span className="metric-val">{correct}/{totalQ}</span>
+          <motion.div
+            style={{ fontSize: '0.88rem', color: 'var(--text2)', marginBottom: 20 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+          >
+            points earned this mission
+          </motion.div>
+
+          {/* Stats card */}
+          <motion.div
+            className="card"
+            style={{ marginBottom: 20, textAlign: 'left' }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7 }}
+          >
+            {lvl <= 4 && (
+              <>
+                {/* Accuracy bar */}
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: 1 }}>Accuracy</span>
+                    <span className="font-orb t-accent2" style={{ fontSize: '0.88rem' }}>{correct}/{totalQ} correct · {accuracy}%</span>
                   </div>
-                  <div className="metric-row">
-                    <span style={{ fontSize: '0.88rem' }}>Accuracy</span>
-                    <span className="metric-val">{Math.round((correct / totalQ) * 100)}%</span>
+                  <div style={{ width: '100%', height: 7, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
+                    <motion.div
+                      style={{
+                        height: '100%',
+                        borderRadius: 4,
+                        background: accuracy >= 80
+                          ? 'linear-gradient(90deg, var(--accent2), #38bdf8)'
+                          : accuracy >= 50
+                          ? 'linear-gradient(90deg, var(--warning), var(--accent4))'
+                          : 'linear-gradient(90deg, var(--danger), #f97316)',
+                      }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${accuracy}%` }}
+                      transition={{ delay: 0.85, duration: 0.9, ease: 'easeOut' }}
+                    />
                   </div>
-                </>
-              )}
-              <div className="metric-row" style={{ border: 'none' }}>
-                <span style={{ fontSize: '0.88rem' }}>Total Score So Far</span>
-                <span className="metric-val">{total.toLocaleString()}</span>
-              </div>
-              <div className="metric-row" style={{ border: 'none', marginTop: 8 }}>
-                <span style={{ fontSize: '0.88rem' }}>Current Rank</span>
-                <span className="metric-val">{getTitle(total)}</span>
-              </div>
+                </div>
+              </>
+            )}
+
+            <div className="metric-row" style={{ border: 'none' }}>
+              <span style={{ fontSize: '0.88rem' }}>Total Score So Far</span>
+              <span className="metric-val">{total.toLocaleString()}</span>
             </div>
-          </div>
+            <div className="metric-row" style={{ border: 'none', marginTop: 4 }}>
+              <span style={{ fontSize: '0.88rem' }}>Current Rank</span>
+              <span className="metric-val" style={{ color: 'var(--accent3)' }}>{getTitle(total)}</span>
+            </div>
+          </motion.div>
 
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button className="btn btn-outline" onClick={() => router.push('/dashboard')}>← Dashboard</button>
-            <button className="btn btn-primary btn-lg" onClick={goNext} id="nextMissionBtn">
+          {/* Actions */}
+          <motion.div
+            style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.0 }}
+          >
+            <motion.button
+              className="btn btn-outline"
+              onClick={() => { SFX.click(); router.push('/dashboard'); }}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              ← Dashboard
+            </motion.button>
+            <motion.button
+              className="btn btn-primary btn-lg"
+              onClick={goNext}
+              id="nextMissionBtn"
+              whileHover={{ scale: 1.04, translateY: -2 }}
+              whileTap={{ scale: 0.96 }}
+            >
               {meta.next ? 'NEXT MISSION →' : '🌍 FINAL DEBRIEF →'}
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
+
         </div>
       </div>
     </div>

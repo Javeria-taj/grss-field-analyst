@@ -1,75 +1,103 @@
 require('dotenv').config();
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
+const rateLimit = require('express-rate-limit');
+const { connectDB } = require('./config/db');
+const apiRoutes = require('./routes/api');
+const setupLeaderboardSockets = require('./sockets/leaderboard');
 
 const app = express();
 const server = http.createServer(app);
+
+// ─── CORS ───────────────────────────────────────────────────────────────────
+const allowedOrigins = [
+  process.env.CLIENT_URL ?? 'http://localhost:3000',
+];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. Postman, server-to-server)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS policy: origin "${origin}" not allowed`));
+    }
+  },
+  methods: ['GET', 'POST'],
+  credentials: true,         // allow cookies (for future JWT)
+};
+
+// ─── SOCKET.IO ──────────────────────────────────────────────────────────────
 const io = new Server(server, {
-  cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
-    methods: ["GET", "POST"]
+  cors: corsOptions,
+  pingTimeout: 20000,
+  pingInterval: 10000,
+  connectionStateRecovery: { maxDisconnectionDuration: 30000 },
+});
+
+// ─── RATE LIMITING ──────────────────────────────────────────────────────────
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,  // 15 min window
+  max: 150,                   // generous for live-event bursts
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests – please slow down.' },
+});
+
+// Stricter limiter for write-like endpoints if added later
+const strictLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Rate limit exceeded.' },
+});
+
+// ─── SECURITY HEADERS ───────────────────────────────────────────────────────
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  next();
+});
+
+// ─── MIDDLEWARE ─────────────────────────────────────────────────────────────
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '64kb' }));   // cap body size to prevent large-payload attacks
+app.use('/api', apiLimiter);
+
+// ─── DATABASE ───────────────────────────────────────────────────────────────
+connectDB();
+
+// ─── ROUTES ─────────────────────────────────────────────────────────────────
+app.use('/api', apiRoutes);
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Endpoint not found' });
+});
+
+// Global error handler
+app.use((err, req, res, _next) => {
+  if (err.message?.startsWith('CORS policy')) {
+    return res.status(403).json({ error: err.message });
   }
+  console.error('[Server Error]', err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// ─── SOCKETS ─────────────────────────────────────────────────────────────────
+setupLeaderboardSockets(io);
 
-// In-Memory Fallback for Leaderboard (if DB is missing)
-let leaderboardFallback = [];
-let isDbConnected = false;
-
-// Basic Route
-app.get('/', (req, res) => {
-  res.json({
-    status: 'online',
-    db_connected: isDbConnected,
-    mode: isDbConnected ? 'production' : 'local-memory-fallback'
-  });
-});
-
-// MongoDB Connection with Graceful Fallback
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/grss';
-mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 5000 })
-  .then(() => {
-    console.log('✅ Connected to MongoDB');
-    isDbConnected = true;
-  })
-  .catch(err => {
-    console.warn('⚠️ MongoDB not found. Switching to Local Memory Mode.');
-    console.log('💡 Note: Scores will not persist between server restarts.');
-    isDbConnected = false;
-  });
-
-// Socket.io Logic
-io.on('connection', (socket) => {
-  console.log(`👤 User connected: ${socket.id}`);
-  
-  // Send current leaderboard on join
-  socket.emit('leaderboard_update', leaderboardFallback);
-
-  socket.on('submit_score', (data) => {
-    // Basic validation
-    if (!data.name || !data.score) return;
-    
-    leaderboardFallback.push({ name: data.name, score: data.score, usn: data.usn, date: new Date() });
-    leaderboardFallback.sort((a,b) => b.score - a.score);
-    leaderboardFallback = leaderboardFallback.slice(0, 50); // Keep top 50
-    
-    io.emit('leaderboard_update', leaderboardFallback);
-  });
-
-  socket.on('disconnect', () => {
-    console.log(`👤 User disconnected: ${socket.id}`);
-  });
-});
-
-// Start Server
-const PORT = process.env.PORT || 4000;
+// ─── START ───────────────────────────────────────────────────────────────────
+const PORT = parseInt(process.env.PORT ?? '4000', 10);
 server.listen(PORT, () => {
   console.log(`🚀 Backend server listening on port ${PORT}`);
-  console.log(`📡 API Status: http://localhost:${PORT}`);
+  console.log(`📡 API: http://localhost:${PORT}/api`);
+  console.log(`🌐 Allowed origin: ${allowedOrigins.join(', ')}`);
+  console.log(`🔒 Environment: ${process.env.NODE_ENV ?? 'development'}`);
 });

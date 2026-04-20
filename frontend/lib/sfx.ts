@@ -14,6 +14,7 @@ const tone = (freq: number, dur: number, type: OscillatorType = 'sine', vol = 0.
   if (typeof window === 'undefined') return;
   try {
     const c = getACtx();
+    if (c.state === 'suspended') c.resume();
     const o = c.createOscillator();
     const g = c.createGain();
     o.connect(g);
