@@ -1,14 +1,16 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const http = require('http');
-const { Server } = require('socket.io');
-const rateLimit = require('express-rate-limit');
-const cookieParser = require('cookie-parser');
-const { connectDB } = require('./config/db');
-const apiRoutes = require('./routes/api');
-const authRoutes = require('./routes/auth');
-const setupLeaderboardSockets = require('./sockets/leaderboard');
+import dotenv from 'dotenv';
+dotenv.config();
+
+import express, { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import http from 'http';
+import { Server } from 'socket.io';
+import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
+import { connectDB } from './config/db';
+import apiRoutes from './routes/api';
+import authRoutes from './routes/auth';
+import setupLeaderboardSockets from './sockets/leaderboard';
 
 const app = express();
 const server = http.createServer(app);
@@ -19,7 +21,7 @@ const allowedOrigins = [
 ];
 
 const corsOptions = {
-  origin: (origin, callback) => {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     // Allow requests with no origin (e.g. Postman, server-to-server)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
@@ -58,7 +60,7 @@ const strictLimiter = rateLimit({
 });
 
 // ─── SECURITY HEADERS ───────────────────────────────────────────────────────
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -81,12 +83,12 @@ app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
 
 // 404 handler
-app.use((req, res) => {
+app.use((req: Request, res: Response) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });
 
 // Global error handler
-app.use((err, req, res, _next) => {
+app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
   if (err.message?.startsWith('CORS policy')) {
     return res.status(403).json({ error: err.message });
   }

@@ -1,10 +1,8 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
-/** @type {boolean} */
-let isDbConnected = false;
+let isDbConnected: boolean = false;
 
-/** @type {ReturnType<typeof setTimeout> | null} */
-let reconnectTimer = null;
+let reconnectTimer: NodeJS.Timeout | null = null;
 
 const RECONNECT_DELAY_MS = 10_000; // 10 seconds between retry attempts
 const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017/grss';
@@ -13,7 +11,7 @@ const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017/grss';
  * Attempts to connect to MongoDB. Falls back to local-memory mode gracefully.
  * Schedules automatic reconnection if initial connection fails.
  */
-async function connectDB() {
+export async function connectDB(): Promise<void> {
   try {
     await mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 5000 });
     console.log('✅ Connected to MongoDB');
@@ -45,12 +43,6 @@ function scheduleReconnect() {
   }, RECONNECT_DELAY_MS);
 }
 
-/**
- * Returns whether MongoDB is currently connected.
- * @returns {boolean}
- */
-function getDbStatus() {
+export function getDbStatus(): boolean {
   return isDbConnected;
 }
-
-module.exports = { connectDB, getDbStatus };

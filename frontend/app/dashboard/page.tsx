@@ -120,6 +120,7 @@ export default function DashboardPage() {
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.95 }}
                 style={{ borderColor: 'var(--gold)', color: 'var(--gold)' }}
+                aria-label="View Global Leaderboard"
               >
                 🏆 Leaderboard
               </motion.button>
@@ -132,17 +133,18 @@ export default function DashboardPage() {
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.95 }}
               style={{ borderColor: 'var(--accent2)', color: 'var(--accent2)' }}
+              aria-label="Open Mission Telemetry Log"
+              aria-expanded={showTelemetry}
             >
               📊 Mission Telemetry
             </motion.button>
-
-
 
             <motion.button
               className="btn btn-outline btn-sm"
               onClick={handleLogout}
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.95 }}
+              aria-label="Secure Logout"
             >
               ↩ Logout
             </motion.button>
@@ -186,6 +188,9 @@ export default function DashboardPage() {
                   <div key={lv.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 4 }}>
                     <motion.div
                       className="lv-node"
+                      role="button"
+                      aria-label={`Mission ${lv.id}: ${lv.label.replace('\n', ' ')}`}
+                      aria-disabled={!isOpen}
                       onClick={() => handleLevelClick(lv.id)}
                       whileHover={isOpen ? { scale: 1.07 } : {}}
                       whileTap={isOpen ? { scale: 0.93 } : {}}
@@ -314,6 +319,7 @@ export default function DashboardPage() {
                 </div>
                 <button
                   className="btn btn-outline btn-sm"
+                  aria-label="Close Telemetry Dialog"
                   onClick={() => { SFX.click(); setShowTelemetry(false); }}
                 >
                   Close [ESC]

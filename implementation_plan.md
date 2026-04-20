@@ -2,8 +2,12 @@
 
 This document outlines a phased refactoring and optimization plan to elevate the GRSS Field Analyst platform to a modern, robust, and visually stunning 10/10 application.
 
-## Execution Approved
-The plan below has been approved, including the new Phase 5 for the Admin Dashboard (Option B). We will now systematically execute each step.
+## User Review Required
+
+> [!IMPORTANT]
+> Please review the proposed architectural and UI/UX changes below. Your approval is necessary before proceeding with code execution.
+> - **Design System Choice:** Will refine the existing Sci-Fi Glassmorphism paradigm to a more premium tier rather than switching completely to Neobrutalism.
+> - **Security Paradigm:** Introducing strict JWT + HTTP-only cookie auth, which will require adjustments to the backend and frontend user flow.
 
 ## Proposed Changes
 
@@ -73,23 +77,14 @@ Eliminating tech debt, redundancy, and ensuring pristine maintainability.
 #### [DELETE] Redundant Legacy Files
 - Clean up any unused files and obsolete CSS classes post-Tailwind migration to reduce bundle size.
 
----
+## Open Questions
 
-### Phase 5: Admin Dashboard (Option B)
-Implementing a highly-secure, dedicated management interface for event organizers.
+> [!WARNING]
+> Please review and provide feedback on the following before we begin:
 
-#### [NEW] `frontend/app/admin/page.tsx`
-- The `SUPER_ADMIN` dashboard UI with high-tier Glassmorphism.
-- Features dynamic socket stats (active connections).
-- Leaderboard management panel (Reset, Delete specific USNs).
-- Global broadcast form to send 'Toasts' to all active users.
+1. **Design Preference:** I assumed a premium Sci-Fi Glassmorphism approach fits the "Field Analyst / Geoscience Space" theme better than stark Neobrutalism. Do you agree with this aesthetic direction?  glassmorphism
+2. **Backend Persistence:** Are we continuing to use Mongoose/MongoDB, or are you open to strict ORMs like Prisma for end-to-end type safety? sure
 
-#### [MODIFY] `frontend/app/page.tsx`
-- Update the login router to redirect specifically to `/admin` instead of `/dashboard` when `usn === 'SUPER_ADMIN'`.
-
-#### [MODIFY] `backend/src/sockets/leaderboard.js`
-- Expose secure event listeners: `admin_delete_score`, `admin_reset_board`, and `admin_global_broadcast`.
-- Add a socket emitter `stats_update` to broadcast the current `connectedCount` exclusively to the admin.
 
 ## Verification Plan
 
@@ -98,6 +93,88 @@ Implementing a highly-secure, dedicated management interface for event organizer
 - Implementation of basic validation testing on core backend endpoints to verify JWT protections and rate limiting.
 
 ### Manual Verification
-- Login with `super_admin`/`javeria_taj` and verify redirection to the Admin Panel.
-- Perform a live Global Broadcast and verify it appears on standard player clients.
+- Visual inspection of Framer Motion micro-animations across devices (desktop/mobile).
+- Real-time testing of Socket.io event broadcasting, reconnection robustness across multiple simulated clients.
 - Review of browser Network tabs to confirm JWTs are locked inside HTTP-only cookies and not exposed in local storage.
+
+We are continuing the build for the GRSS Field Analyst platform (Next.js + Node/Express + MongoDB + Socket.io). We need to implement a strict, privacy-first autonomous defense system for the live event, alongside an Admin Command Center and detailed player telemetry.
+
+Please update the architecture, database schema, and UI components with the following specific requirements:
+
+1. Strict Authentication & Anti-Cheat (Backend/Socket.io)
+
+Unique USN Enforcement: The usn field in MongoDB must be strictly unique. Once a Name and USN are registered, they are immutable and locked for the duration of the event.
+
+Active Socket Locking & Seamless Resume: The platform must gracefully handle real-world event issues like network drops or browser crashes. If a user explicitly authenticates (via the login form) using a USN that already exists in the database:
+
+Check if there is currently an active Socket.io connection tied to that USN.
+
+If YES (Multi-device attempt): Block the login attempt, deny access, and emit a real-time WebSockets alert to the Admin Dashboard (e.g., '⚠️ User 1MS21CS001 attempted concurrent multi-device login'). Do not instantly disqualify them.
+
+If NO (Valid reconnect): Authenticate the user, issue a fresh HTTP-only session cookie, and restore their game state exactly where they left off by fetching their progress from MongoDB.
+
+Malpractice Monitoring: Set up middleware to detect suspicious activity (e.g., answering questions faster than humanly possible, submitting multiple answers simultaneously). Emit these alerts to the Admin via WebSockets.
+
+2. Admin Command Center (New Frontend Route)
+
+Create a protected /admin route (accessible via a hardcoded environment variable admin token for simplicity).
+
+Live Global Leaderboard: The admin should see the real-time leaderboard updating via Socket.io.
+
+Alert Feed: A live feed component that displays incoming cheating notifications and concurrent login alerts.
+
+3. User Dashboard & View Restrictions (Frontend)
+
+Hide the Global Leaderboard: Remove the leaderboard component from the main user dashboard. Users are strictly forbidden from seeing the global leaderboard until their completedLevels array includes Level 5.
+
+Detailed Mission Telemetry (New Feature): Replace the leaderboard button on the user dashboard with a 'Mission Telemetry' button. This opens a Glassmorphism-styled modal displaying only that specific user's performance.
+
+Granular Data Tracking: Update the MongoDB schema and backend scoring logic to track an array of question-level data. To optimize database performance, batch this telemetry data and push it to MongoDB at the end of each level (rather than after every single click). The user modal must display a table/list showing:
+
+Question ID / Level
+
+Accuracy (Correct/Incorrect)
+
+Time taken to answer (in seconds)
+
+Points gained for that specific question
+
+We are continuing the build for the GRSS Field Analyst platform (Next.js + Node/Express + MongoDB + Socket.io). We are prioritizing a frictionless user experience and high-performance real-time admin monitoring for the live event.
+
+Please update the architecture, database schema, and UI components with the following specific requirements:
+
+1. Frictionless Authentication & Session Management
+
+Registration Guard: The usn field in MongoDB is strictly unique. If a user attempts to register with a USN that already exists, simply return a 400 error with the message: 'USN is already registered.' Do not log them in from the register form.
+
+Seamless Relogin & State Restoration: There are absolutely NO disqualifications. If a user logs out, closes their browser, or loses connection, they can log back in via the 'Login' tab. Upon successful login, the backend must fetch their progress from MongoDB, issue a fresh HTTP-only session cookie, and restore their game state exactly where they left off.
+
+2. Admin Command Center & Live Telemetry (Frontend)
+
+Create a protected /admin route (accessible via a hardcoded environment variable admin token).
+
+Round-by-Round Live Results: The admin dashboard must feature a tabbed interface or filter to view live leaderboards per level (e.g., 'Level 1 Standings', 'Level 2 Standings'), as well as the 'Global Final Leaderboard' aggregating all scores.
+
+Live Granular Telemetry: The admin must be able to see live telemetry for every user. This includes per-question accuracy, time taken, and points earned as it happens.
+
+3. High-Performance Real-Time Architecture (Backend/Socket.io)
+
+To prevent MongoDB throttling with 250 concurrent users, decouple the live updates from the database writes.
+
+Per-Question (Socket.io): When a user answers a question, immediately emit a Socket.io event with their updated telemetry and score payload to update the Admin Command Center in real-time.
+
+Per-Level (MongoDB): Batch the user's telemetry, score, and state data, and execute the actual MongoDB write operation only when the user finishes a level, logs out, or triggers a specific save checkpoint.
+
+4. User Dashboard & View Restrictions (Frontend)
+
+Hide the Global Leaderboard: Remove the leaderboard component from the main user dashboard. Users are strictly forbidden from seeing the global leaderboard until their completedLevels array includes Level 5.
+
+Detailed Mission Telemetry: Provide a 'Mission Telemetry' button on the user dashboard. This opens a Glassmorphism modal displaying only that specific user's performance. The modal displays a table/list showing:
+
+Question ID / Level
+
+Accuracy (Correct/Incorrect)
+
+Time taken to answer (in seconds)
+
+Points gained for that specific question

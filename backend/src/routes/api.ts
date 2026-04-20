@@ -1,11 +1,11 @@
-const express = require('express');
-const { z } = require('zod');
-const { getDbStatus } = require('../config/db');
+import express, { Request, Response } from 'express';
+import { z } from 'zod';
+import { getDbStatus } from '../config/db';
 
 const router = express.Router();
 
 // ─── Health check ────────────────────────────────────────────────────────────
-router.get('/', (req, res) => {
+router.get('/', (req: Request, res: Response) => {
   res.json({
     status: 'online',
     db_connected: getDbStatus(),
@@ -17,9 +17,9 @@ router.get('/', (req, res) => {
 // ─── Leaderboard REST endpoint (read-only snapshot) ──────────────────────────
 // Live updates are delivered via WebSocket; this endpoint provides an
 // initial snapshot for clients that connect before socket initialises.
-const { getLeaderboard } = require('../sockets/leaderboard');
+import { getLeaderboard, addScore } from '../sockets/leaderboard';
 
-router.get('/leaderboard', (req, res) => {
+router.get('/leaderboard', (req: Request, res: Response) => {
   try {
     const entries = getLeaderboard();
     res.json({ status: 'ok', count: entries.length, entries });
@@ -35,9 +35,7 @@ const scoreSchema = z.object({
   score: z.number().int().nonnegative().max(9999),
 });
 
-const { addScore } = require('../sockets/leaderboard');
-
-router.post('/score', (req, res) => {
+router.post('/score', async (req: Request, res: Response): Promise<any> => {
   const result = scoreSchema.safeParse(req.body);
   if (!result.success) {
     return res.status(400).json({
@@ -46,11 +44,11 @@ router.post('/score', (req, res) => {
     });
   }
   try {
-    addScore(result.data);
+    await addScore(result.data);
     res.status(201).json({ status: 'ok', message: 'Score submitted successfully' });
   } catch (err) {
     res.status(500).json({ status: 'error', error: 'Failed to record score' });
   }
 });
 
-module.exports = router;
+export default router;

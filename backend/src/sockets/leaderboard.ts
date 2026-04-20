@@ -1,12 +1,20 @@
-const { z } = require('zod');
-const jwt = require('jsonwebtoken');
+import { z } from 'zod';
+import jwt from 'jsonwebtoken';
+import { Server, Socket } from 'socket.io';
+import { User, IUser } from '../models/User';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const JWT_SECRET = process.env.SESSION_SECRET || 'grss_super_secret_change_in_production';
 
 // ─── In-memory leaderboard ────────────────────────────────────────────────────
-/** @type {Array<{name: string, usn: string, score: number, date: Date}>} */
-let leaderboardFallback = [];
+export interface LeaderboardEntry {
+  name: string;
+  usn: string;
+  score: number;
+  date: Date;
+}
+
+let leaderboardFallback: LeaderboardEntry[] = [];
 
 // ─── Zod schema for strict payload validation ─────────────────────────────────
 const scoreSchema = z.object({
@@ -15,13 +23,17 @@ const scoreSchema = z.object({
   score: z.number().int().nonnegative().max(9999),
 });
 
-// ─── Helpers (exported for REST route reuse) ──────────────────────────────────
-function getLeaderboard() {
+export function getLeaderboard(): LeaderboardEntry[] {
   return leaderboardFallback;
 }
 
-function addScore(data) {
+export function userExists(usn: string): boolean {
+  return leaderboardFallback.some(e => e.usn === usn);
+}
+
+export async function addScore(data: { name: string; usn: string; score: number, isAdmin?: boolean }): Promise<void> {
   const existing = leaderboardFallback.findIndex(e => e.usn === data.usn);
+  
   if (existing !== -1) {
     if (data.score <= leaderboardFallback[existing].score) return;
     leaderboardFallback[existing] = { ...data, date: new Date() };
@@ -31,17 +43,54 @@ function addScore(data) {
 
   // Sort immediately
   leaderboardFallback.sort((a, b) => b.score - a.score);
+
+  // Background persistence to MongoDB
+  try {
+    await User.findOneAndUpdate(
+      { usn: data.usn },
+      { 
+        $set: { name: data.name, lastActive: new Date() },
+        $max: { score: data.score },
+        $setOnInsert: { isAdmin: data.isAdmin ?? false }
+      },
+      { upsert: true, new: true }
+    ).catch(console.error);
+  } catch (err) {
+    console.error('Mongo Save Error', err);
+  }
+}
+
+// ─── Hydration ────────────────────────────────────────────────────────────────
+export async function hydrateLeaderboard(): Promise<void> {
+  try {
+    const users = await User.find({ isAdmin: false }).sort({ score: -1 }).exec();
+    leaderboardFallback = users.map((u: any) => ({
+      name: u.name,
+      usn: u.usn,
+      score: u.score,
+      date: u.lastActive,
+    }));
+    console.log(`🗄️ Leaderboard hydrated from MongoDB: ${leaderboardFallback.length} records.`);
+  } catch (err) {
+    console.warn('⚠️ MongoDB hydration failed, using clean slate.');
+  }
 }
 
 // ─── Socket setup ─────────────────────────────────────────────────────────────
-module.exports = (io) => {
+export default function setupSockets(io: Server) {
   let connectedCount = 0;
+  
+  // Rate-limiting map: socketId -> last submission timestamp
+  const rateLimitMap = new Map<string, number>();
+
+  // Attempt to hydrate on setup
+  hydrateLeaderboard();
 
   // Authenticaton Middleware
-  io.use((socket, next) => {
+  io.use((socket: any, next) => {
     try {
       const cookieStr = socket.request.headers.cookie || '';
-      const cookies = cookieStr.split(';').reduce((acc, str) => {
+      const cookies = cookieStr.split(';').reduce((acc: any, str: string) => {
         const [k, v] = str.split('=').map(s => s.trim());
         if (k && v) acc[k] = decodeURIComponent(v);
         return acc;
@@ -56,7 +105,7 @@ module.exports = (io) => {
     next();
   });
 
-  io.on('connection', (socket) => {
+  io.on('connection', (socket: any) => {
     connectedCount++;
     console.log(`👤 Connected: ${socket.id}  (active: ${connectedCount})`);
 
@@ -71,30 +120,48 @@ module.exports = (io) => {
     }, 2000);
 
     // ── Score submission ──────────────────────────────────────────
-    socket.on('submit_score', (data) => {
+    socket.on('submit_score', async (data: any) => {
+      // Flaw #3 Fix: WebSocket Rate-Limiting (2s debounce)
+      const now = Date.now();
+      const lastSub = rateLimitMap.get(socket.id) || 0;
+      if (now - lastSub < 2000) {
+        return socket.emit('score_error', { error: 'Rate limit exceeded. Please wait 2 seconds.' });
+      }
+      rateLimitMap.set(socket.id, now);
+
       const result = scoreSchema.safeParse(data);
       if (!result.success) {
         return socket.emit('score_error', { error: 'Invalid score payload', details: result.error.flatten().fieldErrors });
       }
 
-      addScore(result.data);
+      await addScore(result.data);
       console.log(`✅ Score recorded: ${result.data.name} (${result.data.usn}) → ${result.data.score} pts`);
       io.emit('leaderboard_update', leaderboardFallback);
     });
 
     // ── ADMIN EVENTS ──────────────────────────────────────────────
-    socket.on('admin_reset_board', () => {
+    socket.on('admin_reset_board', async () => {
       if (!socket.user?.isAdmin) return console.warn(`🚨 UNATHORIZED admin_reset from ${socket.user?.usn}`);
-      leaderboardFallback = [];
-      io.emit('leaderboard_update', leaderboardFallback);
-      console.log(`🗑️ Admin ${socket.user.name} reset the leaderboard.`);
+      try {
+        await User.updateMany({}, { $set: { score: 0 } });
+        leaderboardFallback.forEach(u => u.score = 0);
+        io.emit('leaderboard_update', leaderboardFallback);
+        console.log(`🗑️ Admin ${socket.user.name} reset all scores.`);
+      } catch (err) {
+        console.error('Failed to reset DB:', err);
+      }
     });
 
-    socket.on('admin_delete_score', (usn) => {
+    socket.on('admin_delete_score', async (usn: string) => {
       if (!socket.user?.isAdmin) return;
-      leaderboardFallback = leaderboardFallback.filter(e => e.usn !== usn);
-      io.emit('leaderboard_update', leaderboardFallback);
-      console.log(`🗑️ Admin ${socket.user.name} deleted score for USN: ${usn}`);
+      try {
+        await User.deleteOne({ usn });
+        leaderboardFallback = leaderboardFallback.filter(e => e.usn !== usn);
+        io.emit('leaderboard_update', leaderboardFallback);
+        console.log(`🗑️ Admin ${socket.user.name} deleted score for USN: ${usn}`);
+      } catch (err) {
+        console.error('Failed to delete DB user:', err);
+      }
     });
 
     socket.on('admin_global_broadcast', (message) => {
@@ -107,13 +174,12 @@ module.exports = (io) => {
     // ── Disconnect ────────────────────────────────────────────────────────────
     socket.on('disconnect', () => {
       connectedCount = Math.max(0, connectedCount - 1);
+      rateLimitMap.delete(socket.id); // clean up memory
     });
 
-    socket.on('error', (err) => {
+    socket.on('error', (err: Error) => {
       console.error(`[Socket Error] ${socket.id}:`, err.message);
     });
   });
-};
+}
 
-module.exports.getLeaderboard = getLeaderboard;
-module.exports.addScore = addScore;

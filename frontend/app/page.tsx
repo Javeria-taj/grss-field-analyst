@@ -48,7 +48,8 @@ export default function AuthPage() {
     
     try {
       const payload = { name: name.trim(), usn: usn.trim() };
-      const res = await apiClient.post<{status: string, user: any}>('/api/auth/login', payload);
+      const endpoint = tab === 'login' ? '/api/auth/login' : '/api/auth/register';
+      const res = await apiClient.post<{status: string, user: any}>(endpoint, payload);
       
       // CRITICAL: Reset all progress before logging in the new user
       resetProgress();
@@ -65,8 +66,9 @@ export default function AuthPage() {
         SFX.levelUp();
         router.push('/dashboard');
       }
-    } catch (err: any) {
-      toast(err.message || 'Network communication failed.', 'err');
+    } catch (err) {
+      const e = err as Error;
+      toast(e.message || 'Network communication failed.', 'err');
       SFX.wrong();
     }
     setLoading(false);
@@ -230,6 +232,9 @@ export default function AuthPage() {
                   onBlur={() => setFocused(null)}
                   id="authName"
                   autoComplete="name"
+                  aria-label={tab === 'login' ? 'Login Agent Name' : 'Register Full Name'}
+                  aria-invalid={nameError}
+                  aria-required="true"
                 />
               </motion.div>
             </div>
@@ -251,6 +256,9 @@ export default function AuthPage() {
                   id="authUsn"
                   autoComplete="off"
                   autoCapitalize="characters"
+                  aria-label="University Seat Number"
+                  aria-invalid={usnError}
+                  aria-required="true"
                 />
               </motion.div>
             </div>
@@ -260,6 +268,7 @@ export default function AuthPage() {
               onClick={handleSubmit}
               disabled={loading}
               id="authSubmitBtn"
+              aria-label={tab === 'login' ? 'Deploy Agent Login' : 'Enlist as Analyst Registration'}
               whileHover={{ scale: 1.02, translateY: -2 }}
               whileTap={{ scale: 0.97 }}
             >
@@ -285,6 +294,7 @@ export default function AuthPage() {
                 className="btn btn-outline btn-sm"
                 onClick={() => { SFX.click(); router.push('/demo'); }}
                 id="demoBtn"
+                aria-label="Watch Demo Mode"
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
               >
