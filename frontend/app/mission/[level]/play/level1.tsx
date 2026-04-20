@@ -9,8 +9,10 @@ import { toast } from '@/components/ui/Toast';
 import HUD from '@/components/ui/HUD';
 import TimerBar from '@/components/ui/TimerBar';
 import FeedbackOverlay from '@/components/ui/FeedbackOverlay';
-import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
-import Toast from '@/components/ui/Toast';
+import { motion } from 'framer-motion';
+
+import { useLeaderboardStore } from '@/stores/useLeaderboardStore';
+import { getTotalScore } from '@/lib/scoring';
 
 type FBState = { type: 'ok' | 'bad' | 'timeout'; icon: string; title: string; body: string } | null;
 
@@ -31,6 +33,7 @@ export default function Level1Play() {
     setInputDisabled(false);
     qStateRef.current = null;
     gs.incL1Idx();
+    gs.syncState();
   }, [gs]);
 
   const onTimerDone = useCallback(() => {
@@ -117,8 +120,6 @@ export default function Level1Play() {
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <StarfieldCanvas />
-      <Toast />
       <div className="earth-deco" />
       <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', flex: 1 }}>
         <HUD levelName="LEVEL 1 — TRAINING" totalQuestions={gs.l1q.length} currentQuestion={gs.l1idx} />
@@ -164,15 +165,18 @@ export default function Level1Play() {
               autoFocus
               id="l1answer"
             />
-            <button
+            <motion.button
               className="btn btn-primary btn-full"
               style={{ marginTop: 10 }}
               onClick={submit}
+              onMouseEnter={() => !inputDisabled && SFX.hover()}
+              whileHover={!inputDisabled ? { scale: 1.02 } : {}}
+              whileTap={!inputDisabled ? { scale: 0.98 } : {}}
               disabled={inputDisabled}
               id="l1submitBtn"
             >
               {inputDisabled ? '⏳ Waiting for timer...' : '✅ SUBMIT ANSWER'}
-            </button>
+            </motion.button>
           </div>
         </div>
 

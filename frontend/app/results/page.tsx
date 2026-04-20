@@ -6,11 +6,9 @@ import { useGameStore } from '@/stores/useGameStore';
 import { getTitle, getTotalScore } from '@/lib/scoring';
 import { SFX } from '@/lib/sfx';
 import { useConfetti } from '@/components/ui/ConfettiCanvas';
-import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
-import ConfettiCanvas from '@/components/ui/ConfettiCanvas';
-import Toast from '@/components/ui/Toast';
 import AnimatedCounter from '@/components/ui/AnimatedCounter';
 import { Suspense } from 'react';
+import { useLeaderboardStore } from '@/stores/useLeaderboardStore';
 
 const LEVEL_META: Record<number, { icon: string; name: string; confetti: string[]; next: number | null }> = {
   1: { icon: '🔤', name: 'TRAINING MISSION COMPLETE', confetti: ['#00c8ff', '#00ff9d', '#7c3aed'], next: 2 },
@@ -45,6 +43,21 @@ function ResultsContent() {
       fired.current = true;
       SFX.levelUp();
       setTimeout(() => fire(meta?.confetti), 300);
+
+      // PERSIST PROGRESS TO BACKEND AFTER EACH MISSION
+      const ls = useLeaderboardStore.getState();
+      ls.submitScore({
+        name: gs.user.name,
+        usn: gs.user.usn,
+        score: total,
+        progress: {
+          unlocked: gs.unlocked,
+          completed: gs.completed,
+          scores: gs.scores,
+          powerups: gs.powerups,
+          telemetry: gs.telemetry
+        }
+      });
     }
   }, []); // eslint-disable-line
 
@@ -58,9 +71,6 @@ function ResultsContent() {
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh' }}>
-      <StarfieldCanvas />
-      <ConfettiCanvas />
-      <Toast />
       <div className="earth-deco" />
 
       <div className="center-col" style={{ position: 'relative', zIndex: 3 }}>
@@ -161,15 +171,17 @@ function ResultsContent() {
           >
             <motion.button
               className="btn btn-outline"
-              onClick={() => { SFX.click(); router.push('/dashboard'); }}
+              onClick={() => { SFX.click(); router.push('/leaderboard'); }}
+              onMouseEnter={() => SFX.hover()}
               whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.96 }}
             >
-              ← Dashboard
+              🏆 Leaderboard
             </motion.button>
             <motion.button
               className="btn btn-primary btn-lg"
               onClick={goNext}
+              onMouseEnter={() => SFX.hover()}
               id="nextMissionBtn"
               whileHover={{ scale: 1.04, translateY: -2 }}
               whileTap={{ scale: 0.96 }}

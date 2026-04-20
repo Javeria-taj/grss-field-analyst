@@ -19,21 +19,39 @@ router.post('/login', (req: Request, res: Response) => {
   }
 
   const { name, usn } = result.data;
+  const upperUsn = usn.toUpperCase();
   
   const ADMIN_USN = (process.env.ADMIN_USN || 'SUPER_ADMIN').toUpperCase();
   const ADMIN_NAME = (process.env.ADMIN_NAME || 'javeria_taj').toLowerCase();
   
-  const isAdmin = (usn.toUpperCase() === ADMIN_USN && name.toLowerCase() === ADMIN_NAME);
+  const isAdmin = (upperUsn === ADMIN_USN && name.toLowerCase() === ADMIN_NAME);
 
-  // If not admin, check if they exist in the roster
-  if (!isAdmin && !userExists(usn.toUpperCase())) {
-    return res.status(404).json({ status: 'error', message: 'USN not found in active roster. Please register first.' });
+  // Retrieve user from DB (not just fallback)
+  const dbUser = await User.findOne({ usn: upperUsn });
+
+  // If not admin, check if they exist
+  if (!isAdmin) {
+    if (!dbUser) {
+      return res.status(404).json({ status: 'error', message: 'USN not found in active roster. Please register first.' });
+    }
+    // Verify Identity: Name must match registered name
+    if (dbUser.name.toLowerCase() !== name.toLowerCase()) {
+      return res.status(401).json({ status: 'error', message: 'Credentials mismatch. Name does not match registered USN.' });
+    }
   }
 
   const payload = {
-    name,
-    usn: usn.toUpperCase(),
+    name: dbUser?.name || name,
+    usn: upperUsn,
     isAdmin,
+    // Hydrate progress fields
+    unlocked: dbUser?.unlocked || [1],
+    completed: dbUser?.completed || [],
+    scores: dbUser?.scores || {},
+    powerups: dbUser?.powerups || { hint: 2, skip: 1, freeze: 1 },
+    telemetry: dbUser?.telemetry || [],
+    totalScore: dbUser?.score || 0,
+    levelState: dbUser?.levelState || {}
   };
 
   const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
@@ -76,6 +94,12 @@ router.post('/register', (req: Request, res: Response) => {
     name,
     usn: upperUsn,
     isAdmin,
+    unlocked: [1],
+    completed: [],
+    scores: {},
+    powerups: { hint: 2, skip: 1, freeze: 1 },
+    telemetry: [],
+    totalScore: 0
   };
 
   const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });

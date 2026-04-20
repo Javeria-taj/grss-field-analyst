@@ -9,10 +9,9 @@ import { toast } from '@/components/ui/Toast';
 import HUD from '@/components/ui/HUD';
 import TimerBar from '@/components/ui/TimerBar';
 import FeedbackOverlay from '@/components/ui/FeedbackOverlay';
-import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
-import Toast from '@/components/ui/Toast';
 import DATA from '@/lib/gameData';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 
 type FBState = { type: 'ok' | 'bad' | 'timeout'; icon: string; title: string; body: string } | null;
 
@@ -33,6 +32,7 @@ export default function Level2Play() {
     setFb(null); setSelected(null); setLocked(false); setRevealState({});
     qStateRef.current = null;
     gs.incL2Idx();
+    gs.syncState();
   }, [gs]);
 
   const onTimerDone = useCallback(() => {
@@ -106,8 +106,6 @@ export default function Level2Play() {
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <StarfieldCanvas />
-      <Toast />
       <div className="earth-deco" />
       <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', flex: 1 }}>
         <HUD levelName="LEVEL 2 — INTEL GATHERING" totalQuestions={qs.length} currentQuestion={gs.l2idx} />
@@ -145,6 +143,7 @@ export default function Level2Play() {
                     key={i}
                     className={`option ${rv === 'correct' ? 'correct' : rv === 'wrong' ? 'wrong' : selected === i && !rv ? 'selected' : ''}`}
                     onClick={() => submit(i)}
+                    onMouseEnter={() => !locked && SFX.hover()}
                     disabled={locked}
                     id={`l2opt${i}`}
                     style={locked && !rv ? { pointerEvents: 'none' } : undefined}

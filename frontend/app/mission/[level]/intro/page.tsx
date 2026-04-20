@@ -5,8 +5,6 @@ import { motion } from 'framer-motion';
 import { useGameStore } from '@/stores/useGameStore';
 import { LEVEL_INTROS } from '@/lib/gameData';
 import { SFX } from '@/lib/sfx';
-import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
-import Toast from '@/components/ui/Toast';
 
 export default function LevelIntroPage() {
   const { level } = useParams<{ level: string }>();
@@ -33,8 +31,6 @@ export default function LevelIntroPage() {
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh' }}>
-      <StarfieldCanvas />
-      <Toast />
       <div className="earth-deco" />
 
       <div className="center-col" style={{ position: 'relative', zIndex: 3 }}>
@@ -106,6 +102,7 @@ export default function LevelIntroPage() {
             <motion.button
               className="btn btn-outline"
               onClick={() => { SFX.click(); router.push('/dashboard'); }}
+              onMouseEnter={() => SFX.hover()}
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -115,6 +112,7 @@ export default function LevelIntroPage() {
               className="btn btn-primary btn-lg"
               onClick={begin}
               id="beginMissionBtn"
+              onMouseEnter={() => SFX.hover()}
               whileHover={{ scale: 1.04, translateY: -2 }}
               whileTap={{ scale: 0.96 }}
             >

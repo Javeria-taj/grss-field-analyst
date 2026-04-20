@@ -4,9 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useGameStore } from '@/stores/useGameStore';
 import { SFX } from '@/lib/sfx';
 import { toast } from '@/components/ui/Toast';
-import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
-import Toast from '@/components/ui/Toast';
 import DATA from '@/lib/gameData';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AuctionPage() {
   const router = useRouter();
@@ -22,7 +21,15 @@ export default function AuctionPage() {
   useEffect(() => {
     if (!gs.user) { router.replace('/'); return; }
     if (!gs.unlocked.includes(5)) { router.replace('/dashboard'); return; }
-    gs.startL5(disaster.id);
+    
+    // Resume from store if we have data, otherwise start fresh
+    if (gs.disasterId) {
+      setBudget(gs.budget);
+      setBought(gs.bought);
+      setPriceMulti(gs.priceMulti);
+    } else {
+      gs.startL5(disaster.id);
+    }
   }, []); // eslint-disable-line
 
   useEffect(() => {
@@ -39,6 +46,9 @@ export default function AuctionPage() {
             const nm = parseFloat((m * 1.1).toFixed(3));
             toast('📈 All prices increased by 10%!', 'err');
             SFX.urgency();
+            // Sync price hike to backend
+            gs.setPriceMulti(nm);
+            gs.syncState();
             return nm;
           });
           return 20;
@@ -56,8 +66,19 @@ export default function AuctionPage() {
     const price = getPrice(tool.price);
     if (bought.length >= 5) { toast('Loadout full — max 5 tools!', 'err'); return; }
     if (budget < price) { toast('Insufficient budget!', 'err'); return; }
-    setBudget(b => b - price);
-    setBought(b => [...b, id]);
+    
+    const newBudget = budget - price;
+    const newBought = [...bought, id];
+    
+    setBudget(newBudget);
+    setBought(newBought);
+    
+    // SYNC TO HQ
+    gs.setBudget(newBudget);
+    gs.setBought(newBought);
+    gs.setPriceMulti(priceMulti);
+    gs.syncState();
+
     SFX.buy();
     toast(`✅ ${tool.name} acquired!`, 'ok');
   };
@@ -65,8 +86,19 @@ export default function AuctionPage() {
   const sellTool = (id: string) => {
     const tool = DATA.level5.tools.find(t => t.id === id)!;
     const price = Math.round(getPrice(tool.price) * 0.7);
-    setBudget(b => b + price);
-    setBought(b => b.filter(x => x !== id));
+    
+    const newBudget = budget + price;
+    const newBought = bought.filter(x => x !== id);
+    
+    setBudget(newBudget);
+    setBought(newBought);
+
+    // SYNC TO HQ
+    gs.setBudget(newBudget);
+    gs.setBought(newBought);
+    gs.setPriceMulti(priceMulti);
+    gs.syncState();
+
     SFX.click();
     toast(`💰 ${tool.name} sold for $${price.toLocaleString()}`, 'inf');
   };
@@ -93,8 +125,6 @@ export default function AuctionPage() {
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <StarfieldCanvas />
-      <Toast />
       <div className="earth-deco" />
       <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', flex: 1 }}>
         {/* HUD */}
@@ -160,10 +190,13 @@ export default function AuctionPage() {
               const effPct = Math.round(eff * 10);
               const effColor = eff >= 8 ? 'var(--accent2)' : eff >= 5 ? 'var(--warning)' : 'var(--danger)';
               return (
-                <div
+                <motion.div
                   key={t.id}
                   className={`tool-card ${owned ? 'bought' : ''} ${isOptimal && !owned ? 'optimal-hint' : ''}`}
                   onClick={() => owned ? sellTool(t.id) : buyTool(t.id)}
+                  onMouseEnter={() => SFX.hover()}
+                  whileHover={{ translateY: -3, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   {isOptimal && <div style={{ position: 'absolute', top: 6, right: 6, fontSize: '0.6rem', color: 'var(--gold)' }}>⭐ OPTIMAL</div>}
                   <div style={{ fontSize: '1.5rem', marginBottom: 4 }}>{t.icon}</div>
@@ -179,7 +212,7 @@ export default function AuctionPage() {
                   <div style={{ fontSize: '0.7rem', marginTop: 5, color: owned ? 'var(--accent2)' : canBuy ? 'var(--text2)' : 'var(--danger)' }}>
                     {owned ? '🔴 Tap to Sell Back ($' + Math.round(price * 0.7).toLocaleString() + ')' : canBuy ? '🟢 Acquire' : '⚫ ' + (bought.length >= 5 ? 'Loadout Full' : 'Insufficient Budget')}
                   </div>
-                </div>
+                </motion.div>
               );
             })}
           </div>
@@ -198,9 +231,16 @@ export default function AuctionPage() {
             </div>
           )}
 
-          <button className="btn btn-success btn-lg" onClick={finalize} style={{ maxWidth: 260, width: '100%' }} id="finalizeLoadoutBtn">
+          <motion.button 
+            className="btn btn-success btn-lg" 
+            onClick={finalize} 
+            onMouseEnter={() => SFX.hover()}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            style={{ maxWidth: 260, width: '100%' }} id="finalizeLoadoutBtn"
+          >
             ✅ FINALIZE LOADOUT
-          </button>
+          </motion.button>
         </div>
       </div>
     </div>

@@ -28,6 +28,7 @@ export interface LevelSlice {
   setCurrentHint: (h: string) => void;
   setQState: (qs: QState | null) => void;
   resetLevels: () => void;
+  hydrateLevelState: (data: any) => void;
 
   startL1: () => void; addL1Score: (pts: number) => void; incL1Idx: () => void; incL1Correct: () => void; finishL1: () => void;
   startL2: () => void; addL2Score: (pts: number) => void; incL2Idx: () => void; incL2Correct: () => void; finishL2: () => void;
@@ -57,6 +58,19 @@ export const createLevelSlice: StateCreator<LevelSlice & ProgressSlice, [], [], 
     budget: 10000, bought: [], priceMulti: 1.0, auctScore: 0,
     disasterId: null, applied: [], disasterScore: 0,
   }),
+  hydrateLevelState: (data) => {
+    if (!data) return;
+    set({
+      l1idx: data.l1idx ?? 0, l1score: data.l1score ?? 0, l1correct: data.l1correct ?? 0,
+      l2idx: data.l2idx ?? 0, l2score: data.l2score ?? 0, l2correct: data.l2correct ?? 0,
+      l3idx: data.l3idx ?? 0, l3score: data.l3score ?? 0, l3correct: data.l3correct ?? 0,
+      l3guessed: data.l3guessed ?? [], l3lives: data.l3lives ?? 6, l3hintGiven: data.l3hintGiven ?? false,
+      l4idx: data.l4idx ?? 0, l4score: data.l4score ?? 0, l4correct: data.l4correct ?? 0,
+      budget: data.budget ?? 10000, bought: data.bought ?? [], priceMulti: data.priceMulti ?? 1.0,
+      auctScore: data.auctScore ?? 0, disasterId: data.disasterId ?? null,
+      applied: data.applied ?? [], disasterScore: data.disasterScore ?? 0
+    });
+  },
 
   // Sub-Actions defined explicitly to hook into progression via getState merging...
   startL1: () => {

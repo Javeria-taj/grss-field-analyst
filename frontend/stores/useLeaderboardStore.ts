@@ -9,7 +9,7 @@ interface LeaderboardState {
   socket: Socket | null;
   init: () => void;
   destroy: () => void;
-  submitScore: (entry: ScorePayload) => void;
+  submitScore: (entry: ScorePayload & { progress?: any }) => void;
 }
 
 export const useLeaderboardStore = create<LeaderboardState>((set, get) => ({

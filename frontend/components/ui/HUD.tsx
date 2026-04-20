@@ -25,8 +25,8 @@ export default function HUD({ levelName, totalQuestions, currentQuestion }: Prop
   const router = useRouter();
   const { powerups, currentLevel, l1score, l2score, l3score, l4score, auctScore } = useGameStore();
   const { freeze, unfreeze, frozen } = useTimerStore();
-  const usePowerup = useGameStore(s => s.usePowerup);
-  const currentHint = useGameStore(s => s.currentHint);
+  const usePowerup = useGameStore((s: any) => s.usePowerup);
+  const currentHint = useGameStore((s: any) => s.currentHint);
   const freezeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const levelScores: Record<number, number> = { 1: l1score, 2: l2score, 3: l3score, 4: l4score, 5: auctScore };

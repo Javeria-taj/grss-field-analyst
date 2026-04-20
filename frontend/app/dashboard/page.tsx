@@ -123,7 +123,8 @@ export default function DashboardPage() {
             {/* Mission Telemetry Button */}
             <motion.button
               className="btn btn-outline btn-sm"
-              onClick={() => { SFX.click(); setShowTelemetry(true); }}
+              onClick={() => { SFX.click(); SFX.dataStream(); setShowTelemetry(true); }}
+              onMouseEnter={() => SFX.hover()}
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.95 }}
               style={{ borderColor: 'var(--accent2)', color: 'var(--accent2)' }}
@@ -136,6 +137,7 @@ export default function DashboardPage() {
             <motion.button
               className="btn btn-outline btn-sm"
               onClick={handleLogout}
+              onMouseEnter={() => SFX.hover()}
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.95 }}
               aria-label="Secure Logout"
@@ -186,6 +188,7 @@ export default function DashboardPage() {
                       aria-label={`Mission ${lv.id}: ${lv.label.replace('\n', ' ')}`}
                       aria-disabled={!isOpen}
                       onClick={() => handleLevelClick(lv.id)}
+                      onMouseEnter={() => isOpen && SFX.hover()}
                       whileHover={isOpen ? { scale: 1.07 } : {}}
                       whileTap={isOpen ? { scale: 0.93 } : {}}
                       animate={isShaking ? { x: [-8, 8, -8, 8, 0] } : {}}
@@ -330,7 +333,7 @@ export default function DashboardPage() {
               {/* Stats Bar */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
                 {[
-                   { label: 'AVG ACCURACY', val: telemetry.length ? `${Math.round((telemetry.filter(r => r.isCorrect).length / telemetry.length) * 100)}%` : '0%', color: 'var(--accent2)' },
+                   { label: 'AVG ACCURACY', val: telemetry.length ? `${Math.round((telemetry.filter((r: any) => r.isCorrect).length / telemetry.length) * 100)}%` : '0%', color: 'var(--accent2)' },
                    { label: 'TOTAL SESSIONS', val: telemetry.length, color: 'var(--accent)' },
                    { label: 'MISSIONS REACHED', val: completed.length, color: 'var(--gold)' }
                 ].map(s => (
@@ -350,7 +353,7 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {telemetry.slice().reverse().map((rec, i) => (
+                    {telemetry.slice().reverse().map((rec: any, i: number) => (
                       <motion.div 
                         key={i} 
                         className={`card card-sm ${rec.isCorrect ? 'card-active-border' : 'card-danger'}`}

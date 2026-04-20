@@ -9,8 +9,6 @@ import { toast } from '@/components/ui/Toast';
 import HUD from '@/components/ui/HUD';
 import TimerBar from '@/components/ui/TimerBar';
 import FeedbackOverlay from '@/components/ui/FeedbackOverlay';
-import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
-import Toast from '@/components/ui/Toast';
 import DATA from '@/lib/gameData';
 
 type FBState = { type: 'ok' | 'bad' | 'timeout'; icon: string; title: string; body: string } | null;
@@ -90,17 +88,23 @@ export default function Level3Play() {
   const guessLetter = (c: string) => {
     if (qst || guessed.has(c)) return;
     SFX.click();
-    const newGuessed = new Set([...guessed, c]);
+    const newGuessedSet = new Set([...guessed, c]);
+    const newGuessedArr = [...newGuessedSet];
     const wasCorrect = ch.word.includes(c);
     let newLives = lives;
+    
     if (!wasCorrect) {
       newLives = lives - 1;
       setLives(newLives);
+      gs.setL3Lives(newLives);
       setWrongShake(true);
       setTimeout(() => setWrongShake(false), 450);
     }
-    setGuessed(newGuessed);
-    const allDone = ch.word.split('').every(lc => lc === ' ' || newGuessed.has(lc));
+    
+    setGuessed(newGuessedSet);
+    gs.setL3Guessed(newGuessedArr);
+
+    const allDone = ch.word.split('').every(lc => lc === ' ' || newGuessedSet.has(lc));
     if (allDone) {
       setQst({ status: 'win', timeWhenSubmitted: timeVal });
       toast('Word completed! Waiting for timer...', 'inf');
@@ -108,11 +112,15 @@ export default function Level3Play() {
       setQst({ status: 'lose', timeWhenSubmitted: timeVal });
       toast('Decryption failed! Waiting for timer...', 'inf');
     }
+
+    // SYNC STATE TO HQ
+    gs.syncState();
   };
 
   const goNext = () => {
     setFb(null); setQst(null); setGuessed(new Set()); setLives(6); setWrongShake(false);
     gs.incL3Idx();
+    gs.syncState();
   };
 
   if (gs.l3idx >= chs.length) {
@@ -125,8 +133,6 @@ export default function Level3Play() {
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <StarfieldCanvas />
-      <Toast />
       <div className="earth-deco" />
       <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', flex: 1 }}>
         <HUD levelName="LEVEL 3 — CODE BREAKING" totalQuestions={chs.length} currentQuestion={gs.l3idx} />
@@ -176,6 +182,7 @@ export default function Level3Play() {
                     key={c}
                     className={`alpha-key${isGuessed ? (isHit ? ' hit' : ' miss') : ''}`}
                     disabled={isGuessed || !!qst}
+                    onMouseEnter={() => !isGuessed && !qst && SFX.hover()}
                     onClick={() => guessLetter(c)}
                   >
                     {c}

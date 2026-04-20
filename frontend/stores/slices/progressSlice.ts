@@ -14,6 +14,7 @@ export interface ProgressSlice {
   resetPowerups: () => void;
   resetProgress: () => void;
   addTelemetry: (record: TelemetryRecord) => void;
+  setFullProgress: (data: Partial<ProgressSlice>) => void;
 }
 
 export const createProgressSlice: StateCreator<ProgressSlice> = (set, get) => ({
@@ -38,5 +39,12 @@ export const createProgressSlice: StateCreator<ProgressSlice> = (set, get) => ({
     telemetry: [],
   }),
   addTelemetry: (record) => set((s) => ({ telemetry: [...s.telemetry, record] })),
+  setFullProgress: (data) => set((s) => ({
+    unlocked: data.unlocked || s.unlocked,
+    completed: data.completed || s.completed,
+    scores: data.scores || s.scores,
+    powerups: data.powerups || s.powerups,
+    telemetry: data.telemetry || s.telemetry,
+  })),
 });
 

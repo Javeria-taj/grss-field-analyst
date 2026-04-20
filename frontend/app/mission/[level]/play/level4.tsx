@@ -9,8 +9,6 @@ import { toast } from '@/components/ui/Toast';
 import HUD from '@/components/ui/HUD';
 import TimerBar from '@/components/ui/TimerBar';
 import FeedbackOverlay from '@/components/ui/FeedbackOverlay';
-import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
-import Toast from '@/components/ui/Toast';
 import DATA from '@/lib/gameData';
 
 type FBState = { type: 'ok' | 'bad' | 'timeout'; icon: string; title: string; body: string } | null;
@@ -32,6 +30,7 @@ export default function Level4Play() {
     setFb(null); setSelected(null); setLocked(false); setRevealState({});
     qStateRef.current = null;
     gs.incL4Idx();
+    gs.syncState();
   }, [gs]);
 
   const onTimerDone = useCallback(() => {
@@ -109,8 +108,6 @@ export default function Level4Play() {
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <StarfieldCanvas />
-      <Toast />
       <div className="earth-deco" />
       <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', flex: 1 }}>
         <HUD levelName="LEVEL 4 — RAPID ASSESSMENT" totalQuestions={qs.length} currentQuestion={gs.l4idx} />
@@ -132,6 +129,7 @@ export default function Level4Play() {
                   key={i}
                   className={`option ${rv === 'correct' ? 'correct' : rv === 'wrong' ? 'wrong' : selected === i && !rv ? 'selected' : ''}`}
                   onClick={() => submit(i)}
+                  onMouseEnter={() => !locked && SFX.hover()}
                   disabled={locked}
                   id={`l4opt${i}`}
                   style={locked && !rv ? { pointerEvents: 'none' } : undefined}

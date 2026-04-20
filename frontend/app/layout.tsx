@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import StarfieldCanvas from "@/components/ui/StarfieldCanvas";
 import Toast from "@/components/ui/Toast";
+import ClientShell from "@/components/ClientShell";
 
 const orbitron = Orbitron({
   variable: "--font-orbitron",
@@ -46,15 +47,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${orbitron.variable} ${exo2.variable} antialiased`}>
-        {/* Global UI Components - Rendered once at the top level for performance */}
-        <StarfieldCanvas />
-        <Toast />
-        
-        <main id="app-root" style={{ position: "relative", zIndex: 3, minHeight: "100vh" }}>
-          <Suspense fallback={null}>
-            {children}
-          </Suspense>
-        </main>
+        <ClientShell>
+          <StarfieldCanvas />
+          <Toast />
+          <main id="app-root" style={{ position: "relative", zIndex: 3, minHeight: "100vh" }}>
+            <Suspense fallback={null}>
+              {children}
+            </Suspense>
+          </main>
+        </ClientShell>
       </body>
     </html>
   );

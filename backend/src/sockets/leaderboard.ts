@@ -31,12 +31,33 @@ export function userExists(usn: string): boolean {
   return leaderboardFallback.some(e => e.usn === usn);
 }
 
-export async function addScore(data: { name: string; usn: string; score: number, isAdmin?: boolean }): Promise<void> {
+export function getUserByUsn(usn: string): LeaderboardEntry | undefined {
+  return leaderboardFallback.find(e => e.usn === usn);
+}
+
+export async function addScore(data: { 
+  name: string; 
+  usn: string; 
+  score: number, 
+  isAdmin?: boolean,
+  progress?: {
+    unlocked?: number[];
+    completed?: number[];
+    scores?: Record<string, number>;
+    powerups?: { hint: number; skip: number; freeze: number };
+    telemetry?: any[];
+    levelState?: any;
+  }
+}): Promise<void> {
   const existing = leaderboardFallback.findIndex(e => e.usn === data.usn);
   
   if (existing !== -1) {
-    if (data.score <= leaderboardFallback[existing].score) return;
-    leaderboardFallback[existing] = { ...data, date: new Date() };
+    // Only update in-memory leaderboard if score is better or progress is provided
+    if (data.score > leaderboardFallback[existing].score) {
+      leaderboardFallback[existing].score = data.score;
+      leaderboardFallback[existing].date = new Date();
+    }
+    leaderboardFallback[existing].name = data.name;
   } else {
     leaderboardFallback.push({ ...data, date: new Date() });
   }
@@ -46,13 +67,23 @@ export async function addScore(data: { name: string; usn: string; score: number,
 
   // Background persistence to MongoDB
   try {
+    const update: any = { 
+      $set: { name: data.name, lastActive: new Date() },
+      $max: { score: data.score },
+    };
+
+    if (data.progress) {
+      if (data.progress.unlocked) update.$set.unlocked = data.progress.unlocked;
+      if (data.progress.completed) update.$set.completed = data.progress.completed;
+      if (data.progress.scores) update.$set.scores = data.progress.scores;
+      if (data.progress.powerups) update.$set.powerups = data.progress.powerups;
+      if (data.progress.telemetry) update.$set.telemetry = data.progress.telemetry;
+      if (data.progress.levelState) update.$set.levelState = data.progress.levelState;
+    }
+
     await User.findOneAndUpdate(
       { usn: data.usn },
-      { 
-        $set: { name: data.name, lastActive: new Date() },
-        $max: { score: data.score },
-        $setOnInsert: { isAdmin: data.isAdmin ?? false }
-      },
+      update,
       { upsert: true, new: true }
     ).catch(console.error);
   } catch (err) {

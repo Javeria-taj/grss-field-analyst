@@ -4,9 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useGameStore } from '@/stores/useGameStore';
 import { SFX } from '@/lib/sfx';
 import { toast } from '@/components/ui/Toast';
-import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
-import Toast from '@/components/ui/Toast';
 import DATA from '@/lib/gameData';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function DisasterPage() {
   const router = useRouter();
@@ -18,6 +17,10 @@ export default function DisasterPage() {
 
   useEffect(() => {
     if (!gs.user) { router.replace('/'); return; }
+    // Resume deployments from store if available
+    if (gs.applied.length > 0) {
+      setDeployed(new Set(gs.applied));
+    }
   }, []); // eslint-disable-line
 
   const toggleDeploy = (id: string) => {
@@ -25,6 +28,12 @@ export default function DisasterPage() {
     setDeployed(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
+      
+      // SYNC TO HQ
+      const nextArr = [...next];
+      gs.setApplied(nextArr);
+      gs.syncState();
+      
       return next;
     });
     SFX.click();
@@ -54,8 +63,6 @@ export default function DisasterPage() {
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <StarfieldCanvas />
-      <Toast />
       <div className="earth-deco" />
       <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', flex: 1 }}>
         <div className="hud">
@@ -80,22 +87,25 @@ export default function DisasterPage() {
             <div>
               <div className="label" style={{ marginBottom: 8 }}>🛠 YOUR TOOLS</div>
               <div style={{ display: 'grid', gap: 8 }}>
-                {gs.bought.map(id => {
+                {gs.bought.map((id: string) => {
                   const tool = DATA.level5.tools.find(t => t.id === id)!;
                   const isDeployed = deployed.has(id);
                   const isOptimal = disaster.optTools.includes(id);
                   return (
-                    <div
+                    <motion.div
                       key={id}
                       className={`apply-card ${isDeployed ? 'on' : ''} ${isDeployed && isOptimal ? 'optimal-deployed' : ''}`}
                       onClick={() => toggleDeploy(id)}
+                      onMouseEnter={() => SFX.hover()}
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
                     >
                       <span style={{ fontSize: '1.2rem' }}>{tool.icon}</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{tool.name}</span>
                       <span style={{ fontSize: '0.65rem', color: isDeployed ? 'var(--accent2)' : 'var(--text2)' }}>
                         {isDeployed ? '✅ DEPLOYED' : 'Tap to deploy'}
                       </span>
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>
@@ -144,15 +154,18 @@ export default function DisasterPage() {
             </div>
           </div>
 
-          <button
+          <motion.button
             className="btn btn-danger btn-lg"
             onClick={submit}
+            onMouseEnter={() => !submitted && SFX.hover()}
+            whileHover={!submitted ? { scale: 1.05 } : {}}
+            whileTap={!submitted ? { scale: 0.95 } : {}}
             disabled={submitted}
             style={{ maxWidth: 260, width: '100%' }}
             id="submitResponseBtn"
           >
             📡 SUBMIT RESPONSE PLAN
-          </button>
+          </motion.button>
         </div>
       </div>
     </div>

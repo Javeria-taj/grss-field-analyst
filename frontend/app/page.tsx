@@ -51,18 +51,31 @@ export default function AuthPage() {
       const endpoint = tab === 'login' ? '/api/auth/login' : '/api/auth/register';
       const res = await apiClient.post<{status: string, user: any}>(endpoint, payload);
       
-      // CRITICAL: Reset all progress before logging in the new user
-      resetProgress();
-      resetLevels();
+      const serverUser = res.user;
+
+      // Hydrate progress from backend response
+      const gs = useGameStore.getState();
+      gs.setFullProgress({
+        unlocked: serverUser.unlocked,
+        completed: serverUser.completed,
+        scores: serverUser.scores,
+        powerups: serverUser.powerups,
+        telemetry: serverUser.telemetry,
+      });
+
+      // Hydrate granular level state (Question indices, etc.)
+      if (serverUser.levelState) {
+        gs.hydrateLevelState(serverUser.levelState);
+      }
       
-      login(res.user);
+      login(serverUser);
       
-      if (res.user.isAdmin) {
-        toast(`Administrator recognized: ${res.user.name}. Initializing Admin Center...`, 'ok');
+      if (serverUser.isAdmin) {
+        toast(`Administrator recognized: ${serverUser.name}. Initializing Admin Center...`, 'ok');
         SFX.levelUp();
         router.push('/admin');
       } else {
-        toast(`Welcome, ${res.user.name}! Mission briefing incoming...`, 'ok');
+        toast(`Welcome back, ${serverUser.name}! Resuming mission briefing...`, 'ok');
         SFX.levelUp();
         router.push('/dashboard');
       }
@@ -203,13 +216,16 @@ export default function AuthPage() {
             {/* Tabs */}
             <div className="tabs">
               {(['login', 'register'] as const).map(t => (
-                <div
+                <motion.button
                   key={t}
                   className={`tab ${tab === t ? 'on' : ''}`}
                   onClick={() => switchTab(t)}
+                  onMouseEnter={() => SFX.hover()}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  {t === 'login' ? 'LOGIN' : 'REGISTER'}
-                </div>
+                  {t.toUpperCase()}
+                </motion.button>
               ))}
             </div>
 
@@ -264,13 +280,14 @@ export default function AuthPage() {
             </div>
 
             <motion.button
-              className={`btn ${tab === 'login' ? 'btn-primary' : 'btn-success'} btn-full btn-lg`}
+              type="submit"
+              className="btn btn-primary btn-lg"
+              style={{ width: '100%', marginTop: 10 }}
               onClick={handleSubmit}
               disabled={loading}
-              id="authSubmitBtn"
-              aria-label={tab === 'login' ? 'Deploy Agent Login' : 'Enlist as Analyst Registration'}
-              whileHover={{ scale: 1.02, translateY: -2 }}
-              whileTap={{ scale: 0.97 }}
+              onMouseEnter={() => SFX.hover()}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               <AnimatePresence mode="wait">
                 <motion.span
@@ -281,10 +298,10 @@ export default function AuthPage() {
                   transition={{ duration: 0.15 }}
                 >
                   {loading
-                    ? '⏳ Deploying...'
+                    ? '⏳ PROCESSING...'
                     : tab === 'login'
-                    ? '🚀 DEPLOY AGENT'
-                    : '🛡️ ENLIST AS ANALYST'}
+                    ? '🚀 INITIALIZE LINK'
+                    : '🛡️ REGISTER ANALYST'}
                 </motion.span>
               </AnimatePresence>
             </motion.button>
@@ -293,6 +310,7 @@ export default function AuthPage() {
               <motion.button
                 className="btn btn-outline btn-sm"
                 onClick={() => { SFX.click(); router.push('/demo'); }}
+                onMouseEnter={() => SFX.hover()}
                 id="demoBtn"
                 aria-label="Watch Demo Mode"
                 whileHover={{ scale: 1.04 }}

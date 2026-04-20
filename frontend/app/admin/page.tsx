@@ -6,8 +6,6 @@ import { useGameStore } from '@/stores/useGameStore';
 import { useLeaderboardStore } from '@/stores/useLeaderboardStore';
 import { SFX } from '@/lib/sfx';
 import { toast } from '@/components/ui/Toast';
-import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
-import Toast from '@/components/ui/Toast';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -76,8 +74,6 @@ export default function AdminDashboard() {
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <StarfieldCanvas />
-      <Toast />
       <div className="earth-deco" />
 
       <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -116,6 +112,7 @@ export default function AdminDashboard() {
             className="btn btn-outline btn-sm"
             style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}
             onClick={handleLogout}
+            onMouseEnter={() => SFX.hover()}
             whileHover={{ scale: 1.04, background: 'rgba(251,113,133,0.1)' }}
             whileTap={{ scale: 0.95 }}
           >
@@ -158,7 +155,7 @@ export default function AdminDashboard() {
                   onChange={e => setBroadcastMsg(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleBroadcast()}
                 />
-                <button className="btn btn-primary" onClick={handleBroadcast}>SEND</button>
+                <button className="btn btn-primary" onMouseEnter={() => SFX.hover()} onClick={handleBroadcast}>SEND</button>
               </div>
             </motion.div>
           </div>
@@ -173,7 +170,7 @@ export default function AdminDashboard() {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div className="label t-danger">🛰️ GLOBAL PERSONNEL ROSTER</div>
-              <button className="btn btn-outline btn-sm" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }} onClick={handleResetBoard}>
+              <button className="btn btn-outline btn-sm" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }} onMouseEnter={() => SFX.hover()} onClick={handleResetBoard}>
                 ⚠️ WIPE ROSTER
               </button>
             </div>
@@ -202,6 +199,7 @@ export default function AdminDashboard() {
                       <button 
                         className="btn btn-outline" 
                         style={{ padding: '4px 8px', fontSize: '0.75rem', borderColor: 'var(--danger)', color: 'var(--danger)' }}
+                        onMouseEnter={() => SFX.hover()}
                         onClick={() => handleDeleteScore(req.usn)}
                       >
                         REVOKE

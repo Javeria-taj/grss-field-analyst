@@ -6,9 +6,6 @@ import { useGameStore } from '@/stores/useGameStore';
 import { getTitle, getTotalScore } from '@/lib/scoring';
 import { SFX } from '@/lib/sfx';
 import { useConfetti } from '@/components/ui/ConfettiCanvas';
-import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
-import ConfettiCanvas from '@/components/ui/ConfettiCanvas';
-import Toast from '@/components/ui/Toast';
 import AnimatedCounter from '@/components/ui/AnimatedCounter';
 import { useLeaderboardStore } from '@/stores/useLeaderboardStore';
 
@@ -43,6 +40,13 @@ export default function FinalPage() {
         name: gs.user.name,
         usn: gs.user.usn,
         score: total,
+        progress: {
+          unlocked: gs.unlocked,
+          completed: gs.completed,
+          scores: gs.scores,
+          powerups: gs.powerups,
+          telemetry: gs.telemetry
+        }
       });
     }
   }, []); // eslint-disable-line
@@ -51,9 +55,6 @@ export default function FinalPage() {
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh' }}>
-      <StarfieldCanvas />
-      <ConfettiCanvas />
-      <Toast />
       <div className="earth-deco" />
 
       <div className="center-col" style={{ position: 'relative', zIndex: 3 }}>
@@ -158,6 +159,7 @@ export default function FinalPage() {
             <motion.button
               className="btn btn-outline"
               onClick={() => { SFX.click(); router.push('/leaderboard'); }}
+              onMouseEnter={() => SFX.hover()}
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.96 }}
             >
@@ -166,6 +168,7 @@ export default function FinalPage() {
             <motion.button
               className="btn btn-primary btn-lg"
               onClick={() => { SFX.click(); gs.logout(); router.push('/'); }}
+              onMouseEnter={() => SFX.hover()}
               id="playAgainBtn"
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.96 }}

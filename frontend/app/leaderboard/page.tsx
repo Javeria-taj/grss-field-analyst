@@ -5,8 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/stores/useGameStore';
 import { useLeaderboardStore } from '@/stores/useLeaderboardStore';
 import { SFX } from '@/lib/sfx';
-import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
-import Toast from '@/components/ui/Toast';
 import type { LeaderboardEntry } from '@/lib/types';
 
 const MEDALS: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
@@ -38,8 +36,6 @@ export default function LeaderboardPage() {
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <StarfieldCanvas />
-      <Toast />
       <div className="earth-deco" />
 
       <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -77,6 +73,7 @@ export default function LeaderboardPage() {
           <motion.button
             className="btn btn-outline btn-sm"
             onClick={() => { SFX.click(); router.push('/dashboard'); }}
+            onMouseEnter={() => SFX.hover()}
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.95 }}
           >

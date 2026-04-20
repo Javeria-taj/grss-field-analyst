@@ -6,6 +6,14 @@ export interface User {
   name: string;
   usn: string;
   isAdmin?: boolean;
+  // Progress
+  unlocked?: number[];
+  completed?: number[];
+  scores?: Record<number, number>;
+  powerups?: Powerups;
+  telemetry?: TelemetryRecord[];
+  totalScore?: number;
+  levelState?: any;
 }
 
 export interface LeaderboardEntry {

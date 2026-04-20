@@ -3,7 +3,8 @@
 
 let _actx: AudioContext | null = null;
 
-const getACtx = (): AudioContext => {
+export const getACtx = (): AudioContext => {
+  if (typeof window === 'undefined') return {} as AudioContext;
   if (!_actx) {
     _actx = new (window.AudioContext || (window as any).webkitAudioContext)();
   }
@@ -53,6 +54,32 @@ export const SFX = {
     tone(1000, 0.08, 'sine', 0.18);
     tone(1200, 0.08, 'sine', 0.18, 0.08);
     tone(1400, 0.2, 'sine', 0.22, 0.16);
+  },
+  hover: () => tone(900, 0.02, 'sine', 0.04), // Soft tactile blip
+  ambience: () => {
+    // A low-frequency multi-oscillator "Space Hum"
+    const ctx = getACtx();
+    const g = ctx.createGain();
+    g.connect(ctx.destination);
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.04, ctx.currentTime + 2); // Slow fade in
+
+    const freqs = [55, 110, 82.41]; // Low A, A, E
+    freqs.forEach(f => {
+      const o = ctx.createOscillator();
+      const oG = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(f, ctx.currentTime);
+      oG.gain.setValueAtTime(0.02, ctx.currentTime);
+      o.connect(oG);
+      oG.connect(g);
+      o.start();
+    });
+  },
+  dataStream: (count = 10) => {
+    for (let i = 0; i < count; i++) {
+      tone(1200 + Math.random() * 800, 0.02, 'square', 0.03, i * 0.04);
+    }
   },
   final: () => [523, 659, 784, 1047].forEach((f, i) => {
     tone(f, 0.3, 'sine', 0.2, i * 0.12);
