@@ -164,7 +164,7 @@ export default function setupSockets(io: Server) {
       }
     });
 
-    socket.on('admin_global_broadcast', (message) => {
+    socket.on('admin_global_broadcast', (message: string) => {
       if (!socket.user?.isAdmin) return;
       // Broadcast to EVERYONE (including other admins)
       io.emit('global_announcement', message);

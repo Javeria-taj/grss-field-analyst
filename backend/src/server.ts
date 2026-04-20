@@ -4,6 +4,9 @@ dotenv.config();
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import http from 'http';
+import helmet from 'helmet';
+import compression from 'compression';
+import morgan from 'morgan';
 import { Server } from 'socket.io';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
@@ -11,6 +14,17 @@ import { connectDB } from './config/db';
 import apiRoutes from './routes/api';
 import authRoutes from './routes/auth';
 import setupLeaderboardSockets from './sockets/leaderboard';
+
+// ─── ENV VALIDATION ──────────────────────────────────────────────────────────
+function validateEnv() {
+  const required = ['MONGODB_URI', 'SESSION_SECRET', 'ADMIN_NAME', 'ADMIN_USN'];
+  const missing = required.filter(k => !process.env[k]);
+  if (missing.length > 0) {
+    console.error(`❌ CRITICAL: Missing required environment variables: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+}
+validateEnv();
 
 const app = express();
 const server = http.createServer(app);
@@ -70,6 +84,12 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // ─── MIDDLEWARE ─────────────────────────────────────────────────────────────
+app.use(helmet({
+  contentSecurityPolicy: false, // development flexibility
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+app.use(compression());
+app.use(morgan('dev'));
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '64kb' }));   // cap body size to prevent large-payload attacks
 app.use(cookieParser());

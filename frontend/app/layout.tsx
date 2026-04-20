@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Orbitron, Exo_2 } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
+import StarfieldCanvas from "@/components/ui/StarfieldCanvas";
+import Toast from "@/components/ui/Toast";
 
 const orbitron = Orbitron({
   variable: "--font-orbitron",
@@ -43,10 +46,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${orbitron.variable} ${exo2.variable} antialiased`}>
-        {/* Starfield and earth deco rendered client-side in providers */}
-        <div id="app" style={{ position: "relative", zIndex: 3, minHeight: "100vh" }}>
-          {children}
-        </div>
+        {/* Global UI Components - Rendered once at the top level for performance */}
+        <StarfieldCanvas />
+        <Toast />
+        
+        <main id="app-root" style={{ position: "relative", zIndex: 3, minHeight: "100vh" }}>
+          <Suspense fallback={null}>
+            {children}
+          </Suspense>
+        </main>
       </body>
     </html>
   );

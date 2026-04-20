@@ -7,9 +7,6 @@ import { useLeaderboardStore } from '@/stores/useLeaderboardStore';
 import { getTitle, getTotalScore } from '@/lib/scoring';
 import { SFX } from '@/lib/sfx';
 import { toast } from '@/components/ui/Toast';
-import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
-import ConfettiCanvas from '@/components/ui/ConfettiCanvas';
-import Toast from '@/components/ui/Toast';
 import DATA, { LEVEL_INTROS } from '@/lib/gameData';
 
 const LEVEL_CONFIG = [
@@ -67,9 +64,6 @@ export default function DashboardPage() {
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh' }}>
-      <StarfieldCanvas />
-      <ConfettiCanvas />
-      <Toast />
       <div className="earth-deco" />
 
       <div style={{ position: 'relative', zIndex: 3 }}>
@@ -301,85 +295,93 @@ export default function DashboardPage() {
             <motion.div
               className="card"
               style={{
-                maxWidth: 700, width: '100%', maxHeight: '85vh',
+                maxWidth: 800, width: '100%', maxHeight: '90vh',
                 display: 'flex', flexDirection: 'column',
-                border: '1px solid rgba(0,200,255,0.3)',
-                boxShadow: '0 0 40px rgba(0,200,255,0.15)',
-                padding: '24px 20px', overflow: 'hidden'
+                border: '1px solid var(--border-accent)',
+                boxShadow: 'var(--glow), var(--shadow-lg)',
+                padding: '28px 24px', overflow: 'hidden',
+                background: 'rgba(5, 10, 22, 0.95)'
               }}
-              initial={{ scale: 0.9, y: 20, opacity: 0 }}
+              initial={{ scale: 0.95, y: 30, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.9, y: 20, opacity: 0 }}
+              exit={{ scale: 0.95, y: 30, opacity: 0 }}
               onClick={e => e.stopPropagation()}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-                <div>
-                  <div className="font-orb t-accent" style={{ fontSize: '1.1rem' }}>SATELLITE TELEMETRY FEED</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text2)', marginTop: 2 }}>Analysis completion log for {user?.name}</div>
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{ fontSize: '2.4rem' }}>📊</div>
+                  <div>
+                    <div className="font-orb t-accent" style={{ fontSize: '1.3rem', letterSpacing: '1px' }}>AGENT DOSSIER</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text2)', marginTop: 2 }}>Satellite telemetry log for {user?.name}</div>
+                  </div>
                 </div>
-                <button
+                <motion.button
                   className="btn btn-outline btn-sm"
-                  aria-label="Close Telemetry Dialog"
+                  aria-label="Close Telemetry Feed"
                   onClick={() => { SFX.click(); setShowTelemetry(false); }}
+                  whileHover={{ scale: 1.05 }}
+                  style={{ border: '1px solid var(--danger)', color: 'var(--danger)' }}
                 >
-                  Close [ESC]
-                </button>
+                  Terminate Connection [ESC]
+                </motion.button>
               </div>
 
-              <div style={{ flex: 1, overflowY: 'auto', paddingRight: 4 }}>
+              {/* Stats Bar */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
+                {[
+                   { label: 'AVG ACCURACY', val: telemetry.length ? `${Math.round((telemetry.filter(r => r.isCorrect).length / telemetry.length) * 100)}%` : '0%', color: 'var(--accent2)' },
+                   { label: 'TOTAL SESSIONS', val: telemetry.length, color: 'var(--accent)' },
+                   { label: 'MISSIONS REACHED', val: completed.length, color: 'var(--gold)' }
+                ].map(s => (
+                  <div key={s.label} className="card card-sm" style={{ textAlign: 'center', background: 'rgba(255,255,255,0.03)' }}>
+                    <div className="label" style={{ fontSize: '0.6rem' }}>{s.label}</div>
+                    <div className="font-orb" style={{ fontSize: '1.2rem', color: s.color, marginTop: 4 }}>{s.val}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Feed Content */}
+              <div style={{ flex: 1, overflowY: 'auto', paddingRight: 8 }} className="custom-scroll">
                 {telemetry.length === 0 ? (
-                  <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text2)', fontSize: '0.9rem' }}>
-                    No telemetry data found. Complete missions to populate this log.
+                  <div style={{ padding: '60px 0', textAlign: 'center' }}>
+                    <div style={{ fontSize: '3rem', opacity: 0.3, marginBottom: 16 }}>📡</div>
+                    <div style={{ color: 'var(--text2)', fontSize: '0.95rem' }}>No telemetry data captured. Complete missions to populate dossier.</div>
                   </div>
                 ) : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border)', fontSize: '0.7rem' }}>
-                        <th style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--text3)' }}>MISSION/ID</th>
-                        <th style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--text3)' }}>DECODED QUESTION / INTEL</th>
-                        <th style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--text3)', textAlign: 'center' }}>ACCURACY</th>
-                        <th style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--text3)', textAlign: 'right' }}>DURATION</th>
-                      </tr>
-                    </thead>
-                    <tbody style={{ fontSize: '0.82rem' }}>
-                      {telemetry.slice().reverse().map((rec, i) => (
-                        <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', verticalAlign: 'top' }}>
-                          <td style={{ padding: '12px 12px' }}>
-                            <div className="font-orb" style={{ color: 'var(--accent)', fontSize: '0.75rem' }}>LVL {rec.level}</div>
-                            <div style={{ fontSize: '0.65rem', color: 'var(--text2)' }}>{rec.id}</div>
-                          </td>
-                          <td style={{ padding: '12px 12px', color: 'var(--text)' }}>
-                            {rec.question}
-                          </td>
-                          <td style={{ padding: '12px 12px', textAlign: 'center' }}>
-                            <span style={{
-                              color: rec.isCorrect ? 'var(--accent)' : 'var(--danger)',
-                              fontWeight: 700
-                            }}>
-                              {rec.isCorrect ? 'SUCCESS' : 'FAILED'}
-                            </span>
-                          </td>
-                          <td style={{ padding: '12px 12px', textAlign: 'right', fontFamily: 'var(--font-orbitron)', fontSize: '0.75rem' }}>
-                            {rec.timeTaken}s
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {telemetry.slice().reverse().map((rec, i) => (
+                      <motion.div 
+                        key={i} 
+                        className={`card card-sm ${rec.isCorrect ? 'card-active-border' : 'card-danger'}`}
+                        style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', display: 'flex', gap: 16, alignItems: 'center' }}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                      >
+                         <div style={{ textAlign: 'center', minWidth: 60 }}>
+                            <div className="font-orb t-accent" style={{ fontSize: '0.8rem' }}>LVL {rec.level}</div>
+                            <div className="badge badge-purple" style={{ fontSize: '0.55rem', marginTop: 4 }}>INTEL {i+1}</div>
+                         </div>
+                         <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>{rec.question}</div>
+                            <div style={{ display: 'flex', gap: 14, marginTop: 8 }}>
+                               <div style={{ fontSize: '0.7rem', color: 'var(--text2)' }}>⏱ {rec.timeTaken}s</div>
+                               <div style={{ fontSize: '0.7rem', fontWeight: 700, color: rec.isCorrect ? 'var(--accent2)' : 'var(--danger)' }}>
+                                 {rec.isCorrect ? '✓ ANALYZED' : '✗ FAILED'}
+                               </div>
+                            </div>
+                         </div>
+                      </motion.div>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              <div style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text3)' }}>
-                  Total Logs: {telemetry.length}
-                </div>
-                <div style={{ display: 'flex', gap: 12 }}>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text3)' }}>
-                    Avg. Accuracy: <span style={{ color: 'var(--accent)' }}>
-                      {telemetry.length ? Math.round((telemetry.filter(r => r.isCorrect).length / telemetry.length) * 100) : 0}%
-                    </span>
-                  </div>
-                </div>
+              <div style={{ marginTop: 24, padding: '12px 18px', background: 'rgba(0,180,240,0.05)', borderRadius: '12px', border: '1px solid rgba(0,180,240,0.1)' }}>
+                 <div style={{ fontSize: '0.7rem', color: 'var(--accent)', fontFamily: 'var(--font-orbitron)', letterSpacing: '1px' }}>
+                    &gt; ENCRYPTED SESSION LOG COMPLETE // 256-BIT SECURITY ACTIVE
+                 </div>
               </div>
             </motion.div>
           </motion.div>
