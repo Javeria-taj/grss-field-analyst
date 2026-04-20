@@ -45,8 +45,21 @@ export default function Level2Play() {
       const reveal: Record<number, 'correct' | 'wrong' | ''> = {};
       q.opts.forEach((_, j) => { reveal[j] = j === q.ans ? 'correct' : j === i ? 'wrong' : ''; });
       setRevealState(reveal);
-      if (i === q.ans) {
-        const earned = calcScore(true, qs2.timeWhenSubmitted, 120, q.pts);
+      
+      const isCorrect = i === q.ans;
+
+      // RECORD TELEMETRY
+      gs.addTelemetry({
+        id: `L2-Q${gs.l2idx + 1}`,
+        level: 2,
+        question: q.q,
+        isCorrect,
+        timeTaken: 60 - qs2.timeWhenSubmitted,
+        timestamp: Date.now()
+      });
+
+      if (isCorrect) {
+        const earned = calcScore(true, qs2.timeWhenSubmitted, 60, q.pts);
         gs.addL2Score(earned); gs.incL2Correct();
         SFX.correct();
         setTimeout(() => setFb({ type: 'ok', icon: '✅', title: 'CORRECT ANALYSIS!', body: `+${earned} pts!<br><br>${q.expl}` }), 400);
@@ -59,7 +72,6 @@ export default function Level2Play() {
 
   useEffect(() => {
     if (!gs.user) { router.replace('/'); return; }
-    gs.startL2();
   }, []); // eslint-disable-line
 
   useEffect(() => {
@@ -68,7 +80,7 @@ export default function Level2Play() {
     gs.setCurrentLevel(2);
     setFb(null); setSelected(null); setLocked(false); setRevealState({});
     qStateRef.current = null;
-    startTimer(120, onTimerDone);
+    startTimer(60, onTimerDone);
     return () => stopTimer();
   }, [gs.l2idx]); // eslint-disable-line
 

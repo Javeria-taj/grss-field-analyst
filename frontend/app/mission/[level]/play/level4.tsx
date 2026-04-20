@@ -44,7 +44,20 @@ export default function Level4Play() {
       const reveal: Record<number, 'correct' | 'wrong' | ''> = {};
       q.opts.forEach((_, j) => { reveal[j] = j === q.ans ? 'correct' : j === i ? 'wrong' : ''; });
       setRevealState(reveal);
-      if (i === q.ans) {
+      
+      const isCorrect = i === q.ans;
+
+      // RECORD TELEMETRY
+      gs.addTelemetry({
+        id: `L4-Q${gs.l4idx + 1}`,
+        level: 4,
+        question: q.q,
+        isCorrect,
+        timeTaken: 90 - qs2.timeWhenSubmitted,
+        timestamp: Date.now()
+      });
+
+      if (isCorrect) {
         const earned = calcScore(true, qs2.timeWhenSubmitted, 90, q.pts);
         gs.addL4Score(earned); gs.incL4Correct();
         SFX.correct();

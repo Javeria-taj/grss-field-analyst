@@ -43,6 +43,17 @@ export default function Level1Play() {
     } else {
       const userAns = qs.ans;
       const isCorrect = userAns === correct || userAns === correct.replace(/\s+/g, '');
+      
+      // RECORD TELEMETRY
+      gs.addTelemetry({
+        id: `L1-Q${gs.l1idx + 1}`,
+        level: 1,
+        question: isScramble ? `Unscramble: ${(q as any).sc}` : (q as any).q,
+        isCorrect,
+        timeTaken: 60 - qs.timeWhenSubmitted, // timeWhenSubmitted IS timeVal at submission
+        timestamp: Date.now()
+      });
+
       if (isCorrect) {
         const earned = calcScore(true, qs.timeWhenSubmitted, 60, q?.pts || 100);
         gs.addL1Score(earned);

@@ -2,12 +2,8 @@
 
 This document outlines a phased refactoring and optimization plan to elevate the GRSS Field Analyst platform to a modern, robust, and visually stunning 10/10 application.
 
-## User Review Required
-
-> [!IMPORTANT]
-> Please review the proposed architectural and UI/UX changes below. Your approval is necessary before proceeding with code execution.
-> - **Design System Choice:** Will refine the existing Sci-Fi Glassmorphism paradigm to a more premium tier rather than switching completely to Neobrutalism.
-> - **Security Paradigm:** Introducing strict JWT + HTTP-only cookie auth, which will require adjustments to the backend and frontend user flow.
+## Execution Approved
+The plan below has been approved, including the new Phase 5 for the Admin Dashboard (Option B). We will now systematically execute each step.
 
 ## Proposed Changes
 
@@ -77,14 +73,23 @@ Eliminating tech debt, redundancy, and ensuring pristine maintainability.
 #### [DELETE] Redundant Legacy Files
 - Clean up any unused files and obsolete CSS classes post-Tailwind migration to reduce bundle size.
 
-## Open Questions
+---
 
-> [!WARNING]
-> Please review and provide feedback on the following before we begin:
+### Phase 5: Admin Dashboard (Option B)
+Implementing a highly-secure, dedicated management interface for event organizers.
 
-1. **Design Preference:** I assumed a premium Sci-Fi Glassmorphism approach fits the "Field Analyst / Geoscience Space" theme better than stark Neobrutalism. Do you agree with this aesthetic direction?
-2. **Backend Persistence:** Are we continuing to use Mongoose/MongoDB, or are you open to strict ORMs like Prisma for end-to-end type safety?
-3. **Session Lifespan:** For live events, how long should an authentication session last? Should users be automatically logged out after the event duration (e.g., 2 hours)?
+#### [NEW] `frontend/app/admin/page.tsx`
+- The `SUPER_ADMIN` dashboard UI with high-tier Glassmorphism.
+- Features dynamic socket stats (active connections).
+- Leaderboard management panel (Reset, Delete specific USNs).
+- Global broadcast form to send 'Toasts' to all active users.
+
+#### [MODIFY] `frontend/app/page.tsx`
+- Update the login router to redirect specifically to `/admin` instead of `/dashboard` when `usn === 'SUPER_ADMIN'`.
+
+#### [MODIFY] `backend/src/sockets/leaderboard.js`
+- Expose secure event listeners: `admin_delete_score`, `admin_reset_board`, and `admin_global_broadcast`.
+- Add a socket emitter `stats_update` to broadcast the current `connectedCount` exclusively to the admin.
 
 ## Verification Plan
 
@@ -93,6 +98,6 @@ Eliminating tech debt, redundancy, and ensuring pristine maintainability.
 - Implementation of basic validation testing on core backend endpoints to verify JWT protections and rate limiting.
 
 ### Manual Verification
-- Visual inspection of Framer Motion micro-animations across devices (desktop/mobile).
-- Real-time testing of Socket.io event broadcasting, reconnection robustness across multiple simulated clients.
+- Login with `super_admin`/`javeria_taj` and verify redirection to the Admin Panel.
+- Perform a live Global Broadcast and verify it appears on standard player clients.
 - Review of browser Network tabs to confirm JWTs are locked inside HTTP-only cookies and not exposed in local storage.

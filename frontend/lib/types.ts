@@ -5,6 +5,7 @@
 export interface User {
   name: string;
   usn: string;
+  isAdmin?: boolean;
 }
 
 export interface LeaderboardEntry {
@@ -36,3 +37,13 @@ export interface ScorePayload {
   usn: string;
   score: number;
 }
+
+export interface TelemetryRecord {
+  id: string; // e.g. "L1-Q3"
+  level: number;
+  question: string;
+  isCorrect: boolean;
+  timeTaken: number;
+  timestamp: number;
+}
+

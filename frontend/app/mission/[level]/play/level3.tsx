@@ -44,9 +44,21 @@ export default function Level3Play() {
   }, [ch, gs, qst]);
 
   const onTimerDone = useCallback(() => {
-    if (qst?.status === 'win') {
+    const isCorrect = qst?.status === 'win';
+    
+    // RECORD TELEMETRY
+    gs.addTelemetry({
+      id: `L3-Q${gs.l3idx + 1}`,
+      level: 3,
+      question: `Emoji Decode: ${ch.em}`,
+      isCorrect,
+      timeTaken: 120 - (qst?.timeWhenSubmitted ?? 0),
+      timestamp: Date.now()
+    });
+
+    if (isCorrect) {
       SFX.correct();
-      const earned = calcScore(true, qst.timeWhenSubmitted, 120, ch.pts);
+      const earned = calcScore(true, qst!.timeWhenSubmitted, 120, ch.pts);
       gs.addL3Score(earned); gs.incL3Correct();
       setFb({ type: 'ok', icon: '✅', title: `DECODED: ${ch.word}`, body: `+${earned} pts!<br><br>${ch.expl}` });
     } else {

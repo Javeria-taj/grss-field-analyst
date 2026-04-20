@@ -11,7 +11,7 @@ import Toast from '@/components/ui/Toast';
 export default function LevelIntroPage() {
   const { level } = useParams<{ level: string }>();
   const router = useRouter();
-  const { user, unlocked } = useGameStore();
+  const { user, unlocked, startL1, startL2, startL3, startL4 } = useGameStore();
   const lvl = parseInt(level);
   const intro = LEVEL_INTROS[lvl as keyof typeof LEVEL_INTROS];
 
@@ -24,6 +24,10 @@ export default function LevelIntroPage() {
 
   const begin = () => {
     SFX.click();
+    if (lvl === 1) startL1();
+    if (lvl === 2) startL2();
+    if (lvl === 3) startL3();
+    if (lvl === 4) startL4();
     router.push(`/mission/${lvl}/play`);
   };
 

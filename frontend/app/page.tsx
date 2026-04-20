@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/stores/useGameStore';
 import { SFX } from '@/lib/sfx';
 import { toast } from '@/components/ui/Toast';
+import { apiClient } from '@/lib/api-client';
 import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
 import Toast from '@/components/ui/Toast';
 
@@ -12,7 +13,7 @@ const FEATURE_CHIPS = ['🌍 Remote Sensing', '🛰️ Satellite Imagery', '⚡ 
 
 export default function AuthPage() {
   const router = useRouter();
-  const { user, login } = useGameStore();
+  const { user, login, resetProgress, resetLevels } = useGameStore();
   const [tab, setTab] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
   const [usn, setUsn] = useState('');
@@ -22,7 +23,13 @@ export default function AuthPage() {
   const [focused, setFocused] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user) router.replace('/dashboard');
+    if (user) {
+      if (user.isAdmin || user.usn === 'SUPER_ADMIN') {
+        router.replace('/admin');
+      } else {
+        router.replace('/dashboard');
+      }
+    }
   }, [user, router]);
 
   const validate = () => {
@@ -38,11 +45,30 @@ export default function AuthPage() {
     if (!validate()) { SFX.wrong(); return; }
     setLoading(true);
     SFX.click();
-    await new Promise(r => setTimeout(r, 400));
-    login({ name: name.trim(), usn: usn.trim().toUpperCase() });
-    toast(`Welcome, ${name.trim()}! Mission briefing incoming...`, 'ok');
-    SFX.levelUp();
-    router.push('/dashboard');
+    
+    try {
+      const payload = { name: name.trim(), usn: usn.trim() };
+      const res = await apiClient.post<{status: string, user: any}>('/api/auth/login', payload);
+      
+      // CRITICAL: Reset all progress before logging in the new user
+      resetProgress();
+      resetLevels();
+      
+      login(res.user);
+      
+      if (res.user.isAdmin) {
+        toast(`Administrator recognized: ${res.user.name}. Initializing Admin Center...`, 'ok');
+        SFX.levelUp();
+        router.push('/admin');
+      } else {
+        toast(`Welcome, ${res.user.name}! Mission briefing incoming...`, 'ok');
+        SFX.levelUp();
+        router.push('/dashboard');
+      }
+    } catch (err: any) {
+      toast(err.message || 'Network communication failed.', 'err');
+      SFX.wrong();
+    }
     setLoading(false);
   };
 

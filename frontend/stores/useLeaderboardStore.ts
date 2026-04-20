@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { io, Socket } from 'socket.io-client';
 import type { LeaderboardEntry, ScorePayload } from '@/lib/types';
+import { toast } from '@/components/ui/Toast';
 
 interface LeaderboardState {
   entries: LeaderboardEntry[];
@@ -30,6 +31,10 @@ export const useLeaderboardStore = create<LeaderboardState>((set, get) => ({
 
     socket.on('leaderboard_update', (data: LeaderboardEntry[]) => {
       set({ entries: data });
+    });
+
+    socket.on('global_announcement', (msg: string) => {
+      toast(`📡 HQ BROADCAST: ${msg}`, 'inf');
     });
 
     set({ socket });

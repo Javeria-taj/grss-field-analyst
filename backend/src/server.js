@@ -4,8 +4,10 @@ const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 const { connectDB } = require('./config/db');
 const apiRoutes = require('./routes/api');
+const authRoutes = require('./routes/auth');
 const setupLeaderboardSockets = require('./sockets/leaderboard');
 
 const app = express();
@@ -68,12 +70,14 @@ app.use((req, res, next) => {
 // ─── MIDDLEWARE ─────────────────────────────────────────────────────────────
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '64kb' }));   // cap body size to prevent large-payload attacks
+app.use(cookieParser());
 app.use('/api', apiLimiter);
 
 // ─── DATABASE ───────────────────────────────────────────────────────────────
 connectDB();
 
 // ─── ROUTES ─────────────────────────────────────────────────────────────────
+app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
 
 // 404 handler
