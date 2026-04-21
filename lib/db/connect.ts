@@ -29,7 +29,7 @@ if (!cached) {
 let isConnected = false;
 
 async function dbConnect() {
-  if (cached.conn) {
+  if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
   }
 
@@ -39,23 +39,22 @@ async function dbConnect() {
       serverSelectionTimeoutMS: 5000,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongooseInstance) => {
       console.log('✅ Connected to MongoDB (Next.js Global)');
       isConnected = true;
-      return mongoose;
-    }).catch(err => {
-      console.warn('⚠️ MongoDB connection failed. Running in Local Memory Mode.');
-      console.warn('   Note: Changes will not persist until whitelisted: https://www.mongodb.com/docs/atlas/security-whitelist/');
-      isConnected = false;
-      return mongoose; // Return the mongoose instance anyway to prevent crashes
+      return mongooseInstance;
     });
   }
 
   try {
     cached.conn = await cached.promise;
   } catch (e) {
+    // Reset cache so the next request attempts a fresh connection
     cached.promise = null;
-    throw e;
+    cached.conn = null;
+    isConnected = false;
+    console.warn('⚠️ MongoDB connection failed:', (e as Error).message);
+    throw e; // Re-throw so API routes return a proper 500
   }
 
   return cached.conn;

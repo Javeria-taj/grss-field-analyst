@@ -42,8 +42,11 @@ export default function AdminDashboard() {
     };
   }, [socket]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     SFX.click();
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch { /* best-effort */ }
     logout();
     router.replace('/');
   };

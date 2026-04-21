@@ -52,8 +52,11 @@ export default function DashboardPage() {
     router.push(`/mission/${id}/intro`);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     SFX.click();
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch { /* best-effort — proceed regardless */ }
     logout();
     router.replace('/');
   };

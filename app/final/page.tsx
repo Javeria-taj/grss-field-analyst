@@ -167,7 +167,12 @@ export default function FinalPage() {
             </motion.button>
             <motion.button
               className="btn btn-primary btn-lg"
-              onClick={() => { SFX.click(); gs.logout(); router.push('/'); }}
+              onClick={async () => {
+                SFX.click();
+                try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch { /* best-effort */ }
+                gs.logout();
+                router.push('/');
+              }}
               onMouseEnter={() => SFX.hover()}
               id="playAgainBtn"
               whileHover={{ scale: 1.04 }}
