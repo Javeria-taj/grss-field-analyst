@@ -138,28 +138,28 @@ export default function Level3Play() {
         <HUD levelName="LEVEL 3 — CODE BREAKING" totalQuestions={chs.length} currentQuestion={gs.l3idx} />
         <TimerBar />
         <div className="page-content">
-          <div style={{ maxWidth: 580, width: '100%', textAlign: 'center' }}>
+          <div style={{ maxWidth: 580, width: '92vw', textAlign: 'center' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
-              <span className="badge badge-purple">EMOJI DECODE {gs.l3idx + 1}/{chs.length}</span>
-              <div className="lives">
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+              <span className="badge badge-purple" style={{ fontSize: '0.6rem' }}>EMOJI DECODE {gs.l3idx + 1}/{chs.length}</span>
+              <div className="lives" style={{ gap: 2 }}>
                 {Array.from({ length: 6 }, (_, i) => (
-                  <span key={i} className={`life${i >= lives ? ' dead' : ''}`}>❤️</span>
+                  <span key={i} className={`life${i >= lives ? ' dead' : ''}`} style={{ fontSize: '0.8rem' }}>❤️</span>
                 ))}
               </div>
-              <span className="badge badge-gold">+{ch.pts} pts</span>
+              <span className="badge badge-gold" style={{ fontSize: '0.6rem' }}>+{ch.pts} pts</span>
             </div>
 
             {/* Emoji clue */}
-            <div className="em-clue">{ch.em}</div>
+            <div className="em-clue" style={{ padding: '15px', fontSize: 'clamp(1.5rem, 5vw, 2.5rem)', letterSpacing: '6px' }}>{ch.em}</div>
 
             {/* Word slots */}
-            <div className={`word-slots${wrongShake ? ' wrong-shake' : ''}`}>
+            <div className={`word-slots${wrongShake ? ' wrong-shake' : ''}`} style={{ gap: '4px', margin: '12px 0' }}>
               {ch.word.split('').map((c, i) =>
                 c === ' ' ? (
-                  <div key={i} className="letter-slot space" />
+                  <div key={i} className="letter-slot space" style={{ width: '8px' }} />
                 ) : (
-                  <div key={i} className={`letter-slot${guessed.has(c) ? ' shown' : ''}`}>
+                  <div key={i} className={`letter-slot${guessed.has(c) ? ' shown' : ''}`} style={{ width: 'clamp(22px, 6vw, 34px)', height: 'clamp(32px, 8vw, 42px)', fontSize: 'clamp(1rem, 4vw, 1.3rem)' }}>
                     {guessed.has(c) ? c : ''}
                   </div>
                 )
@@ -167,13 +167,13 @@ export default function Level3Play() {
             </div>
 
             {/* Wrong guesses */}
-            <div style={{ marginBottom: 10, fontSize: '0.8rem', color: 'var(--text2)' }}>
-              Wrong guesses ({wrong.length}/6):{' '}
-              <span style={{ color: 'var(--danger)' }}>{wrong.join(' ') || 'None'}</span>
+            <div style={{ marginBottom: 10, fontSize: '0.72rem', color: 'var(--text2)' }}>
+              Failures ({wrong.length}/6):{' '}
+              <span style={{ color: 'var(--danger)', fontWeight: 700 }}>{wrong.join(' ') || 'None'}</span>
             </div>
 
             {/* Alphabet grid */}
-            <div className="alpha-grid">
+            <div className="alpha-grid" style={{ gap: '4px' }}>
               {'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(c => {
                 const isGuessed = guessed.has(c);
                 const isHit = ch.word.includes(c);
@@ -184,14 +184,19 @@ export default function Level3Play() {
                     disabled={isGuessed || !!qst}
                     onMouseEnter={() => !isGuessed && !qst && SFX.hover()}
                     onClick={() => guessLetter(c)}
+                    style={{ 
+                      width: 'clamp(30px, 8.5vw, 36px)', 
+                      height: 'clamp(30px, 8.5vw, 36px)',
+                      fontSize: '0.75rem'
+                    }}
                   >
                     {c}
                   </button>
                 );
               })}
             </div>
-            <div style={{ marginTop: 8, fontSize: '0.75rem', color: 'var(--text2)' }}>
-              💡 A letter auto-reveals at the 1-minute mark
+            <div style={{ marginTop: 8, fontSize: '0.68rem', color: 'var(--text2)' }}>
+              💡 Auto-hint reveals at 60s mark
             </div>
           </div>
         </div>

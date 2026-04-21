@@ -125,14 +125,16 @@ export default function Level1Play() {
         <HUD levelName="LEVEL 1 — TRAINING" totalQuestions={gs.l1q.length} currentQuestion={gs.l1idx} />
         <TimerBar />
         <div className="page-content">
-          <div style={{ maxWidth: 620, width: '100%' }}>
+          <div style={{ maxWidth: 620, width: '92vw' }}>
             {/* Header badges */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 6 }}>
-              <span className={`badge ${isScramble ? 'badge-blue' : 'badge-green'}`}>
+              <span className={`badge ${isScramble ? 'badge-blue' : 'badge-green'}`} style={{ fontSize: '0.6rem' }}>
                 {isScramble ? `WORD SCRAMBLE ${gs.l1idx + 1}/10` : `FIELD RIDDLE ${gs.l1idx + 1}/10`}
               </span>
-              <span className="badge badge-purple">{('cat' in q ? q.cat : '')}</span>
-              <span className="badge badge-gold">+{q.pts} pts</span>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <span className="badge badge-purple" style={{ fontSize: '0.6rem' }}>{('cat' in q ? q.cat : '')}</span>
+                <span className="badge badge-gold" style={{ fontSize: '0.6rem' }}>+{q.pts}</span>
+              </div>
             </div>
 
             {/* Question display */}
@@ -141,14 +143,11 @@ export default function Level1Play() {
                 <>
                   <div className="label t-center" style={{ marginBottom: 10 }}>UNSCRAMBLE THIS SATELLITE TERM</div>
                   <div className="scramble-disp">{(q as any).sc}</div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text2)', textAlign: 'center', marginTop: 7 }}>
-                    {(q as any).sc.length} letters
-                  </div>
                 </>
               ) : (
                 <>
                   <div className="label t-center" style={{ marginBottom: 10 }}>DECODE THE FIELD RIDDLE</div>
-                  <p style={{ fontSize: '1rem', lineHeight: 1.75, color: 'var(--white)' }}>{(q as any).q}</p>
+                  <p style={{ fontSize: 'clamp(0.9rem, 2.5vw, 1.05rem)', lineHeight: 1.7, color: 'var(--white)' }}>{(q as any).q}</p>
                 </>
               )}
             </div>
@@ -175,7 +174,7 @@ export default function Level1Play() {
               disabled={inputDisabled}
               id="l1submitBtn"
             >
-              {inputDisabled ? '⏳ Waiting for timer...' : '✅ SUBMIT ANSWER'}
+              {inputDisabled ? '⌛ Processing...' : '✅ SUBMIT ANSWER'}
             </motion.button>
           </div>
         </div>

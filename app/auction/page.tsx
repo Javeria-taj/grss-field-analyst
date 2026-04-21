@@ -129,13 +129,13 @@ export default function AuctionPage() {
       <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', flex: 1 }}>
         {/* HUD */}
         <div className="hud">
-          <div className="hud-level font-orb">LEVEL 5A — TOOL AUCTION</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-            <div><div className="label">BUDGET</div><div className="font-orb t-warning" style={{ fontSize: '1.1rem' }}>${budget.toLocaleString()}</div></div>
-            <div><div className="label">TOOLS</div><div className="font-orb t-accent2">{bought.length}/5</div></div>
-            <div>
-              <div className="label">PRICE HIKE</div>
-              <div className="font-orb" style={{ color: priceTime <= 5 ? 'var(--danger)' : 'var(--warning)' }}>{priceTime}s</div>
+          <div className="hud-level font-orb" style={{ fontSize: 'clamp(0.7rem, 2.5vw, 0.9rem)', color: 'var(--accent)' }}>LEVEL 5A — TOOL AUCTION</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <div style={{ textAlign: 'center' }}><div className="label" style={{ fontSize: '0.6rem' }}>BUDGET</div><div className="font-orb t-warning" style={{ fontSize: '1rem' }}>${budget.toLocaleString()}</div></div>
+            <div style={{ textAlign: 'center' }}><div className="label" style={{ fontSize: '0.6rem' }}>TOOLS</div><div className="font-orb t-accent2" style={{ fontSize: '1rem' }}>{bought.length}/5</div></div>
+            <div style={{ textAlign: 'center' }}>
+              <div className="label" style={{ fontSize: '0.6rem' }}>HIKE IN</div>
+              <div className="font-orb" style={{ color: priceTime <= 5 ? 'var(--danger)' : 'var(--warning)', fontSize: '1rem' }}>{priceTime}s</div>
             </div>
           </div>
         </div>
@@ -156,9 +156,9 @@ export default function AuctionPage() {
 
         <div className="page-content" style={{ gap: 12 }}>
           {/* Auction timer */}
-          <div style={{ maxWidth: 680, width: '100%' }}>
+          <div style={{ maxWidth: 680, width: '92vw' }}>
             <div className="timer-track"><div className={`timer-fill ${timerClass}`} style={{ width: `${pct}%` }} /></div>
-            <div className={`timer-txt ${timerClass}`} style={{ padding: 0 }}>{m}:{s.toString().padStart(2, '0')}</div>
+            <div className={`timer-txt ${timerClass}`} style={{ padding: '4px 0', fontSize: '0.85rem' }}>TIME REMAINING: {m}:{s.toString().padStart(2, '0')}</div>
           </div>
 
           {/* Info bar */}
@@ -169,18 +169,18 @@ export default function AuctionPage() {
           </div>
 
           {/* Disaster preview */}
-          <div style={{ maxWidth: 680, width: '100%', background: 'rgba(255,45,85,.04)', border: '1px solid rgba(255,45,85,.25)', borderRadius: 12, padding: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: '1.8rem' }}>{disaster.icon}</span>
+          <div style={{ maxWidth: 680, width: '92vw', background: 'rgba(255,45,85,.04)', border: '1px solid rgba(255,45,85,.25)', borderRadius: 12, padding: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: '1.5rem' }}>{disaster.icon}</span>
               <div>
-                <div className="font-orb" style={{ fontSize: '0.85rem', color: disaster.color }}>INCOMING DISASTER: {disaster.name}</div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text2)', marginTop: 3 }}>Choose tools wisely — your loadout directly affects your disaster score</div>
+                <div className="font-orb" style={{ fontSize: '0.75rem', color: disaster.color }}>ALERT: {disaster.name}</div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text2)', marginTop: 2 }}>Select gear to mitigate threat.</div>
               </div>
             </div>
           </div>
 
           {/* Tool grid */}
-          <div className="tool-grid" style={{ maxWidth: 680, width: '100%' }}>
+          <div className="tool-grid" style={{ maxWidth: 680, width: '92vw' }}>
             {DATA.level5.tools.map(t => {
               const price = getPrice(t.price);
               const owned = bought.includes(t.id);

@@ -167,16 +167,15 @@ export default function AuthPage() {
 
       {/* Right auth panel */}
       <div style={{
-        flex: '0 0 auto',
-        width: '100%',
-        maxWidth: 480,
+        flex: 1,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '30px 20px',
+        padding: '24px 16px',
         position: 'relative',
         zIndex: 3,
         margin: '0 auto',
+        width: '100%'
       }}>
         <motion.div
           style={{ width: '100%', maxWidth: 420 }}

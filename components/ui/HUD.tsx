@@ -64,20 +64,23 @@ export default function HUD({ levelName, totalQuestions, currentQuestion }: Prop
 
   return (
     <div className="hud" id="gameHud">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
         <motion.button
           className="btn btn-outline btn-sm"
           onClick={handleAbort}
           whileTap={{ scale: 0.95 }}
           whileHover={{ scale: 1.03 }}
+          style={{ minWidth: '70px', padding: '6px 10px' }}
         >
-          ← ABORT
+          ← EXIT
         </motion.button>
-        <div className="hud-level font-orb">{levelName}</div>
-        <ProgressDots total={totalQuestions} current={currentQuestion} />
+        <div className="hud-level font-orb t-accent" style={{ fontWeight: 700 }}>{levelName}</div>
+        <div className="hide-mobile">
+          <ProgressDots total={totalQuestions} current={currentQuestion} />
+        </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
         <div className="pu-bar">
           {POWERUP_CONFIG.map(({ type, icon, label }, idx) => (
             <motion.button
@@ -100,12 +103,13 @@ export default function HUD({ levelName, totalQuestions, currentQuestion }: Prop
         </div>
         <motion.div
           key={currentScore}
-          className="hud-score"
+          className="hud-score font-orb"
+          style={{ fontSize: '1rem', color: 'var(--accent2)', minWidth: '80px', textAlign: 'right' }}
           initial={{ scale: 1.2 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 400 }}
         >
-          {currentScore.toLocaleString()} pts
+          {currentScore.toLocaleString()}
         </motion.div>
       </div>
     </div>

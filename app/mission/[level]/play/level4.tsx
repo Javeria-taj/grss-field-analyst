@@ -113,32 +113,38 @@ export default function Level4Play() {
         <HUD levelName="LEVEL 4 — RAPID ASSESSMENT" totalQuestions={qs.length} currentQuestion={gs.l4idx} />
         <TimerBar />
         <div className="page-content">
-          <div style={{ maxWidth: 620, width: '100%' }}>
+          <div style={{ maxWidth: 620, width: '92vw' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
-              <span className="badge badge-blue">Q{gs.l4idx + 1}/10</span>
-              <span className={`badge ${diffBadge[q.diff]}`}>{'⭐'.repeat(q.diff)} DIFFICULTY {q.diff}/3</span>
-              <span className="badge badge-gold">+{q.pts} pts</span>
+              <span className="badge badge-blue" style={{ fontSize: '0.6rem' }}>Q{gs.l4idx + 1}/10</span>
+              <span className={`badge ${diffBadge[q.diff]}`} style={{ fontSize: '0.6rem' }}>{'⭐'.repeat(q.diff)} DIFF {q.diff}/3</span>
+              <span className="badge badge-gold" style={{ fontSize: '0.6rem' }}>+{q.pts} pts</span>
             </div>
             <div className={`card diff-${q.diff}`} style={{ marginBottom: 14, borderLeft: `3px solid ${diffColors[q.diff]}` }}>
-              <p style={{ fontSize: '0.98rem', fontWeight: 500, color: 'var(--white)', lineHeight: 1.7 }}>{q.q}</p>
+              <p style={{ fontSize: 'clamp(0.85rem, 2.5vw, 0.98rem)', fontWeight: 500, color: 'var(--white)', lineHeight: 1.65 }}>{q.q}</p>
             </div>
-            {q.opts.map((opt, i) => {
-              const rv = revealState[i];
-              return (
-                <button
-                  key={i}
-                  className={`option ${rv === 'correct' ? 'correct' : rv === 'wrong' ? 'wrong' : selected === i && !rv ? 'selected' : ''}`}
-                  onClick={() => submit(i)}
-                  onMouseEnter={() => !locked && SFX.hover()}
-                  disabled={locked}
-                  id={`l4opt${i}`}
-                  style={locked && !rv ? { pointerEvents: 'none' } : undefined}
-                >
-                  <span className="option-letter">{'ABCD'[i]}</span>
-                  {opt}
-                </button>
-              );
-            })}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {q.opts.map((opt, i) => {
+                const rv = revealState[i];
+                return (
+                  <button
+                    key={i}
+                    className={`option ${rv === 'correct' ? 'correct' : rv === 'wrong' ? 'wrong' : selected === i && !rv ? 'selected' : ''}`}
+                    onClick={() => submit(i)}
+                    onMouseEnter={() => !locked && SFX.hover()}
+                    disabled={locked}
+                    id={`l4opt${i}`}
+                    style={{ 
+                      pointerEvents: locked && !rv ? 'none' : 'auto',
+                      fontSize: 'clamp(0.8rem, 2.2vw, 0.9rem)',
+                      padding: '10px 14px'
+                    }}
+                  >
+                    <span className="option-letter" style={{ width: 24, height: 24, fontSize: '0.65rem' }}>{'ABCD'[i]}</span>
+                    {opt}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
         {fb && <FeedbackOverlay {...fb} onContinue={goNext} />}

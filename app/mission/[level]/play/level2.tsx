@@ -111,31 +111,31 @@ export default function Level2Play() {
         <HUD levelName="LEVEL 2 — INTEL GATHERING" totalQuestions={qs.length} currentQuestion={gs.l2idx} />
         <TimerBar />
         <div className="page-content">
-          <div style={{ maxWidth: 640, width: '100%' }}>
+          <div style={{ maxWidth: 640, width: '92vw' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
-              <span className="badge badge-green">IMAGE ANALYSIS {gs.l2idx + 1}/{qs.length}</span>
-              <span className="badge badge-gold">+{q.pts} pts</span>
+              <span className="badge badge-green" style={{ fontSize: '0.6rem' }}>IMAGE ANALYSIS {gs.l2idx + 1}/{qs.length}</span>
+              <span className="badge badge-gold" style={{ fontSize: '0.6rem' }}>+{q.pts} pts</span>
             </div>
 
             {/* Image */}
-            <div className="img-container" style={{ marginBottom: 13 }}>
+            <div className="img-container" style={{ marginBottom: 13, maxHeight: '200px' }}>
               <Image
                 src={q.img}
                 alt="Satellite imagery"
                 width={640}
-                height={240}
-                style={{ width: '100%', maxHeight: 240, objectFit: 'cover' }}
+                height={200}
+                style={{ width: '100%', maxHeight: 200, objectFit: 'cover' }}
                 unoptimized
               />
             </div>
 
             {/* Question */}
-            <div className="card" style={{ marginBottom: 13 }}>
-              <p style={{ fontSize: '0.95rem', fontWeight: 500, color: 'var(--white)', lineHeight: 1.65 }}>{q.q}</p>
+            <div className="card" style={{ marginBottom: 14 }}>
+              <p style={{ fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)', fontWeight: 500, color: 'var(--white)', lineHeight: 1.6 }}>{q.q}</p>
             </div>
 
             {/* Options */}
-            <div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {q.opts.map((opt, i) => {
                 const rv = revealState[i];
                 return (
@@ -146,9 +146,13 @@ export default function Level2Play() {
                     onMouseEnter={() => !locked && SFX.hover()}
                     disabled={locked}
                     id={`l2opt${i}`}
-                    style={locked && !rv ? { pointerEvents: 'none' } : undefined}
+                    style={{ 
+                      pointerEvents: locked && !rv ? 'none' : 'auto',
+                      fontSize: 'clamp(0.8rem, 2.2vw, 0.9rem)',
+                      padding: '10px 14px'
+                    }}
                   >
-                    <span className="option-letter">{'ABCD'[i]}</span>
+                    <span className="option-letter" style={{ width: 24, height: 24, fontSize: '0.65rem' }}>{'ABCD'[i]}</span>
                     {opt}
                   </button>
                 );

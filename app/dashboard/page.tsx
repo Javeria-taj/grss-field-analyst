@@ -73,31 +73,32 @@ export default function DashboardPage() {
           animate={{ y: 0, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 300, damping: 26 }}
           style={{
-            padding: '14px 20px',
+            padding: '12px 16px',
             background: 'rgba(3,7,15,0.96)',
             borderBottom: '1px solid var(--border)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             flexWrap: 'wrap',
-            gap: 8,
+            gap: 10,
             backdropFilter: 'blur(12px)',
             position: 'sticky', top: 0, zIndex: 50,
           }}
         >
-          <div>
-            <div className="font-orb t-accent" style={{ fontSize: '0.9rem' }}>
+          <div style={{ flex: '1 1 auto' }}>
+            <div className="font-orb t-accent" style={{ fontSize: '0.85rem', fontWeight: 700 }}>
               {user.name.toUpperCase()}
             </div>
-            <div style={{ fontSize: '0.73rem', color: 'var(--text2)' }}>USN: {user.usn}</div>
+            <div style={{ fontSize: '0.68rem', color: 'var(--text2)' }}>{user.usn}</div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <div style={{ textAlign: 'right' }}>
-              <div className="label">TOTAL SCORE</div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <div style={{ textAlign: 'right', minWidth: '85px' }}>
+              <div className="label" style={{ fontSize: '0.55rem' }}>TOTAL SCORE</div>
               <motion.div
                 key={total}
-                className="hud-score"
-                style={{ fontSize: '1.15rem' }}
+                className="hud-score font-orb"
+                style={{ fontSize: '1.1rem', color: 'var(--accent2)' }}
                 initial={{ scale: 1.15 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 400 }}
@@ -106,44 +107,39 @@ export default function DashboardPage() {
               </motion.div>
             </div>
 
-            {/* Restricted Leaderboard Button */}
-            {completed.includes(5) && (
+            <div style={{ display: 'flex', gap: 6 }}>
+              {completed.includes(5) && (
+                <motion.button
+                  className="btn btn-outline btn-sm"
+                  onClick={() => { SFX.click(); router.push('/leaderboard'); }}
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.95 }}
+                  style={{ borderColor: 'var(--gold)', color: 'var(--gold)', padding: '6px 10px', fontSize: '0.7rem' }}
+                >
+                  🏆 <span className="hide-tablet">Leaderboard</span>
+                </motion.button>
+              )}
+
               <motion.button
                 className="btn btn-outline btn-sm"
-                onClick={() => { SFX.click(); router.push('/leaderboard'); }}
+                onClick={() => { SFX.click(); SFX.dataStream(); setShowTelemetry(true); }}
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.95 }}
-                style={{ borderColor: 'var(--gold)', color: 'var(--gold)' }}
-                aria-label="View Global Leaderboard"
+                style={{ borderColor: 'var(--accent2)', color: 'var(--accent2)', padding: '6px 10px', fontSize: '0.7rem' }}
               >
-                🏆 Leaderboard
+                📊 <span className="hide-tablet">Telemetry</span>
               </motion.button>
-            )}
 
-            {/* Mission Telemetry Button */}
-            <motion.button
-              className="btn btn-outline btn-sm"
-              onClick={() => { SFX.click(); SFX.dataStream(); setShowTelemetry(true); }}
-              onMouseEnter={() => SFX.hover()}
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.95 }}
-              style={{ borderColor: 'var(--accent2)', color: 'var(--accent2)' }}
-              aria-label="Open Mission Telemetry Log"
-              aria-expanded={showTelemetry}
-            >
-              📊 Mission Telemetry
-            </motion.button>
-
-            <motion.button
-              className="btn btn-outline btn-sm"
-              onClick={handleLogout}
-              onMouseEnter={() => SFX.hover()}
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.95 }}
-              aria-label="Secure Logout"
-            >
-              ↩ Logout
-            </motion.button>
+              <motion.button
+                className="btn btn-outline btn-sm"
+                onClick={handleLogout}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.95 }}
+                style={{ padding: '6px 10px', fontSize: '0.7rem' }}
+              >
+                ↩ <span className="hide-tablet">Logout</span>
+              </motion.button>
+            </div>
           </div>
         </motion.div>
 
@@ -181,7 +177,7 @@ export default function DashboardPage() {
                 const stateClass = isDone ? 'done' : isOpen ? 'open' : 'lock';
                 const isShaking = shakeLevel === lv.id;
                 return (
-                  <div key={lv.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 4 }}>
+                  <div key={lv.id} className="lv-wrapper" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <motion.div
                       className="lv-node"
                       role="button"
@@ -189,8 +185,8 @@ export default function DashboardPage() {
                       aria-disabled={!isOpen}
                       onClick={() => handleLevelClick(lv.id)}
                       onMouseEnter={() => isOpen && SFX.hover()}
-                      whileHover={isOpen ? { scale: 1.07 } : {}}
-                      whileTap={isOpen ? { scale: 0.93 } : {}}
+                      whileHover={isOpen ? { scale: 1.1 } : {}}
+                      whileTap={isOpen ? { scale: 0.9 } : {}}
                       animate={isShaking ? { x: [-8, 8, -8, 8, 0] } : {}}
                       transition={isShaking ? { duration: 0.4 } : { type: 'spring', stiffness: 400 }}
                     >
@@ -203,30 +199,30 @@ export default function DashboardPage() {
                       >
                         {isDone ? '✅' : isOpen ? lv.icon : '🔒'}
                       </motion.div>
-                      <div style={{ fontSize: '0.62rem', color: 'var(--text2)', textAlign: 'center', maxWidth: 70, whiteSpace: 'pre-line', lineHeight: 1.3 }}>
-                        LVL {lv.id}
+                      <div className="lv-label-group">
+                        <div style={{ fontSize: '0.62rem', color: 'var(--text2)', textAlign: 'center', fontWeight: 600 }}>
+                          LVL {lv.id}
+                        </div>
+                        <div style={{ fontSize: '0.58rem', textAlign: 'center', color: isDone ? lv.color : 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          {lv.label.replace('\n', ' ')}
+                        </div>
+                        {isDone && (
+                          <motion.div
+                            className="font-orb"
+                            style={{ fontSize: '0.6rem', color: 'var(--gold)', textAlign: 'center', marginTop: 1 }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                          >
+                            {scores[lv.id]}
+                          </motion.div>
+                        )}
                       </div>
-                      <div style={{ fontSize: '0.6rem', textAlign: 'center', maxWidth: 70, whiteSpace: 'pre-line', lineHeight: 1.3, color: isDone ? lv.color : 'var(--text2)' }}>
-                        {lv.label}
-                      </div>
-                      {isDone && (
-                        <motion.div
-                          className="font-orb"
-                          style={{ fontSize: '0.6rem', color: 'var(--gold)' }}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                        >
-                          {(scores[lv.id] || 0).toLocaleString()} pts
-                        </motion.div>
-                      )}
                     </motion.div>
                     {idx < LEVEL_CONFIG.length - 1 && (
                       <motion.div
                         className={`lv-connector ${isDone ? 'done' : ''}`}
-                        initial={{ scaleX: 0 }}
-                        animate={{ scaleX: 1 }}
-                        transition={{ delay: 0.3 + idx * 0.1, duration: 0.4 }}
-                        style={{ transformOrigin: 'left' }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
                       />
                     )}
                   </div>
