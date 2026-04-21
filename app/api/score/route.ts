@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import dbConnect from '@/lib/db/connect';
 import { User } from '@/lib/db/models/User';
+
+const JWT_SECRET = process.env.SESSION_SECRET || 'grss_super_secret_change_in_production';
 
 const scoreSchema = z.object({
   name: z.string().min(2).max(50).trim(),
@@ -22,6 +25,20 @@ const scoreSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // ── Auth Gate ────────────────────────────────────────────────────────────
+  const token = req.cookies.get('auth_token')?.value;
+  if (!token) {
+    return NextResponse.json({ status: 'error', message: 'Unauthorized' }, { status: 401 });
+  }
+
+  let jwtPayload: jwt.JwtPayload;
+  try {
+    jwtPayload = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
+  } catch {
+    return NextResponse.json({ status: 'error', message: 'Invalid session' }, { status: 401 });
+  }
+  // ────────────────────────────────────────────────────────────────────────
+
   try {
     await dbConnect();
     const body = await req.json();
@@ -36,18 +53,27 @@ export async function POST(req: NextRequest) {
 
     const data = result.data;
 
-    const update: any = {
+    // Ensure the score submission belongs to the authenticated user
+    if (data.usn !== jwtPayload.usn) {
+      return NextResponse.json(
+        { status: 'error', message: 'Score USN does not match session' },
+        { status: 403 }
+      );
+    }
+
+    const update: Record<string, unknown> = {
       $set: { name: data.name, lastActive: new Date() },
       $max: { score: data.score },
     };
 
     if (data.progress) {
-      if (data.progress.unlocked) update.$set.unlocked = data.progress.unlocked;
-      if (data.progress.completed) update.$set.completed = data.progress.completed;
-      if (data.progress.scores) update.$set.scores = data.progress.scores;
-      if (data.progress.powerups) update.$set.powerups = data.progress.powerups;
-      if (data.progress.telemetry) update.$set.telemetry = data.progress.telemetry;
-      if (data.progress.levelState) update.$set.levelState = data.progress.levelState;
+      const $set = update.$set as Record<string, unknown>;
+      if (data.progress.unlocked) $set.unlocked = data.progress.unlocked;
+      if (data.progress.completed) $set.completed = data.progress.completed;
+      if (data.progress.scores) $set.scores = data.progress.scores;
+      if (data.progress.powerups) $set.powerups = data.progress.powerups;
+      if (data.progress.telemetry) $set.telemetry = data.progress.telemetry;
+      if (data.progress.levelState) $set.levelState = data.progress.levelState;
     }
 
     await User.findOneAndUpdate(
@@ -56,9 +82,9 @@ export async function POST(req: NextRequest) {
       { upsert: true, new: true }
     );
 
-    return NextResponse.json({ 
-      status: 'ok', 
-      message: 'Score submitted successfully' 
+    return NextResponse.json({
+      status: 'ok',
+      message: 'Score submitted successfully'
     }, { status: 201 });
 
   } catch (err) {

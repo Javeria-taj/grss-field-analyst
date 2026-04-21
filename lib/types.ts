@@ -35,9 +35,10 @@ export type FeedbackType = 'ok' | 'bad' | 'timeout' | 'info';
 export type ToastType = 'ok' | 'err' | 'inf';
 
 export interface ApiResponse<T = unknown> {
-  status: 'online' | 'offline' | 'error';
+  status: 'ok' | 'error';
   data?: T;
   error?: string;
+  message?: string;
 }
 
 export interface ScorePayload {

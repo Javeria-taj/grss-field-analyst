@@ -28,7 +28,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https://upload.wikimedia.org blob:",
-              "connect-src 'self' http://localhost:3000 ws://localhost:3000 http://localhost:4000 ws://localhost:4000 wss://*.grss.io",
+              `connect-src 'self' http://localhost:3000 ws://localhost:3000 http://localhost:4001 ws://localhost:4001 ${process.env.NEXT_PUBLIC_SOCKET_URL ?? 'wss://*.grss.io'}`,
               "frame-ancestors 'none'",
             ].join('; '),
           },

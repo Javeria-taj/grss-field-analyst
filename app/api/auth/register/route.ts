@@ -55,7 +55,12 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const payload = {
+    // JWT contains identity only — keeps cookie small
+    const jwtPayload = { name, usn: upperUsn, isAdmin };
+    const token = jwt.sign(jwtPayload, JWT_SECRET, { expiresIn: '12h' });
+
+    // Full initial state returned in response body for Zustand to hydrate from
+    const responseUser = {
       name,
       usn: upperUsn,
       isAdmin,
@@ -64,12 +69,10 @@ export async function POST(req: NextRequest) {
       scores: {},
       powerups: { hint: 2, skip: 1, freeze: 1 },
       telemetry: [],
-      totalScore: 0
+      totalScore: 0,
     };
 
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
-
-    const response = NextResponse.json({ status: 'ok', user: payload }, { status: 201 });
+    const response = NextResponse.json({ status: 'ok', user: responseUser }, { status: 201 });
 
     response.cookies.set('auth_token', token, {
       httpOnly: true,

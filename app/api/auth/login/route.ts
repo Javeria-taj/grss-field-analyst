@@ -26,16 +26,16 @@ export async function POST(req: NextRequest) {
 
     const { name, usn } = result.data;
     const upperUsn = usn.toUpperCase();
-    
+
     const ADMIN_USN = (process.env.ADMIN_USN || 'SUPER_ADMIN').toUpperCase();
     const ADMIN_NAME = (process.env.ADMIN_NAME || 'javeria_taj').toLowerCase();
-    
+
     const isAdmin = (upperUsn === ADMIN_USN && name.toLowerCase() === ADMIN_NAME);
 
     // Retrieve user from DB
     const dbUser = await User.findOne({ usn: upperUsn });
 
-    // If not admin, check if they exist
+    // If not admin, check if they exist and name matches
     if (!isAdmin) {
       if (!dbUser) {
         return NextResponse.json(
@@ -43,7 +43,6 @@ export async function POST(req: NextRequest) {
           { status: 404 }
         );
       }
-      // Verify Identity: Name must match registered name
       if (dbUser.name.toLowerCase() !== name.toLowerCase()) {
         return NextResponse.json(
           { status: 'error', message: 'Credentials mismatch. Name does not match registered USN.' },
@@ -52,7 +51,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const payload = {
+    // JWT contains identity only — keeps cookie small and prevents stale progress data in token
+    const jwtPayload = { name: dbUser?.name || name, usn: upperUsn, isAdmin };
+    const token = jwt.sign(jwtPayload, JWT_SECRET, { expiresIn: '12h' });
+
+    // Full progress data returned in the response body for Zustand to hydrate from
+    const responseUser = {
       name: dbUser?.name || name,
       usn: upperUsn,
       isAdmin,
@@ -62,12 +66,10 @@ export async function POST(req: NextRequest) {
       powerups: dbUser?.powerups || { hint: 2, skip: 1, freeze: 1 },
       telemetry: dbUser?.telemetry || [],
       totalScore: dbUser?.score || 0,
-      levelState: dbUser?.levelState || {}
+      levelState: dbUser?.levelState || {},
     };
 
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
-
-    const response = NextResponse.json({ status: 'ok', user: payload });
+    const response = NextResponse.json({ status: 'ok', user: responseUser });
 
     response.cookies.set('auth_token', token, {
       httpOnly: true,

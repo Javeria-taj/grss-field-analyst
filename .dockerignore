@@ -1,0 +1,20 @@
+node_modules
+.next
+.git
+.gitignore
+.env
+.env.local
+.env.example
+
+# Next.js app files not needed in realtime image
+app/
+components/
+stores/
+public/
+postcss.config.mjs
+eslint.config.mjs
+next.config.ts
+
+# TypeScript source (compiled output is in dist/)
+realtime/**/*.ts
+!realtime/dist/**

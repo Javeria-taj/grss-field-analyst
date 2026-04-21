@@ -1,43 +1,63 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/request';
+import type { NextRequest } from 'next/server';
+import { jwtVerify } from 'jose';
 
-// We define paths that require authentication
-const protectedPaths = ['/dashboard', '/mission', '/auction', '/disaster', '/results'];
+// Paths that require a valid authenticated session
+const protectedPaths = ['/dashboard', '/mission', '/auction', '/disaster', '/results', '/leaderboard', '/final'];
 const adminPaths = ['/admin'];
 
-export function middleware(request: NextRequest) {
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.SESSION_SECRET || 'grss_super_secret_change_in_production'
+);
+
+export async function middleware(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value;
   const { pathname } = request.nextUrl;
 
-  // 1. Check for authentication on protected paths
   const isProtectedPath = protectedPaths.some((path) => pathname.startsWith(path));
   const isAdminPath = adminPaths.some((path) => pathname.startsWith(path));
 
   if (isProtectedPath || isAdminPath) {
+    // 1. No token at all → redirect to login
     if (!token) {
-      // Redirect to login if no token
       const url = request.nextUrl.clone();
       url.pathname = '/';
       return NextResponse.redirect(url);
     }
 
-    // Basic JWT check (not full verification here as it's the edge)
-    // Detailed verification happens in API routes and Server Components
+    // 2. Verify JWT signature using jose (Edge Runtime compatible)
     try {
-      // In a real 10/10 app, we'd use 'jose' here to verify the signature
-      // For now, we'll allow the request and let the server components do the heavy lifting
-    } catch (e) {
+      const { payload } = await jwtVerify(token, JWT_SECRET);
+
+      // 3. Admin routes: enforce isAdmin in verified payload
+      if (isAdminPath && !payload.isAdmin) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/';
+        return NextResponse.redirect(url);
+      }
+    } catch {
+      // Invalid or expired token → clear cookie and redirect
       const url = request.nextUrl.clone();
       url.pathname = '/';
-      return NextResponse.redirect(url);
+      const response = NextResponse.redirect(url);
+      response.cookies.delete('auth_token');
+      return response;
     }
   }
 
-  // 2. Prevent logged-in users from seeing the login screen (landing page)
+  // 4. Prevent logged-in users from seeing the login page
   if (pathname === '/' && token) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/dashboard';
-    return NextResponse.redirect(url);
+    try {
+      const { payload } = await jwtVerify(token, JWT_SECRET);
+      const url = request.nextUrl.clone();
+      url.pathname = payload.isAdmin ? '/admin' : '/dashboard';
+      return NextResponse.redirect(url);
+    } catch {
+      // Token is invalid — let them see the login page, clear bad cookie
+      const response = NextResponse.next();
+      response.cookies.delete('auth_token');
+      return response;
+    }
   }
 
   return NextResponse.next();
@@ -46,11 +66,10 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
+     * Match all request paths except:
+     * - api (API routes — verified server-side)
+     * - _next/static, _next/image (static assets)
+     * - favicon.ico
      */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],

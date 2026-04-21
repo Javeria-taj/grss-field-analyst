@@ -20,7 +20,7 @@ export const useLeaderboardStore = create<LeaderboardState>((set, get) => ({
   init: () => {
     if (get().socket?.connected) return;
 
-    const socketUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL ?? 'http://localhost:4001';
     const socket = io(socketUrl, {
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,

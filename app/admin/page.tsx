@@ -70,7 +70,7 @@ export default function AdminDashboard() {
     setBroadcastMsg('');
   };
 
-  if (!user || !user.isAdmin) return null;
+  if (!user || (!user.isAdmin && user.usn !== 'SUPER_ADMIN')) return null;
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>

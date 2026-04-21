@@ -2,8 +2,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { SFX } from '@/lib/sfx';
-import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
-import Toast from '@/components/ui/Toast';
 
 const STEPS = [
   { id: 0, title: 'WELCOME' },
@@ -40,8 +38,6 @@ export default function DemoPage() {
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <StarfieldCanvas />
-      <Toast />
       <div className="earth-deco" />
       <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', flex: 1 }}>
         {/* Header */}

@@ -8,13 +8,15 @@
     "dev:frontend": "next dev",
     "dev:realtime": "nodemon --exec ts-node --project realtime/tsconfig.json realtime/server.ts",
     "build": "next build",
+    "build:realtime": "tsc --project realtime/tsconfig.json",
     "start": "next start",
     "start:realtime": "ts-node --project realtime/tsconfig.json realtime/server.ts",
+    "start:realtime:prod": "node realtime/dist/server.js",
     "lint": "next lint"
   },
   "dependencies": {
-    "bcryptjs": "^3.0.3",
     "framer-motion": "^12.38.0",
+    "jose": "^5.9.6",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.4.1",
     "next": "16.2.4",
