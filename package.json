@@ -1,27 +1,44 @@
 {
   "name": "grss-field-analyst",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "GRSS Field Analyst Unified Platform",
+  "private": true,
   "scripts": {
-    "dev:frontend": "npm run dev --prefix frontend",
-    "dev:backend": "npm run dev --prefix backend",
-    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
-    "build:frontend": "npm run build --prefix frontend",
-    "build": "npm run build:frontend",
-    "start": "npm run start --prefix frontend",
-    "lint": "npm run lint --prefix frontend",
-    "install:all": "npm install && npm install --prefix frontend && npm install --prefix backend",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "devDependencies": {
-    "concurrently": "^9.2.1"
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:realtime\"",
+    "dev:frontend": "next dev",
+    "dev:realtime": "nodemon --exec ts-node --project realtime/tsconfig.json realtime/server.ts",
+    "build": "next build",
+    "start": "next start",
+    "start:realtime": "ts-node --project realtime/tsconfig.json realtime/server.ts",
+    "lint": "next lint"
   },
   "dependencies": {
-    "mongodb": "^7.1.1"
+    "bcryptjs": "^3.0.3",
+    "framer-motion": "^12.38.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.4.1",
+    "next": "16.2.4",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "recharts": "^3.8.1",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
+    "zod": "^4.3.6",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "concurrently": "^9.2.1",
+    "dotenv": "^17.4.2",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.4",
+    "nodemon": "^3.1.14",
+    "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5"
   }
 }
