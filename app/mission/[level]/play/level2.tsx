@@ -54,12 +54,12 @@ export default function Level2Play() {
         level: 2,
         question: q.q,
         isCorrect,
-        timeTaken: 60 - qs2.timeWhenSubmitted,
+        timeTaken: 30 - qs2.timeWhenSubmitted,
         timestamp: Date.now()
       });
 
       if (isCorrect) {
-        const earned = calcScore(true, qs2.timeWhenSubmitted, 60, q.pts);
+        const earned = calcScore(true, qs2.timeWhenSubmitted, 30, q.pts);
         gs.addL2Score(earned); gs.incL2Correct();
         SFX.correct();
         setTimeout(() => setFb({ type: 'ok', icon: '✅', title: 'CORRECT ANALYSIS!', body: `+${earned} pts!<br><br>${q.expl}` }), 400);
@@ -80,7 +80,7 @@ export default function Level2Play() {
     gs.setCurrentLevel(2);
     setFb(null); setSelected(null); setLocked(false); setRevealState({});
     qStateRef.current = null;
-    startTimer(60, onTimerDone);
+    startTimer(30, onTimerDone);
     return () => stopTimer();
   }, [gs.l2idx]); // eslint-disable-line
 

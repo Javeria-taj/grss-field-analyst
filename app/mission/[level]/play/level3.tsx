@@ -35,7 +35,7 @@ export default function Level3Play() {
         const hidden = ch.word.split('').filter(c => c !== ' ' && !prev.has(c));
         if (!hidden.length) return prev;
         const r = hidden[Math.floor(Math.random() * hidden.length)];
-        toast(`💡 Auto-hint: Letter "${r}" revealed at 1-minute mark!`, 'inf');
+        toast(`💡 Auto-hint: Letter "${r}" revealed at 15-second mark!`, 'inf');
         return new Set([...prev, r]);
       });
     }
@@ -50,13 +50,13 @@ export default function Level3Play() {
       level: 3,
       question: `Emoji Decode: ${ch.em}`,
       isCorrect,
-      timeTaken: 120 - (qst?.timeWhenSubmitted ?? 0),
+      timeTaken: 30 - (qst?.timeWhenSubmitted ?? 0),
       timestamp: Date.now()
     });
 
     if (isCorrect) {
       SFX.correct();
-      const earned = calcScore(true, qst!.timeWhenSubmitted, 120, ch.pts);
+      const earned = calcScore(true, qst!.timeWhenSubmitted, 30, ch.pts);
       gs.addL3Score(earned); gs.incL3Correct();
       setFb({ type: 'ok', icon: '✅', title: `DECODED: ${ch.word}`, body: `+${earned} pts!<br><br>${ch.expl}` });
     } else {
@@ -75,7 +75,7 @@ export default function Level3Play() {
     if (!ch) return;
     gs.setCurrentHint(ch.hint); gs.setCurrentLevel(3);
     setFb(null); setQst(null); setGuessed(new Set()); setLives(6); setWrongShake(false);
-    startTimer(120, onTimerDone, onHalfway);
+    startTimer(30, onTimerDone, onHalfway);
     return () => stopTimer();
   }, [gs.l3idx]); // eslint-disable-line
 
@@ -196,7 +196,7 @@ export default function Level3Play() {
               })}
             </div>
             <div style={{ marginTop: 8, fontSize: '0.68rem', color: 'var(--text2)' }}>
-              💡 Auto-hint reveals at 60s mark
+              💡 Auto-hint reveals at 15s mark
             </div>
           </div>
         </div>

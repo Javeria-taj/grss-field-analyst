@@ -104,7 +104,7 @@ export default function HUD({ levelName, totalQuestions, currentQuestion }: Prop
         <motion.div
           key={currentScore}
           className="hud-score font-orb"
-          style={{ fontSize: '1rem', color: 'var(--accent2)', minWidth: '80px', textAlign: 'right' }}
+          style={{ fontSize: '1.2rem', color: 'var(--accent2)', minWidth: '90px', textAlign: 'right' }}
           initial={{ scale: 1.2 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 400 }}

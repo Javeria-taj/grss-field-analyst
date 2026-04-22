@@ -70,7 +70,7 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-exo2), 'Exo 2', sans-serif;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1.6;
   min-height: 100vh;
   overflow-x: hidden;
@@ -202,7 +202,7 @@ html, body {
 .glow-green-txt { text-shadow: 0 0 18px rgba(74, 222, 128, 0.55); }
 
 .label {
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--text2);
@@ -276,7 +276,7 @@ html, body {
   border: none;
   cursor: pointer;
   font-family: var(--font-exo2), 'Exo 2', sans-serif;
-  font-size: 0.92rem;
+  font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: 0.5px;
   transition: all 0.18s ease;
@@ -339,8 +339,8 @@ html, body {
   box-shadow: 0 0 12px rgba(56,189,248,0.15);
 }
 
-.btn-sm   { padding: 8px 16px; font-size: 0.78rem; min-height: 36px; }
-.btn-lg   { padding: 15px 36px; font-size: 1.02rem; min-height: 50px; }
+.btn-sm   { padding: 10px 20px; font-size: 0.9rem; min-height: 40px; }
+.btn-lg   { padding: 18px 42px; font-size: 1.25rem; min-height: 58px; }
 .btn-full { width: 100%; }
 .btn:disabled { opacity: 0.28; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 .btn-shake { animation: shake 0.45s ease; }
@@ -409,7 +409,7 @@ html, body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 20px;
+  padding: 14px 28px;
   background: rgba(3, 7, 15, 0.94);
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(16px);
@@ -421,8 +421,8 @@ html, body {
   z-index: 50;
   box-shadow: 0 1px 24px rgba(0,0,0,0.4);
 }
-.hud-score { font-family: var(--font-orbitron), 'Orbitron', monospace; font-size: 0.95rem; color: var(--accent2); }
-.hud-level { font-family: var(--font-orbitron), 'Orbitron', monospace; font-size: 0.82rem; color: var(--accent); }
+.hud-score { font-family: var(--font-orbitron), 'Orbitron', monospace; font-size: 1.1rem; color: var(--accent2); }
+.hud-level { font-family: var(--font-orbitron), 'Orbitron', monospace; font-size: 0.95rem; color: var(--accent); }
 
 /* ─────────────────────────────────────────
    TIMER
@@ -479,9 +479,9 @@ html, body {
   box-shadow: 0 0 10px rgba(56,189,248,0.18);
 }
 .pu-btn:disabled { opacity: 0.20; cursor: not-allowed; }
-.pu-icon  { font-size: 0.95rem; }
-.pu-label { font-size: 0.58rem; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
-.pu-count { font-family: var(--font-orbitron), 'Orbitron', monospace; font-size: 0.62rem; color: var(--accent2); }
+.pu-icon  { font-size: 1.1rem; }
+.pu-label { font-size: 0.72rem; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+.pu-count { font-family: var(--font-orbitron), 'Orbitron', monospace; font-size: 0.78rem; color: var(--accent2); }
 
 /* ─────────────────────────────────────────
    PROGRESS DOTS
@@ -833,10 +833,11 @@ html, body {
    TABS
 ───────────────────────────────────────── */
 .tabs { display: flex; gap: 3px; background: rgba(255,255,255,0.04); padding: 4px; border-radius: 11px; margin-bottom: 16px; border: 1px solid var(--border); }
-.tab  { flex: 1; padding: 9px; text-align: center; cursor: pointer; border-radius: 8px; font-weight: 600; transition: all 0.2s; font-size: 0.88rem; min-height: 36px; display: flex; align-items: center; justify-content: center; letter-spacing: 0.5px; }
-.tab.on          { background: var(--accent); color: #000; box-shadow: 0 0 12px rgba(56,189,248,0.30); }
-.tab:not(.on)    { color: var(--text2); }
-.tab:not(.on):hover { background: rgba(255,255,255,0.07); color: var(--text); }
+.tab  { flex: 1; padding: 8px; text-align: center; cursor: pointer; border-radius: 8px; font-weight: 600; transition: all 0.2s; font-size: 0.82rem; min-height: 34px; display: flex; align-items: center; justify-content: center; letter-spacing: 0.5px; }
+.tab.on              { background: var(--accent); color: #000; box-shadow: 0 0 12px rgba(56,189,248,0.30); }
+.tab.register-on      { background: var(--accent3); color: #fff; box-shadow: 0 0 12px rgba(129,140,248,0.30); }
+.tab:not(.on):not(.register-on) { color: var(--text2); }
+.tab:not(.on):not(.register-on):hover { background: rgba(255,255,255,0.07); color: var(--text); }
 
 /* ─────────────────────────────────────────
    DEMO MODE

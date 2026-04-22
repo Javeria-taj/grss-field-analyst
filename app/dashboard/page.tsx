@@ -89,19 +89,19 @@ export default function DashboardPage() {
           }}
         >
           <div style={{ flex: '1 1 auto' }}>
-            <div className="font-orb t-accent" style={{ fontSize: '0.85rem', fontWeight: 700 }}>
+            <div className="font-orb t-accent" style={{ fontSize: '1rem', fontWeight: 700 }}>
               {user.name.toUpperCase()}
             </div>
-            <div style={{ fontSize: '0.68rem', color: 'var(--text2)' }}>{user.usn}</div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text2)' }}>{user.usn}</div>
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <div style={{ textAlign: 'right', minWidth: '85px' }}>
-              <div className="label" style={{ fontSize: '0.55rem' }}>TOTAL SCORE</div>
+            <div style={{ textAlign: 'right', minWidth: '100px' }}>
+              <div className="label" style={{ fontSize: '0.65rem' }}>TOTAL SCORE</div>
               <motion.div
                 key={total}
                 className="hud-score font-orb"
-                style={{ fontSize: '1.1rem', color: 'var(--accent2)' }}
+                style={{ fontSize: '1.4rem', color: 'var(--accent2)' }}
                 initial={{ scale: 1.15 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 400 }}
@@ -155,10 +155,10 @@ export default function DashboardPage() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            style={{ marginBottom: 4 }}
+            style={{ marginBottom: 12 }}
           >
-            <div className="font-orb t-accent" style={{ fontSize: '1.05rem' }}>MISSION BRIEFING</div>
-            <div style={{ fontSize: '0.88rem', color: 'var(--text2)', maxWidth: 480, margin: '7px auto 0' }}>
+            <div className="font-orb t-accent" style={{ fontSize: '1.3rem', letterSpacing: '2px' }}>MISSION BRIEFING</div>
+            <div style={{ fontSize: '1.1rem', color: 'var(--text2)', maxWidth: 540, margin: '12px auto 0', lineHeight: '1.4' }}>
               Earth is under threat. Complete all 5 missions as a GRSS Field Analyst.
               Speed, accuracy and strategy determine your rank.
             </div>
@@ -203,10 +203,10 @@ export default function DashboardPage() {
                         {isDone ? '✅' : isOpen ? lv.icon : '🔒'}
                       </motion.div>
                       <div className="lv-label-group">
-                        <div style={{ fontSize: '0.62rem', color: 'var(--text2)', textAlign: 'center', fontWeight: 600 }}>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text2)', textAlign: 'center', fontWeight: 700 }}>
                           LVL {lv.id}
                         </div>
-                        <div style={{ fontSize: '0.58rem', textAlign: 'center', color: isDone ? lv.color : 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        <div style={{ fontSize: '0.72rem', textAlign: 'center', color: isDone ? lv.color : 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
                           {lv.label.replace('\n', ' ')}
                         </div>
                         {isDone && (
@@ -242,19 +242,19 @@ export default function DashboardPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.32 }}
           >
-            <div className="label t-center" style={{ marginBottom: 11 }}>⚡ POWER-UP ARSENAL</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+            <div className="label t-center" style={{ marginBottom: 12 }}>⚡ POWER-UP ARSENAL</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
               {POWERUP_ICONS.map((icon, i) => (
                 <motion.div
                   key={POWERUP_LABELS[i]}
-                  style={{ textAlign: 'center', padding: 11, background: 'rgba(0,200,255,.05)', border: '1px solid var(--border)', borderRadius: 9 }}
+                  style={{ textAlign: 'center', padding: '12px 8px', background: 'rgba(0,200,255,.05)', border: '1px solid var(--border)', borderRadius: 10 }}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.38 + i * 0.07 }}
                 >
-                  <div style={{ fontSize: '1.4rem' }}>{icon}</div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text2)', margin: '3px 0' }}>{POWERUP_LABELS[i]}</div>
-                  <div className="font-orb t-accent2">{powerupValues[i]}</div>
+                  <div style={{ fontSize: '1.6rem' }}>{icon}</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text2)', margin: '4px 0', fontWeight: 600 }}>{POWERUP_LABELS[i]}</div>
+                  <div className="font-orb t-accent2" style={{ fontSize: '1rem' }}>{powerupValues[i]}</div>
                 </motion.div>
               ))}
             </div>
@@ -267,10 +267,10 @@ export default function DashboardPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
-            <div className="label">CURRENT RANK</div>
+            <div className="label" style={{ fontSize: '0.85rem' }}>CURRENT RANK</div>
             <motion.div
               className="title-badge-big revealed"
-              style={{ fontSize: '0.95rem', marginTop: 8 }}
+              style={{ fontSize: '1.05rem', marginTop: 8, padding: '10px 24px' }}
               whileHover={{ scale: 1.04 }}
             >
               {title.toUpperCase()}

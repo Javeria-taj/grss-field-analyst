@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function AuctionPage() {
   const router = useRouter();
   const gs = useGameStore();
-  const [auctTime, setAuctTime] = useState(180);
+  const [auctTime, setAuctTime] = useState(120);
   const [priceTime, setPriceTime] = useState(20);
   const [priceMulti, setPriceMulti] = useState(1.0);
   const [bought, setBought] = useState<string[]>([]);
@@ -118,7 +118,7 @@ export default function AuctionPage() {
     router.push('/disaster');
   };
 
-  const pct = (auctTime / 180) * 100;
+  const pct = (auctTime / 120) * 100;
   const timerClass = pct < 25 ? 'crit' : pct < 50 ? 'warn' : '';
   const m = Math.floor(auctTime / 60);
   const s = auctTime % 60;

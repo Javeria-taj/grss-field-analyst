@@ -52,12 +52,12 @@ export default function Level4Play() {
         level: 4,
         question: q.q,
         isCorrect,
-        timeTaken: 90 - qs2.timeWhenSubmitted,
+        timeTaken: 30 - qs2.timeWhenSubmitted,
         timestamp: Date.now()
       });
 
       if (isCorrect) {
-        const earned = calcScore(true, qs2.timeWhenSubmitted, 90, q.pts);
+        const earned = calcScore(true, qs2.timeWhenSubmitted, 30, q.pts);
         gs.addL4Score(earned); gs.incL4Correct();
         SFX.correct();
         setTimeout(() => setFb({ type: 'ok', icon: '✅', title: 'CORRECT!', body: `+${earned} pts!<br><br>${q.expl}` }), 400);
@@ -79,7 +79,7 @@ export default function Level4Play() {
     gs.setCurrentLevel(4);
     setFb(null); setSelected(null); setLocked(false); setRevealState({});
     qStateRef.current = null;
-    startTimer(90, onTimerDone);
+    startTimer(30, onTimerDone);
     return () => stopTimer();
   }, [gs.l4idx]); // eslint-disable-line
 

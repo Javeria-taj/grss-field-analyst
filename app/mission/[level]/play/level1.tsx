@@ -53,12 +53,12 @@ export default function Level1Play() {
         level: 1,
         question: isScramble ? `Unscramble: ${(q as any).sc}` : (q as any).q,
         isCorrect,
-        timeTaken: 60 - qs.timeWhenSubmitted, // timeWhenSubmitted IS timeVal at submission
+        timeTaken: 30 - qs.timeWhenSubmitted, // timeWhenSubmitted IS timeVal at submission
         timestamp: Date.now()
       });
 
       if (isCorrect) {
-        const earned = calcScore(true, qs.timeWhenSubmitted, 60, q?.pts || 100);
+        const earned = calcScore(true, qs.timeWhenSubmitted, 30, q?.pts || 100);
         gs.addL1Score(earned);
         gs.incL1Correct();
         SFX.correct();
@@ -84,7 +84,7 @@ export default function Level1Play() {
     setInputVal('');
     setInputDisabled(false);
     setFb(null);
-    startTimer(60, onTimerDone);
+    startTimer(30, onTimerDone);
     return () => stopTimer();
   }, [gs.l1idx]); // eslint-disable-line
 

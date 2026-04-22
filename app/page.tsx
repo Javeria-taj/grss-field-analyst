@@ -45,12 +45,12 @@ export default function AuthPage() {
     if (!validate()) { SFX.wrong(); return; }
     setLoading(true);
     SFX.click();
-    
+
     try {
       const payload = { name: name.trim(), usn: usn.trim() };
       const endpoint = tab === 'login' ? '/api/auth/login' : '/api/auth/register';
-      const res = await apiClient.post<{status: string, user: any}>(endpoint, payload);
-      
+      const res = await apiClient.post<{ status: string, user: any }>(endpoint, payload);
+
       const serverUser = res.user;
 
       // Hydrate progress from backend response
@@ -67,9 +67,9 @@ export default function AuthPage() {
       if (serverUser.levelState) {
         gs.hydrateLevelState(serverUser.levelState);
       }
-      
+
       login(serverUser);
-      
+
       if (serverUser.isAdmin) {
         toast(`Administrator recognized: ${serverUser.name}. Initializing Admin Center...`, 'ok');
         SFX.levelUp();
@@ -134,7 +134,7 @@ export default function AuthPage() {
           >
             GRSS FIELD ANALYST
           </h1>
-          <p style={{ fontSize: '1.05rem', color: 'var(--text2)', lineHeight: 1.8, marginBottom: 32 }}>
+          <p style={{ fontSize: '0.98rem', color: 'var(--text2)', lineHeight: 1.7, marginBottom: 28 }}>
             A live-event gamified platform powered by IEEE Geoscience &amp; Remote Sensing Society.
             Test your knowledge across satellite imagery, disaster response, and more.
           </p>
@@ -154,7 +154,7 @@ export default function AuthPage() {
                   background: 'rgba(0,200,255,0.05)',
                   border: '1px solid rgba(0,200,255,0.15)',
                   borderRadius: 10,
-                  fontSize: '0.9rem',
+                  fontSize: '0.82rem',
                   color: 'var(--text)',
                 }}
               >
@@ -192,13 +192,14 @@ export default function AuthPage() {
             >
               🛰️
             </motion.span>
-            <div className="logo-title" style={{ margin: '10px 0 4px' }}>GRSS FIELD ANALYST</div>
-            <div className="logo-sub">IEEE Geoscience &amp; Remote Sensing Society</div>
+            <div className="logo-title" style={{ margin: '8px 0 3px', fontSize: '1.4rem' }}>GRSS FIELD ANALYST</div>
+            <div className="logo-sub" style={{ fontSize: '0.7rem' }}>IEEE Geoscience &amp; Remote Sensing Society</div>
             <div style={{ textAlign: 'center', marginTop: 11 }}>
               <motion.span
                 className="badge badge-red"
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
+                style={{ fontSize: '0.62rem' }}
               >
                 ⚡ LIVE MISSION EVENT
               </motion.span>
@@ -214,24 +215,30 @@ export default function AuthPage() {
           >
             {/* Tabs */}
             <div className="tabs">
-              {(['login', 'register'] as const).map(t => (
-                <motion.button
-                  key={t}
-                  className={`tab ${tab === t ? 'on' : ''}`}
-                  onClick={() => switchTab(t)}
-                  onMouseEnter={() => SFX.hover()}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {t.toUpperCase()}
-                </motion.button>
-              ))}
+              {(['login', 'register'] as const).map(t => {
+                const isActive = tab === t;
+                const tabClassName = isActive 
+                  ? (t === 'login' ? 'tab on' : 'tab register-on') 
+                  : 'tab';
+                return (
+                  <motion.button
+                    key={t}
+                    className={tabClassName}
+                    onClick={() => switchTab(t)}
+                    onMouseEnter={() => SFX.hover()}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    {t.toUpperCase()}
+                  </motion.button>
+                );
+              })}
             </div>
 
             {/* Form */}
             <div style={{ marginBottom: 11 }}>
               <div className="label" style={{ marginBottom: 5 }}>
-                {tab === 'login' ? 'Agent Name' : 'Full Name'}
+                {tab === 'login' ? 'Agent Name' : 'Agent Name'}
               </div>
               <motion.div
                 animate={focused === 'name' ? { scale: 1.01 } : { scale: 1 }}
@@ -239,7 +246,7 @@ export default function AuthPage() {
               >
                 <input
                   className={`input ${nameError ? 'input-error' : ''}`}
-                  placeholder={tab === 'login' ? 'Enter your name' : 'Enter your full name'}
+                  placeholder={tab === 'login' ? 'Enter your name' : 'Enter your name'}
                   value={name}
                   onChange={e => { setName(e.target.value); setNameError(false); }}
                   onKeyDown={handleKeyDown}
@@ -280,7 +287,7 @@ export default function AuthPage() {
 
             <motion.button
               type="submit"
-              className="btn btn-primary btn-lg"
+              className={`btn btn-lg ${tab === 'login' ? 'btn-primary' : 'btn-purple'}`}
               style={{ width: '100%', marginTop: 10 }}
               onClick={handleSubmit}
               disabled={loading}
@@ -299,8 +306,8 @@ export default function AuthPage() {
                   {loading
                     ? '⏳ PROCESSING...'
                     : tab === 'login'
-                    ? '🚀 INITIALIZE LINK'
-                    : '🛡️ REGISTER ANALYST'}
+                      ? '🚀 INITIALIZE LINK'
+                      : '🛡️ REGISTER ANALYST'}
                 </motion.span>
               </AnimatePresence>
             </motion.button>
