@@ -204,4 +204,5 @@ export interface AdminStatsPayload {
   totalPlayers: number;
   bankCount: number;       // number of questions currently in the bank
   timerEndTime: number;    // epoch ms
+  levelLimits: Record<number, number>;
 }

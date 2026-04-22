@@ -115,6 +115,11 @@ export default function setupGameSockets(io: Server) {
       if (!isAdmin) return;
       engine.deleteBankQuestion(data.id);
     });
+    
+    socket.on('admin_update_level_limit', (data: { level: number; limit: number }) => {
+      if (!isAdmin) return;
+      engine.updateLevelLimit(data.level, data.limit);
+    });
 
     socket.on('admin_get_bank', () => {
       if (!isAdmin) return;

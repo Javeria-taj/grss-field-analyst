@@ -22,6 +22,7 @@ export interface IGameSnapshot extends Document {
     currentLevelScore: number;
   }>;
   questionBank: any[];  // serialised BankQuestion[]
+  levelLimits: Record<number, number>;
   auctionStates: any[];
   updatedAt: Date;
 }
@@ -36,6 +37,7 @@ const GameSnapshotSchema = new Schema<IGameSnapshot>({
   paused:        { type: Boolean, default: false },
   playerScores:  [{ type: Schema.Types.Mixed }],
   questionBank:  [{ type: Schema.Types.Mixed }],
+  levelLimits:   { type: Schema.Types.Mixed },
   auctionStates: [{ type: Schema.Types.Mixed }],
   updatedAt:     { type: Date, default: Date.now },
 });

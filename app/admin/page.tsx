@@ -7,6 +7,8 @@ import { useGameSyncStore } from '@/stores/useGameSyncStore';
 import { SFX } from '@/lib/sfx';
 import { toast } from '@/components/ui/Toast';
 import QuestionBankPanel from '@/components/admin/QuestionBankPanel';
+import QuestionManagerModal from '@/components/admin/QuestionManagerModal';
+import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
 
 const LEVELS = [
   { id: 1, icon: '🔤', label: 'SCRAMBLE/RIDDLES' },
@@ -22,10 +24,11 @@ export default function AdminDashboard() {
   const {
     init, destroy, connected, phase, adminStats, leaderboard,
     adminStartLevel, adminPause, adminReset, adminBroadcast,
-    timerEndTime, paused, adminTimerAdd10, adminTimerPauseResume
+    timerEndTime, paused, adminTimerAdd10, adminTimerPauseResume, adminUpdateLevelLimit
   } = useGameSyncStore();
   const [broadcastMsg, setBroadcastMsg] = useState('');
   const [localRemaining, setLocalRemaining] = useState(0);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     let frameId: number;
@@ -66,41 +69,23 @@ export default function AdminDashboard() {
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-      <div className="earth-deco" />
+      <StarfieldCanvas />
       <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', flex: 1 }}>
 
         {/* Header */}
         <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-          style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--danger)', background: 'rgba(3,7,15,0.96)', backdropFilter: 'blur(12px)', position: 'sticky', top: 0, zIndex: 50 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div className="font-orb t-danger" style={{ fontSize: '1.05rem', letterSpacing: 1 }}>🛡️ MISSION CONTROL</div>
-            <motion.div animate={{ opacity: connected ? [0.5, 1, 0.5] : 1 }} transition={{ duration: 1.5, repeat: connected ? Infinity : 0 }}
-              style={{ width: 7, height: 7, borderRadius: '50%', background: connected ? 'var(--accent2)' : 'var(--danger)' }} />
-            <span style={{ fontSize: '0.72rem', color: 'var(--text2)' }}>{connected ? 'LINK SECURE' : 'OFFLINE'}</span>
+          style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--border)' }}>
+          <div>
+            <div className="font-orb t-accent" style={{ fontSize: '1.2rem', fontWeight: 900, letterSpacing: 2 }}>COMMAND CENTER</div>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text2)', marginTop: 2 }}>MISSION OVERSEER PORTAL · {connected ? '🟢 ONLINE' : '🔴 OFFLINE'}</div>
           </div>
-          <motion.button className="btn btn-outline btn-sm" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}
-            onClick={handleLogout} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.95 }}>← Disconnect</motion.button>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button className="btn btn-outline btn-sm" onClick={handleLogout}>LOGOUT</button>
+          </div>
         </motion.div>
 
-        <div className="page-content" style={{ gap: 20 }}>
-
-          {/* Stats Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, width: '100%', maxWidth: 900 }}>
-            {[
-              { label: 'PHASE', val: phase.toUpperCase().replace('_', ' '), color: 'var(--accent)' },
-              { label: 'PLAYERS', val: adminStats?.totalPlayers ?? 0, color: 'var(--accent2)' },
-              { label: 'SOCKETS', val: adminStats?.connectedCount ?? 0, color: 'var(--accent)' },
-              { label: 'LEVEL', val: adminStats?.currentLevel ?? '-', color: 'var(--warning)' },
-              { label: 'QUESTION', val: adminStats ? `${adminStats.currentQIndex + 1}/${adminStats.totalQuestions || '-'}` : '-', color: 'var(--text)' },
-              { label: 'ANSWERED', val: adminStats?.answeredCount ?? 0, color: 'var(--gold)' },
-            ].map(s => (
-              <div key={s.label} className="card card-sm" style={{ textAlign: 'center', background: 'rgba(255,255,255,0.03)' }}>
-                <div style={{ fontSize: '0.55rem', color: 'var(--text2)' }}>{s.label}</div>
-                <div className="font-orb" style={{ fontSize: '1rem', color: s.color, marginTop: 4 }}>{s.val}</div>
-              </div>
-            ))}
-          </div>
-
+        <div className="center-col" style={{ flex: 1, padding: 24, gap: 24, justifyContent: 'flex-start' }}>
+          
           {/* Game Control */}
           <motion.div className="card" style={{ maxWidth: 900, width: '100%', borderTop: '2px solid var(--accent)' }}
             initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
@@ -113,20 +98,44 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
-              {LEVELS.map(lv => (
-                <motion.button key={lv.id} className="btn btn-outline"
-                  disabled={!canStartLevel}
-                  style={{
-                    padding: '10px 16px', fontSize: '0.8rem',
-                    borderColor: canStartLevel && lv.id === nextLevel ? 'var(--accent2)' : 'var(--border)',
-                    opacity: canStartLevel ? 1 : 0.5,
-                  }}
-                  whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-                  onClick={() => { SFX.click(); adminStartLevel(lv.id); toast(`Starting Level ${lv.id}`, 'ok'); }}>
-                  {lv.icon} LVL {lv.id}
-                </motion.button>
-              ))}
+            <div style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', display: 'grid', gap: 10, marginBottom: 16 }}>
+              {LEVELS.map(lv => {
+                const limit = adminStats?.levelLimits?.[lv.id] ?? (lv.id === 4 ? 10 : 5);
+                return (
+                  <div key={lv.id} style={{ display: 'flex', gap: 6, alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: 6, borderRadius: 8, border: '1px solid var(--border)' }}>
+                    <motion.button className="btn btn-outline"
+                      disabled={!canStartLevel}
+                      style={{
+                        flex: 1, padding: '8px 12px', fontSize: '0.75rem',
+                        borderColor: canStartLevel && lv.id === nextLevel ? 'var(--accent2)' : 'transparent',
+                        opacity: canStartLevel ? 1 : 0.5,
+                        textAlign: 'left', justifyContent: 'flex-start'
+                      }}
+                      whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                      onClick={() => { SFX.click(); adminStartLevel(lv.id); toast(`Starting Level ${lv.id}`, 'ok'); }}>
+                      {lv.icon} LVL {lv.id}
+                    </motion.button>
+                    {lv.id < 5 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', paddingRight: 8 }}>
+                        <span style={{ fontSize: '0.5rem', color: 'var(--text2)', marginBottom: 2 }}>Qs LIMIT</span>
+                        <input type="number" min={1} max={50} 
+                          className="input"
+                          style={{ width: 50, padding: '2px 4px', fontSize: '0.75rem', textAlign: 'center', border: '1px solid var(--accent)' }}
+                          value={limit}
+                          onChange={e => adminUpdateLevelLimit(lv.id, parseInt(e.target.value) || 1)}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+               <motion.button className="btn btn-primary" style={{ flex: 1, padding: '12px', fontSize: '0.9rem' }}
+                 onClick={() => { SFX.click(); setIsMenuOpen(true); }} whileHover={{ scale: 1.02 }}>
+                 📋 OPEN QUESTION MENU
+               </motion.button>
             </div>
 
             <div style={{ display: 'flex', gap: 10 }}>
@@ -146,41 +155,37 @@ export default function AdminDashboard() {
           {/* Broadcast */}
           <motion.div className="card" style={{ maxWidth: 900, width: '100%', borderTop: '2px solid var(--warning)' }}
             initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            <div className="label t-warning" style={{ marginBottom: 10 }}>📢 GLOBAL BROADCAST</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input className="input" style={{ flex: 1 }} placeholder="Message all players..."
-                value={broadcastMsg} onChange={e => setBroadcastMsg(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleBroadcast()} />
+            <div className="label t-warning" style={{ marginBottom: 16 }}>📡 GLOBAL BROADCAST</div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <input className="input" placeholder="Emergency announcement..." value={broadcastMsg} onChange={e => setBroadcastMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleBroadcast()} />
               <button className="btn btn-primary" onClick={handleBroadcast}>SEND</button>
             </div>
           </motion.div>
 
-          {/* Live Leaderboard */}
-          <motion.div className="card" style={{ maxWidth: 900, width: '100%', borderTop: '2px solid var(--gold)' }}
+          {/* Leaderboard Slice */}
+          <motion.div className="card" style={{ maxWidth: 900, width: '100%', borderTop: '2px solid var(--accent2)' }}
             initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <div className="label t-gold" style={{ marginBottom: 16 }}>🏆 LIVE LEADERBOARD</div>
-            {leaderboard.length === 0 ? (
-              <div className="t-center t-muted" style={{ padding: '20px 0' }}>No players yet.</div>
-            ) : (
-              leaderboard.slice(0, 20).map((e, i) => (
-                <div key={e.usn} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent', borderRadius: 6 }}>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <span className="font-orb" style={{ color: i < 3 ? 'var(--gold)' : 'var(--text2)', width: 28, fontSize: '0.85rem' }}>#{e.rank}</span>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{e.name}</div>
-                      <div style={{ fontSize: '0.65rem', color: 'var(--accent)' }}>{e.usn}</div>
+            <div className="label t-accent2" style={{ marginBottom: 16 }}>📊 LIVE LEADERS (TOP 20)</div>
+            <div style={{ display: 'grid', gap: 6 }}>
+              {leaderboard.length === 0 ? (
+                <div className="t-muted" style={{ fontSize: '0.8rem' }}>No data yet.</div>
+              ) : (
+                leaderboard.slice(0, 20).map((e, i) => (
+                  <div key={e.usn} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.05)', borderRadius: 6, fontSize: '0.85rem' }}>
+                    <div style={{ display: 'flex', gap: 12 }}>
+                      <span className="t-accent">#{i + 1}</span>
+                      <span>{e.name}</span>
+                      <span className="t-muted">({e.usn})</span>
                     </div>
+                    <div className="font-orb t-accent2" style={{ fontWeight: 700 }}>{e.totalScore}</div>
                   </div>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--accent)' }}>+{e.currentLevelScore}</span>
-                    <span className="font-orb t-gold" style={{ fontSize: '1rem' }}>{e.totalScore}</span>
-                  </div>
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
           </motion.div>
         </div>
       </div>
+      <QuestionManagerModal isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
     </div>
   );
 }

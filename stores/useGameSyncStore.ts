@@ -106,7 +106,10 @@ interface GameSyncState {
     currentQIndex: number; totalQuestions: number;
     answeredCount: number; totalPlayers: number;
     bankCount: number; timerEndTime: number;
+    levelLimits: Record<number, number>;
   } | null;
+
+  bankQuestions: any[];
 
   // Preloaded assets
   preloadedAssets: string[];
@@ -134,6 +137,7 @@ interface GameSyncState {
   adminUpdateBankQuestion: (id: string, updates: any) => void;
   adminDeleteBankQuestion: (id: string) => void;
   adminGetBank: () => void;
+  adminUpdateLevelLimit: (level: number, limit: number) => void;
 }
 
 export const useGameSyncStore = create<GameSyncState>((set, get) => ({
@@ -166,6 +170,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   hasDeployed: false,
   finalLeaderboard: [],
   adminStats: null,
+  bankQuestions: [],
   lastAnnouncement: null,
   preloadedAssets: [],
 
@@ -341,6 +346,10 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       set({ adminStats: data });
     });
 
+    socket.on('bank_questions', (data: any[]) => {
+      set({ bankQuestions: data });
+    });
+
     // ── Announcements ──
     socket.on('global_announcement', (msg: string) => {
       set({ lastAnnouncement: msg });
@@ -448,5 +457,9 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   adminGetBank: () => {
     const { socket } = get();
     if (socket?.connected) socket.emit('admin_get_bank');
+  },
+  adminUpdateLevelLimit: (level, limit) => {
+    const { socket } = get();
+    if (socket?.connected) socket.emit('admin_update_level_limit', { level, limit });
   },
 }));

@@ -57,6 +57,7 @@ export class GameEngine {
 
   // ── Question Bank (admin-managed, overrides gameData when populated) ──
   private questionBank: BankQuestion[] = [];
+  private levelLimits: Record<number, number> = { 1: 5, 2: 5, 3: 5, 4: 10 };
 
   // ── Questions (prepared for current level) ──
   private questions: InternalQuestion[] = [];
@@ -126,6 +127,12 @@ export class GameEngine {
 
   getBankQuestions(): BankQuestion[] {
     return this.questionBank;
+  }
+
+  updateLevelLimit(level: number, limit: number) {
+    if (level < 1 || level > 4) return;
+    this.levelLimits[level] = Math.max(1, limit);
+    this.broadcastAdminStats();
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -207,8 +214,10 @@ export class GameEngine {
     // ── Bank-first: use admin Question Bank if it has questions for this level ──
     const bankForLevel = this.questionBank.filter(q => q.level === level);
     if (bankForLevel.length > 0) {
-      this.questions = shuffle(bankForLevel).map((bq, i) => {
-        const total = bankForLevel.length;
+      const limit = this.levelLimits[level] || bankForLevel.length;
+      const subset = shuffle(bankForLevel).slice(0, limit);
+      this.questions = subset.map((bq, i) => {
+        const total = subset.length;
         const timeLimit = bq.timerLimit || TIME_LIMITS[level] || 60;
         // Build sanitised ClientQuestion — answer/word/explanation NEVER included
         const clientQ: ClientQuestion = {
@@ -813,6 +822,7 @@ export class GameEngine {
       totalPlayers: this.getPlayerCount(),
       bankCount: this.questionBank.length,
       timerEndTime: this.endTime,
+      levelLimits: this.levelLimits,
     };
   }
 
@@ -873,6 +883,7 @@ export class GameEngine {
             paused: this.paused,
             playerScores: Array.from(this.playerScores.values()),
             questionBank: this.questionBank,
+            levelLimits: this.levelLimits,
             auctionStates: Array.from(this.auctionStates.entries()),
           }
         },
@@ -900,6 +911,10 @@ export class GameEngine {
       
       if (Array.isArray(snap.questionBank)) {
         this.questionBank = snap.questionBank as BankQuestion[];
+      }
+
+      if (snap.levelLimits) {
+        this.levelLimits = { ...this.levelLimits, ...snap.levelLimits };
       }
 
       this.playerScores.clear();
