@@ -1,62 +1,30 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { AuthSlice, createAuthSlice } from './slices/authSlice';
-import { ProgressSlice, createProgressSlice } from './slices/progressSlice';
-import { LevelSlice, createLevelSlice } from './slices/levelSlice';
-import { useLeaderboardStore } from './useLeaderboardStore';
-import { getTotalScore } from '@/lib/scoring';
 
-export type GameState = AuthSlice & ProgressSlice & LevelSlice & { syncState: () => void };
+export interface User {
+  name: string;
+  usn: string;
+  isAdmin?: boolean;
+}
 
-export const useGameStore = create<GameState>()(
+interface AuthState {
+  user: User | null;
+  sessionStart: number | null;
+  login: (user: User) => void;
+  logout: () => void;
+}
+
+export const useGameStore = create<AuthState>()(
   persist(
-    (set, get, api) => ({
-      ...createAuthSlice(set, get, api),
-      ...createProgressSlice(set, get, api),
-      ...createLevelSlice(set, get, api),
-
-      syncState: () => {
-        const s = get();
-        if (!s.user) return;
-        const ls = useLeaderboardStore.getState();
-        ls.submitScore({
-          name: s.user.name,
-          usn: s.user.usn,
-          score: getTotalScore(s.scores),
-          progress: {
-            unlocked: s.unlocked,
-            completed: s.completed,
-            scores: s.scores,
-            powerups: s.powerups,
-            telemetry: s.telemetry,
-            levelState: {
-              l1idx: s.l1idx, l1score: s.l1score, l1correct: s.l1correct,
-              l2idx: s.l2idx, l2score: s.l2score, l2correct: s.l2correct,
-              l3idx: s.l3idx, l3score: s.l3score, l3correct: s.l3correct, l3guessed: s.l3guessed, l3lives: s.l3lives, l3hintGiven: s.l3hintGiven,
-              l4idx: s.l4idx, l4score: s.l4score, l4correct: s.l4correct,
-              budget: s.budget, bought: s.bought, priceMulti: s.priceMulti, auctScore: s.auctScore,
-              disasterId: s.disasterId, applied: s.applied, disasterScore: s.disasterScore
-            }
-          }
-        });
-      }
+    (set) => ({
+      user: null,
+      sessionStart: null,
+      login: (user) => set({ user, sessionStart: Date.now() }),
+      logout: () => set({ user: null, sessionStart: null }),
     }),
     {
       name: 'grss-game-state',
-      partialize: (s) => ({
-        user: s.user,
-        sessionStart: s.sessionStart,
-        scores: s.scores,
-        powerups: s.powerups,
-        unlocked: s.unlocked,
-        completed: s.completed,
-        telemetry: s.telemetry,
-        l1idx: s.l1idx, l1score: s.l1score, l1correct: s.l1correct, l1q: s.l1q,
-        l2idx: s.l2idx, l2score: s.l2score, l2correct: s.l2correct,
-        l3idx: s.l3idx, l3score: s.l3score, l3correct: s.l3correct, l3guessed: s.l3guessed, l3lives: s.l3lives, l3hintGiven: s.l3hintGiven,
-        l4idx: s.l4idx, l4score: s.l4score, l4correct: s.l4correct,
-        budget: s.budget, bought: s.bought, priceMulti: s.priceMulti, auctScore: s.auctScore, disasterId: s.disasterId, applied: s.applied, disasterScore: s.disasterScore
-      }),
+      partialize: (s) => ({ user: s.user, sessionStart: s.sessionStart }),
     }
   )
 );

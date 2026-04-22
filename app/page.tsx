@@ -13,7 +13,7 @@ const FEATURE_CHIPS = ['🌍 Remote Sensing', '🛰️ Satellite Imagery', '⚡ 
 
 export default function AuthPage() {
   const router = useRouter();
-  const { user, login, resetProgress, resetLevels } = useGameStore();
+  const { user, login } = useGameStore();
   const [tab, setTab] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
   const [usn, setUsn] = useState('');
@@ -52,22 +52,6 @@ export default function AuthPage() {
       const res = await apiClient.post<{ status: string, user: any }>(endpoint, payload);
 
       const serverUser = res.user;
-
-      // Hydrate progress from backend response
-      const gs = useGameStore.getState();
-      gs.setFullProgress({
-        unlocked: serverUser.unlocked,
-        completed: serverUser.completed,
-        scores: serverUser.scores,
-        powerups: serverUser.powerups,
-        telemetry: serverUser.telemetry,
-      });
-
-      // Hydrate granular level state (Question indices, etc.)
-      if (serverUser.levelState) {
-        gs.hydrateLevelState(serverUser.levelState);
-      }
-
       login(serverUser);
 
       if (serverUser.isAdmin) {

@@ -5,9 +5,9 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 import http from 'http';
 import { Server } from 'socket.io';
-import setupLeaderboardSockets from './sockets/leaderboard';
+import setupGameSockets from './sockets/game';
 
-const PORT = parseInt(process.env.SOCKET_PORT ?? '4001', 10);
+const PORT = parseInt(process.env.SOCKET_PORT ?? process.env.PORT ?? '4001', 10);
 
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -22,7 +22,7 @@ const io = new Server(server, {
   },
 });
 
-setupLeaderboardSockets(io);
+setupGameSockets(io);
 
 server.listen(PORT, () => {
   console.log(`🚀 Dedicated Realtime Server listening on port ${PORT}`);
