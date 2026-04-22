@@ -10,7 +10,7 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.SESSION_SECRET || 'grss_super_secret_change_in_production'
 );
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value;
   const { pathname } = request.nextUrl;
 
