@@ -6,13 +6,14 @@ import { useGameStore } from '@/stores/useGameStore';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
 import { SFX } from '@/lib/sfx';
 import { toast } from '@/components/ui/Toast';
+import QuestionBankPanel from '@/components/admin/QuestionBankPanel';
 
 const LEVELS = [
-  { id: 1, icon: '🔤', label: 'TRAINING' },
-  { id: 2, icon: '🛰️', label: 'INTEL' },
-  { id: 3, icon: '🔐', label: 'CODEBREAK' },
-  { id: 4, icon: '⚡', label: 'RAPID' },
-  { id: 5, icon: '🌍', label: 'SIMULATION' },
+  { id: 1, icon: '🔤', label: 'SCRAMBLE/RIDDLES' },
+  { id: 2, icon: '🛰️', label: 'IMAGE GUESS' },
+  { id: 3, icon: '🔐', label: 'EMOJI HANGMAN' },
+  { id: 4, icon: '⚡', label: 'RAPID FIRE' },
+  { id: 5, icon: '🌍', label: 'AUCTION' },
 ];
 
 export default function AdminDashboard() {
@@ -21,9 +22,22 @@ export default function AdminDashboard() {
   const {
     init, destroy, connected, phase, adminStats, leaderboard,
     adminStartLevel, adminPause, adminReset, adminBroadcast,
-    timerRemaining, paused,
+    timerEndTime, paused, adminTimerAdd10, adminTimerPauseResume
   } = useGameSyncStore();
   const [broadcastMsg, setBroadcastMsg] = useState('');
+  const [localRemaining, setLocalRemaining] = useState(0);
+
+  useEffect(() => {
+    let frameId: number;
+    const tick = () => {
+      const now = Date.now();
+      const remainingMs = Math.max(0, timerEndTime - now);
+      setLocalRemaining(Math.ceil(remainingMs / 1000));
+      frameId = requestAnimationFrame(tick);
+    };
+    frameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameId);
+  }, [timerEndTime]);
 
   useEffect(() => {
     if (!user || (!user.isAdmin && user.usn !== 'SUPER_ADMIN')) { router.replace('/'); return; }
@@ -51,7 +65,7 @@ export default function AdminDashboard() {
   if (!user || (!user.isAdmin && user.usn !== 'SUPER_ADMIN')) return null;
 
   return (
-    <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'relative', zIndex: 1, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <div className="earth-deco" />
       <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', flex: 1 }}>
 
@@ -92,9 +106,10 @@ export default function AdminDashboard() {
             initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
             <div className="label t-accent" style={{ marginBottom: 16 }}>🎮 GAME CONTROL</div>
 
-            {timerRemaining > 0 && (
-              <div style={{ marginBottom: 12, fontSize: '0.85rem', color: 'var(--warning)' }}>
-                ⏱ Timer: {timerRemaining}s {paused ? '(PAUSED)' : ''}
+            {localRemaining > 0 && (
+              <div style={{ marginBottom: 12, fontSize: '0.85rem', color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                ⏱ Timer: {localRemaining}s {paused ? '(PAUSED)' : ''}
+                <button className="btn btn-outline btn-sm" style={{ padding: '2px 8px', fontSize: '0.7rem' }} onClick={() => adminTimerAdd10()}>+10s</button>
               </div>
             )}
 
@@ -116,14 +131,17 @@ export default function AdminDashboard() {
 
             <div style={{ display: 'flex', gap: 10 }}>
               <motion.button className="btn btn-outline btn-sm" style={{ borderColor: 'var(--warning)', color: 'var(--warning)' }}
-                onClick={() => { SFX.click(); adminPause(); }} whileHover={{ scale: 1.04 }}>
-                {paused ? '▶ RESUME' : '⏸ PAUSE'}
+                onClick={() => { SFX.click(); adminTimerPauseResume(); }} whileHover={{ scale: 1.04 }}>
+                {paused ? '▶ RESUME TIMER/GAME' : '⏸ PAUSE TIMER/GAME'}
               </motion.button>
               <motion.button className="btn btn-outline btn-sm" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}
                 onClick={() => { if (!confirm('Reset entire game?')) return; SFX.click(); adminReset(); toast('Game reset', 'inf'); }}
                 whileHover={{ scale: 1.04 }}>🔄 RESET GAME</motion.button>
             </div>
           </motion.div>
+
+          {/* Question Bank */}
+          <QuestionBankPanel />
 
           {/* Broadcast */}
           <motion.div className="card" style={{ maxWidth: 900, width: '100%', borderTop: '2px solid var(--warning)' }}
@@ -144,7 +162,7 @@ export default function AdminDashboard() {
             {leaderboard.length === 0 ? (
               <div className="t-center t-muted" style={{ padding: '20px 0' }}>No players yet.</div>
             ) : (
-              leaderboard.map((e, i) => (
+              leaderboard.slice(0, 20).map((e, i) => (
                 <div key={e.usn} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent', borderRadius: 6 }}>
                   <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                     <span className="font-orb" style={{ color: i < 3 ? 'var(--gold)' : 'var(--text2)', width: 28, fontSize: '0.85rem' }}>#{e.rank}</span>

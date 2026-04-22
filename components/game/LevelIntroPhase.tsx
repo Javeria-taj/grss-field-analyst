@@ -1,9 +1,35 @@
 'use client';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
 
 export default function LevelIntroPhase() {
-  const { levelIntro, timerRemaining } = useGameSyncStore();
+  const { levelIntro, timerEndTime, paused } = useGameSyncStore();
+  const [localRemaining, setLocalRemaining] = useState(0);
+
+  useEffect(() => {
+    if (!levelIntro || timerEndTime === 0) {
+      setLocalRemaining(0);
+      return;
+    }
+
+    let frameId: number;
+    const tick = () => {
+      if (paused) {
+        frameId = requestAnimationFrame(tick);
+        return;
+      }
+      const now = Date.now();
+      const remainingMs = Math.max(0, timerEndTime - now);
+      setLocalRemaining(Math.ceil(remainingMs / 1000));
+      if (remainingMs > 0) {
+        frameId = requestAnimationFrame(tick);
+      }
+    };
+    frameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameId);
+  }, [timerEndTime, paused, levelIntro]);
+
   if (!levelIntro) return null;
 
   return (
@@ -39,7 +65,7 @@ export default function LevelIntroPhase() {
           animate={{ scale: [1, 1.1, 1] }}
           transition={{ duration: 0.5, repeat: Infinity }}
         >
-          STARTS IN {timerRemaining}s
+          STARTS IN {localRemaining}s
         </motion.div>
       </motion.div>
     </div>

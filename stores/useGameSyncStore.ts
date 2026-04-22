@@ -56,7 +56,7 @@ interface GameSyncState {
   paused: boolean;
 
   // Timer (server-authoritative)
-  timerRemaining: number;
+  timerEndTime: number; // epoch ms
   timerTotal: number;
 
   // Question
@@ -105,7 +105,11 @@ interface GameSyncState {
     connectedCount: number; phase: GamePhase; currentLevel: number;
     currentQIndex: number; totalQuestions: number;
     answeredCount: number; totalPlayers: number;
+    bankCount: number; timerEndTime: number;
   } | null;
+
+  // Preloaded assets
+  preloadedAssets: string[];
 
   // Announcements
   lastAnnouncement: string | null;
@@ -123,6 +127,13 @@ interface GameSyncState {
   adminPause: () => void;
   adminReset: () => void;
   adminBroadcast: (msg: string) => void;
+  adminTimerAdd10: () => void;
+  adminTimerPauseResume: () => void;
+  adminLoadBank: (questions: any[]) => void;
+  adminAddBankQuestion: (question: any) => void;
+  adminUpdateBankQuestion: (id: string, updates: any) => void;
+  adminDeleteBankQuestion: (id: string) => void;
+  adminGetBank: () => void;
 }
 
 export const useGameSyncStore = create<GameSyncState>((set, get) => ({
@@ -131,7 +142,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   phase: 'idle',
   currentLevel: 0,
   paused: false,
-  timerRemaining: 0,
+  timerEndTime: 0,
   timerTotal: 0,
   currentQuestion: null,
   myAnswer: null,
@@ -156,6 +167,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   finalLeaderboard: [],
   adminStats: null,
   lastAnnouncement: null,
+  preloadedAssets: [],
 
   init: () => {
     if (get().socket?.connected) return;
@@ -166,7 +178,11 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       reconnectionDelay: 1000,
     });
 
-    socket.on('connect', () => set({ connected: true }));
+    socket.on('connect', () => {
+      set({ connected: true });
+      // Emit full sync request in case of reconnect after server snapshot hydration
+      socket.emit('request_full_sync');
+    });
     socket.on('disconnect', () => set({ connected: false }));
 
     // ── Full state sync (late joiners / reconnect) ──
@@ -175,7 +191,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         phase: data.phase,
         currentLevel: data.currentLevel,
         currentQuestion: data.currentQuestion,
-        timerRemaining: data.timerRemaining,
+        timerEndTime: data.timerEndTime || 0,
         timerTotal: data.timerTotal,
         leaderboard: data.leaderboard,
         levelIntro: data.levelIntro,
@@ -207,16 +223,32 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       set({
         phase: 'question_active', currentQuestion: data,
         myAnswer: null, hasAnswered: false, reviewData: null,
-        timerRemaining: data.timeLimit, timerTotal: data.timeLimit,
         // Reset hangman for new question
         hangmanGuessed: [], hangmanLives: 6, hangmanRevealed: [],
         hangmanWordLength: data.wordLength ?? 0, hangmanSolved: false,
       });
     });
 
-    // ── Timer tick ──
-    socket.on('timer_tick', (data: { remaining: number; total: number }) => {
-      set({ timerRemaining: data.remaining, timerTotal: data.total });
+    // ── Timer Events (rAF based) ──
+    socket.on('timer_start', (data: { endTime: number; total: number }) => {
+      set({ timerEndTime: data.endTime, timerTotal: data.total });
+    });
+
+    socket.on('timer_override', (data: { endTime: number }) => {
+      set({ timerEndTime: data.endTime });
+    });
+
+    // ── Preload Asset ──
+    socket.on('preload_asset', (data: { url: string }) => {
+      set(s => {
+        if (!s.preloadedAssets.includes(data.url)) {
+          // Trigger browser caching silently
+          const img = new Image();
+          img.src = data.url;
+          return { preloadedAssets: [...s.preloadedAssets, data.url] };
+        }
+        return s;
+      });
     });
 
     // ── Answer result (individual) ──
@@ -250,7 +282,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         phase: 'idle', currentLevel: 0, currentQuestion: null,
         myAnswer: null, hasAnswered: false, reviewData: null,
         levelIntro: null, levelCompleteData: null,
-        timerRemaining: 0, timerTotal: 0, leaderboard: [],
+        timerEndTime: 0, timerTotal: 0, leaderboard: [],
         hangmanGuessed: [], hangmanLives: 6, hangmanRevealed: [], hangmanSolved: false,
         auctionTools: [], auctionPrices: {}, auctionBudget: 10000,
         auctionOwned: [], disasterInfo: null, deployedTools: [], hasDeployed: false,
@@ -279,7 +311,6 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         phase: 'auction_active', auctionTools: data.tools,
         auctionPrices: data.prices, auctionBudget: 10000,
         auctionOwned: [], auctionMultiplier: 1.0,
-        timerRemaining: data.timeLimit, timerTotal: data.timeLimit,
       });
     });
 
@@ -298,7 +329,6 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       set({
         phase: 'disaster_active', disasterInfo: data.disaster,
         deployedTools: [], hasDeployed: false,
-        timerRemaining: data.timeLimit, timerTotal: data.timeLimit,
       });
     });
 
@@ -383,5 +413,40 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   adminBroadcast: (msg) => {
     const { socket } = get();
     if (socket?.connected) socket.emit('admin_global_broadcast', msg);
+  },
+
+  adminTimerAdd10: () => {
+    const { socket } = get();
+    if (socket?.connected) socket.emit('admin_timer_add_10');
+  },
+
+  adminTimerPauseResume: () => {
+    const { socket } = get();
+    if (socket?.connected) socket.emit('admin_timer_pause_resume');
+  },
+
+  adminLoadBank: (questions) => {
+    const { socket } = get();
+    if (socket?.connected) socket.emit('admin_load_bank', { questions });
+  },
+
+  adminAddBankQuestion: (question) => {
+    const { socket } = get();
+    if (socket?.connected) socket.emit('admin_add_bank_question', { question });
+  },
+
+  adminUpdateBankQuestion: (id, updates) => {
+    const { socket } = get();
+    if (socket?.connected) socket.emit('admin_update_bank_question', { id, updates });
+  },
+
+  adminDeleteBankQuestion: (id) => {
+    const { socket } = get();
+    if (socket?.connected) socket.emit('admin_delete_bank_question', { id });
+  },
+
+  adminGetBank: () => {
+    const { socket } = get();
+    if (socket?.connected) socket.emit('admin_get_bank');
   },
 }));

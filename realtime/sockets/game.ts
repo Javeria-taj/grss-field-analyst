@@ -16,9 +16,14 @@ function parseCookies(cookieStr: string): Record<string, string> {
   }, {});
 }
 
+import { BankQuestion } from '../game/types';
+
 export default function setupGameSockets(io: Server) {
   const engine = new GameEngine(io);
   const rateLimitMap = new Map<string, number>();
+
+  // Step 5: Hydrate engine from DB on boot
+  engine.hydrateFromDb().catch(err => console.error('Failed to hydrate DB', err));
 
   // ── Auth Middleware ──
   io.use((socket: Socket, next) => {
@@ -52,6 +57,10 @@ export default function setupGameSockets(io: Server) {
     socket.emit('game_state_sync', engine.getStateForClient(usn));
     socket.emit('leaderboard_update', engine.getLeaderboard());
 
+    socket.on('request_full_sync', () => {
+      socket.emit('game_state_sync', engine.getStateForClient(usn));
+    });
+
     // ════════════════════════════════════════════════════════════
     // ADMIN EVENTS
     // ════════════════════════════════════════════════════════════
@@ -68,10 +77,48 @@ export default function setupGameSockets(io: Server) {
       console.log(`⏸️ Game ${paused ? 'paused' : 'resumed'} by ${usn}`);
     });
 
+    socket.on('admin_timer_add_10', () => {
+      if (!isAdmin) return;
+      engine.addTimerSeconds(10);
+      console.log(`⏱️ Timer +10s by ${usn}`);
+    });
+
+    socket.on('admin_timer_pause_resume', () => {
+      if (!isAdmin) return;
+      const paused = engine.togglePause();
+      console.log(`⏸️ Timer ${paused ? 'paused' : 'resumed'} by ${usn}`);
+    });
+
     socket.on('admin_reset_game', () => {
       if (!isAdmin) return;
       engine.reset();
       console.log(`🔄 Game reset by ${usn}`);
+    });
+
+    socket.on('admin_load_bank', (data: { questions: BankQuestion[] }) => {
+      if (!isAdmin) return;
+      engine.loadBank(data.questions);
+      console.log(`📂 Bank loaded (${data.questions.length} Qs) by ${usn}`);
+    });
+
+    socket.on('admin_add_bank_question', (data: { question: BankQuestion }) => {
+      if (!isAdmin) return;
+      engine.addBankQuestion(data.question);
+    });
+
+    socket.on('admin_update_bank_question', (data: { id: string; updates: Partial<BankQuestion> }) => {
+      if (!isAdmin) return;
+      engine.updateBankQuestion(data.id, data.updates);
+    });
+
+    socket.on('admin_delete_bank_question', (data: { id: string }) => {
+      if (!isAdmin) return;
+      engine.deleteBankQuestion(data.id);
+    });
+
+    socket.on('admin_get_bank', () => {
+      if (!isAdmin) return;
+      socket.emit('bank_questions', engine.getBankQuestions());
     });
 
     socket.on('admin_global_broadcast', (msg: string) => {
@@ -145,20 +192,28 @@ export default function setupGameSockets(io: Server) {
     });
   });
 
-  // ── Periodic DB persistence ──
+  // ── Periodic DB persistence & Snapshot ──
   setInterval(async () => {
+    // 1. Sync scores using bulkWrite
     try {
       await dbConnect();
       const leaderboard = engine.getLeaderboard();
-      for (const entry of leaderboard) {
-        await User.findOneAndUpdate(
-          { usn: entry.usn },
-          { $set: { score: entry.totalScore, lastActive: new Date() } },
-          { upsert: false }
+      if (leaderboard.length > 0) {
+        await User.bulkWrite(
+          leaderboard.map(entry => ({
+            updateOne: {
+              filter: { usn: entry.usn },
+              update: { $set: { score: entry.totalScore, lastActive: new Date() } },
+              upsert: false,
+            }
+          }))
         );
       }
     } catch (err) {
-      console.error('DB sync error:', err);
+      console.error('DB bulkWrite error:', err);
     }
-  }, 30000);
+
+    // 2. Persist Engine Snapshot
+    engine.snapshotToDb();
+  }, 10000); // every 10 seconds
 }

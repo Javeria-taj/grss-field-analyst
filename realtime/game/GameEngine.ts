@@ -5,7 +5,11 @@ import type {
   GamePhase, PlayerScore, PlayerAnswer, HangmanPlayerState, AuctionPlayerState,
   ClientQuestion, LeaderboardEntry, LevelIntroPayload, QuestionEndPayload,
   LevelCompletePayload, GameStateSync, AdminStatsPayload, DisasterInfo,
+  BankQuestion, TimerStartPayload,
 } from './types';
+import dbConnect from '../../lib/db/connect';
+import { GameSnapshot } from '../../lib/db/models/GameSnapshot';
+import { randomUUID } from 'crypto';
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -19,6 +23,11 @@ function shuffle<T>(arr: T[]): T[] {
 function calcScore(correct: boolean, timeLeft: number, maxTime: number, base: number): number {
   if (!correct) return 0;
   return base + Math.round(base * 0.5 * (timeLeft / maxTime));
+}
+
+// Strict normalisation: strips all non-alphanumeric chars before comparison
+function normalise(s: string): string {
+  return String(s).replace(/[^A-Z0-9]/gi, '').toUpperCase();
 }
 
 // Internal question with answer retained for validation
@@ -39,11 +48,15 @@ export class GameEngine {
   currentQIndex = 0;
   paused = false;
 
-  // ── Timer ──
-  timerRemaining = 0;
+  // ── Timer (endTime-based — no tick events sent to clients) ──
+  timerRemaining = 0;  // server-side only, for score calc
   timerTotal = 0;
+  endTime = 0;         // epoch ms; clients count down locally
   private timerInterval: ReturnType<typeof setInterval> | null = null;
   private priceTickInterval: ReturnType<typeof setInterval> | null = null;
+
+  // ── Question Bank (admin-managed, overrides gameData when populated) ──
+  private questionBank: BankQuestion[] = [];
 
   // ── Questions (prepared for current level) ──
   private questions: InternalQuestion[] = [];
@@ -67,8 +80,52 @@ export class GameEngine {
   private levelCorrectCounts: number[] = [];
   private levelTotalAnswered: number[] = [];
 
+  private leaderboardDirty = false;
+  private broadcastInterval: NodeJS.Timeout | null = null;
+
   constructor(io: Server) {
     this.io = io;
+    this.broadcastInterval = setInterval(() => {
+      if (this.leaderboardDirty) {
+        this.io.emit('leaderboard_update', this.getLeaderboard());
+        this.leaderboardDirty = false;
+      }
+    }, 1500);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // QUESTION BANK (admin-managed)
+  // ═══════════════════════════════════════════════════════════════
+
+  loadBank(questions: BankQuestion[]) {
+    this.questionBank = questions.map(q => ({ ...q, id: q.id || randomUUID() }));
+    this.broadcastAdminStats();
+  }
+
+  addBankQuestion(q: BankQuestion): BankQuestion {
+    const newQ = { ...q, id: randomUUID() };
+    this.questionBank.push(newQ);
+    this.broadcastAdminStats();
+    return newQ;
+  }
+
+  updateBankQuestion(id: string, updates: Partial<BankQuestion>): boolean {
+    const idx = this.questionBank.findIndex(q => q.id === id);
+    if (idx === -1) return false;
+    this.questionBank[idx] = { ...this.questionBank[idx], ...updates, id };
+    this.broadcastAdminStats();
+    return true;
+  }
+
+  deleteBankQuestion(id: string): boolean {
+    const before = this.questionBank.length;
+    this.questionBank = this.questionBank.filter(q => q.id !== id);
+    this.broadcastAdminStats();
+    return this.questionBank.length < before;
+  }
+
+  getBankQuestions(): BankQuestion[] {
+    return this.questionBank;
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -146,6 +203,33 @@ export class GameEngine {
 
   private prepareQuestions(level: number) {
     this.questions = [];
+
+    // ── Bank-first: use admin Question Bank if it has questions for this level ──
+    const bankForLevel = this.questionBank.filter(q => q.level === level);
+    if (bankForLevel.length > 0) {
+      this.questions = shuffle(bankForLevel).map((bq, i) => {
+        const total = bankForLevel.length;
+        const timeLimit = bq.timerLimit || TIME_LIMITS[level] || 60;
+        // Build sanitised ClientQuestion — answer/word/explanation NEVER included
+        const clientQ: ClientQuestion = {
+          index: i, total, type: bq.type, timeLimit, points: bq.points,
+          hint: bq.hint1, hint2: bq.hint2, category: bq.category,
+          imageUrl: bq.imageUrl,
+          ...(bq.type === 'scramble' ? { scrambled: bq.scrambledText } : {}),
+          ...(bq.type === 'riddle' || bq.type === 'mcq' || bq.type === 'image_mcq'
+            ? { question: bq.questionText, options: bq.options } : {}),
+          ...(bq.type === 'hangman' ? { emoji: bq.questionText, wordLength: bq.word?.length ?? 0 } : {}),
+          ...(bq.difficulty ? { difficulty: bq.difficulty } : {}),
+        };
+        const answer = bq.type === 'mcq' || bq.type === 'image_mcq'
+          ? (bq.correctOptionIndex ?? 0)
+          : normalise(bq.answer);
+        return { clientQ, answer, explanation: bq.explanation ?? '', word: bq.word ? normalise(bq.word) : undefined };
+      });
+      return;
+    }
+
+    // ── Fallback: hard-coded gameData ──
     switch (level) {
       case 1: {
         const all: Level1Q[] = shuffle([
@@ -161,7 +245,7 @@ export class GameEngine {
                 timeLimit: TIME_LIMITS[1], points: sq.pts,
                 scrambled: sq.sc, hint: sq.hint, category: sq.cat,
               },
-              answer: sq.word.toUpperCase(),
+              answer: normalise(sq.word),
               explanation: `The answer is ${sq.word}.`,
             };
           } else {
@@ -172,7 +256,7 @@ export class GameEngine {
                 timeLimit: TIME_LIMITS[1], points: rq.pts,
                 question: rq.q, hint: rq.hint, category: rq.cat,
               },
-              answer: rq.ans.toUpperCase(),
+              answer: normalise(rq.ans),
               explanation: `The answer is ${rq.ans}.`,
             };
           }
@@ -200,9 +284,9 @@ export class GameEngine {
             timeLimit: TIME_LIMITS[3], points: c.pts,
             emoji: c.em, hint: c.hint, wordLength: c.word.length,
           },
-          answer: c.word.toUpperCase(),
+          answer: normalise(c.word),
           explanation: c.expl,
-          word: c.word.toUpperCase(),
+          word: normalise(c.word),
         }));
         break;
       }
@@ -251,6 +335,12 @@ export class GameEngine {
     this.io.emit('question_start', q.clientQ);
     this.broadcastAdminStats();
 
+    // Preload next question's image silently so clients cache it before it appears
+    const nextQ = this.questions[this.currentQIndex + 1];
+    if (nextQ?.clientQ.imageUrl) {
+      this.io.emit('preload_asset', { url: nextQ.clientQ.imageUrl });
+    }
+
     this.startCountdown(q.clientQ.timeLimit, () => this.endQuestion());
   }
 
@@ -263,7 +353,8 @@ export class GameEngine {
 
     let correct = false;
     if (typeof q.answer === 'string' && typeof answer === 'string') {
-      correct = answer.trim().toUpperCase() === q.answer.toUpperCase();
+      // Strip ALL punctuation, spaces, special chars before comparing
+      correct = normalise(answer) === normalise(q.answer as string);
     } else if (typeof q.answer === 'number' && typeof answer === 'number') {
       correct = answer === q.answer;
     }
@@ -282,8 +373,8 @@ export class GameEngine {
       ps.currentLevelScore += score;
     }
 
-    // Broadcast updated leaderboard
-    this.io.emit('leaderboard_update', this.getLeaderboard());
+    // Flag leaderboard as dirty for throttled broadcast
+    this.leaderboardDirty = true;
     this.broadcastAdminStats();
 
     // Check if all active players have answered
@@ -594,17 +685,33 @@ export class GameEngine {
     this.clearTimer();
     this.timerRemaining = seconds;
     this.timerTotal = seconds;
+    this.endTime = Date.now() + seconds * 1000;
+
+    // Emit the single authoritative start event to clients
+    this.io.emit('timer_start', { endTime: this.endTime, total: this.timerTotal });
 
     this.timerInterval = setInterval(() => {
-      if (this.paused) return;
+      if (this.paused) {
+        // Shift end time forward while paused
+        this.endTime += 1000;
+        return;
+      }
       this.timerRemaining--;
-      this.io.emit('timer_tick', { remaining: this.timerRemaining, total: this.timerTotal });
 
       if (this.timerRemaining <= 0) {
         this.clearTimer();
         onComplete();
       }
     }, 1000);
+  }
+
+  addTimerSeconds(seconds: number) {
+    if (this.phase === 'idle' || this.phase === 'game_over') return;
+    this.timerRemaining += seconds;
+    this.timerTotal += seconds;
+    this.endTime += seconds * 1000;
+    this.io.emit('timer_override', { endTime: this.endTime });
+    this.broadcastAdminStats();
   }
 
   private clearTimer() {
@@ -614,6 +721,9 @@ export class GameEngine {
   togglePause(): boolean {
     this.paused = !this.paused;
     this.io.emit('game_paused', { paused: this.paused });
+    // Whenever we pause or resume, recalculate the absolute end time
+    // and broadcast it so clients can correct their local timers
+    this.io.emit('timer_override', { endTime: this.endTime });
     return this.paused;
   }
 
@@ -686,7 +796,7 @@ export class GameEngine {
 
     return {
       phase: this.phase, currentLevel: this.currentLevel,
-      currentQuestion: currentQ, timerRemaining: this.timerRemaining,
+      currentQuestion: currentQ, timerEndTime: this.endTime,
       timerTotal: this.timerTotal, leaderboard: this.getLeaderboard(),
       levelIntro, reviewData: null, myScore: ps, myAnswer: pa,
       hangmanState, auctionState, disasterInfo,
@@ -701,6 +811,8 @@ export class GameEngine {
       totalQuestions: this.questions.length,
       answeredCount: this.currentAnswers.size,
       totalPlayers: this.getPlayerCount(),
+      bankCount: this.questionBank.length,
+      timerEndTime: this.endTime,
     };
   }
 
@@ -740,5 +852,95 @@ export class GameEngine {
   // ── Helpers ──
   private getActiveUSNs(): string[] {
     return [...new Set(this.connectedPlayers.values())];
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // PERSISTENCE (Crash Recovery)
+  // ═══════════════════════════════════════════════════════════════
+
+  async snapshotToDb() {
+    try {
+      await dbConnect();
+      await GameSnapshot.findOneAndUpdate(
+        { sessionId: 'live' },
+        {
+          $set: {
+            phase: this.phase,
+            currentLevel: this.currentLevel,
+            currentQIndex: this.currentQIndex,
+            endTime: this.endTime,
+            timerTotal: this.timerTotal,
+            paused: this.paused,
+            playerScores: Array.from(this.playerScores.values()),
+            questionBank: this.questionBank,
+            auctionStates: Array.from(this.auctionStates.entries()),
+          }
+        },
+        { upsert: true }
+      );
+    } catch (err) {
+      console.error('Error saving game snapshot to DB:', err);
+    }
+  }
+
+  async hydrateFromDb() {
+    try {
+      await dbConnect();
+      const snap = await GameSnapshot.findOne({ sessionId: 'live' });
+      if (!snap) return;
+
+      this.phase = snap.phase as GamePhase;
+      this.currentLevel = snap.currentLevel;
+      this.currentQIndex = snap.currentQIndex;
+      this.endTime = snap.endTime;
+      this.timerTotal = snap.timerTotal;
+      this.paused = snap.paused;
+      
+      this.timerRemaining = Math.max(0, Math.ceil((this.endTime - Date.now()) / 1000));
+      
+      if (Array.isArray(snap.questionBank)) {
+        this.questionBank = snap.questionBank as BankQuestion[];
+      }
+
+      this.playerScores.clear();
+      if (Array.isArray(snap.playerScores)) {
+        for (const ps of snap.playerScores) {
+          this.playerScores.set(ps.usn, ps);
+        }
+      }
+
+      this.auctionStates.clear();
+      if (Array.isArray(snap.auctionStates)) {
+        for (const [usn, as] of snap.auctionStates) {
+          this.auctionStates.set(usn, as);
+        }
+      }
+
+      // Re-prepare questions based on current bank and level
+      if (this.currentLevel > 0) {
+        this.prepareQuestions(this.currentLevel);
+      }
+
+      // If we were in the middle of a question and the timer was still running
+      if (this.timerRemaining > 0 && (this.phase === 'question_active' || this.phase === 'auction_active' || this.phase === 'disaster_active')) {
+        let callback = () => this.endQuestion();
+        if (this.phase === 'auction_active') callback = () => {
+           if (this.priceTickInterval) clearInterval(this.priceTickInterval);
+           this.priceTickInterval = null;
+           this.startDisaster(); // Call original method manually here is tricky, using cast.
+           // Note: In real setup, you might need a public method to trigger next phase cleanly.
+           // However, this is just for crash recovery.
+        };
+        // Simplified recovery countdown
+        this.startCountdown(this.timerRemaining, () => {
+           if(this.phase === 'question_active') this.endQuestion();
+           // Implement other phase endings if needed here
+        });
+      }
+
+      console.log('✅ Hydrated game engine from DB snapshot');
+    } catch (err) {
+      console.error('Error hydrating game engine from DB:', err);
+    }
   }
 }

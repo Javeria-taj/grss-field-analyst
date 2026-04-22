@@ -22,9 +22,22 @@ export default function StarfieldCanvas() {
       col: Math.random() > 0.92 ? '#00c8ff' : Math.random() > 0.96 ? '#00ff9d' : '#b8d8ff',
     }));
 
+    const shootingStars: any[] = [];
+    const createShootingStar = () => {
+      shootingStars.push({
+        x: Math.random() * cv.width,
+        y: Math.random() * cv.height * 0.5,
+        len: Math.random() * 80 + 40,
+        spd: Math.random() * 10 + 10,
+        opacity: 1,
+      });
+    };
+
     let animId: number;
     const draw = () => {
       cx.clearRect(0, 0, cv.width, cv.height);
+      
+      // Draw static stars
       stars.forEach(s => {
         s.tw += s.tws;
         const a = 0.3 + 0.7 * Math.abs(Math.sin(s.tw));
@@ -37,6 +50,33 @@ export default function StarfieldCanvas() {
         s.y += s.spd * 0.12;
         if (s.y > cv.height) { s.y = 0; s.x = Math.random() * cv.width; }
       });
+
+      // Draw shooting stars
+      if (Math.random() < 0.015) createShootingStar();
+      
+      for (let i = shootingStars.length - 1; i >= 0; i--) {
+        const ss = shootingStars[i];
+        ss.x += ss.spd;
+        ss.y += ss.spd * 0.5;
+        ss.opacity -= 0.02;
+
+        if (ss.opacity <= 0) {
+          shootingStars.splice(i, 1);
+          continue;
+        }
+
+        const grad = cx.createLinearGradient(ss.x, ss.y, ss.x - ss.len, ss.y - ss.len * 0.5);
+        grad.addColorStop(0, `rgba(255, 255, 255, ${ss.opacity})`);
+        grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        
+        cx.strokeStyle = grad;
+        cx.lineWidth = 2;
+        cx.beginPath();
+        cx.moveTo(ss.x, ss.y);
+        cx.lineTo(ss.x - ss.len, ss.y - ss.len * 0.5);
+        cx.stroke();
+      }
+
       animId = requestAnimationFrame(draw);
     };
     draw();

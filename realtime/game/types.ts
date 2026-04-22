@@ -12,6 +12,35 @@ export type GamePhase =
   | 'disaster_active'
   | 'game_over';
 
+// ── Question Bank (admin-editable, server-side with answers) ──
+export type BankQuestionType = 'scramble' | 'riddle' | 'image_mcq' | 'hangman' | 'mcq';
+
+export interface BankQuestion {
+  id: string;            // uuid
+  level: number;         // 1-5 (which mission this question belongs to)
+  type: BankQuestionType;
+  // Common
+  points: number;
+  timerLimit: number;    // seconds
+  hint1?: string;
+  hint2?: string;
+  imageUrl?: string;     // CDN URL from Vercel Blob (never base64)
+  // Text question / scramble / riddle
+  questionText?: string; // the main question body
+  scrambledText?: string;// pre-scrambled word for scramble type
+  answer: string;        // correct answer (UPPERCASE, stripped) — shown in admin, NEVER sent to client
+  // MCQ / image_mcq
+  options?: string[];    // A/B/C/D choices
+  correctOptionIndex?: number; // 0-based index
+  // Hangman
+  word?: string;         // the word — NEVER sent to client
+  // Metadata
+  category?: string;
+  difficulty?: 1 | 2 | 3;
+  explanation?: string;  // shown at review — NEVER sent during active question
+}
+
+// ── Player State ──
 export interface PlayerScore {
   usn: string;
   name: string;
@@ -43,23 +72,44 @@ export interface AuctionPlayerState {
   submitted: boolean;
 }
 
+// ── Client Question (SANITISED — no answers, no words, no explanations) ──
 export interface ClientQuestion {
   index: number;
   total: number;
   type: 'scramble' | 'riddle' | 'image_mcq' | 'hangman' | 'mcq';
   timeLimit: number;
   points: number;
+  // Scramble
   scrambled?: string;
+  // Riddle / MCQ
   question?: string;
+  options?: string[];
+  // Shared
   hint?: string;
+  hint2?: string;
   category?: string;
   imageUrl?: string;
-  options?: string[];
+  // Hangman
   emoji?: string;
   wordLength?: number;
+  // MCQ
   difficulty?: number;
 }
+// TypeScript guard — answer/word/explanation must NEVER appear here.
+type _NoBannedFields = Exclude<keyof ClientQuestion, 'answer' | 'word' | 'explanation'>;
+// If the above line fails to compile, you added a banned field to ClientQuestion.
 
+// ── Timer ──
+export interface TimerStartPayload {
+  endTime: number; // epoch ms — client counts down locally
+  total: number;   // total seconds (for progress bar %)
+}
+
+export interface TimerOverridePayload {
+  endTime: number; // updated epoch ms after +10s or pause/resume
+}
+
+// ── Intro / Review / Complete ──
 export interface LevelIntroPayload {
   level: number;
   icon: string;
@@ -99,6 +149,7 @@ export interface LeaderboardEntry {
   currentLevelScore: number;
 }
 
+// ── Auction / Disaster ──
 export interface AuctionToolInfo {
   id: string;
   name: string;
@@ -116,11 +167,12 @@ export interface DisasterInfo {
   metrics: string[];
 }
 
+// ── Full state sync (reconnect) ──
 export interface GameStateSync {
   phase: GamePhase;
   currentLevel: number;
   currentQuestion: ClientQuestion | null;
-  timerRemaining: number;
+  timerEndTime: number;   // epoch ms (replaces timerRemaining)
   timerTotal: number;
   leaderboard: LeaderboardEntry[];
   levelIntro: LevelIntroPayload | null;
@@ -141,6 +193,7 @@ export interface GameStateSync {
   disasterInfo: DisasterInfo | null;
 }
 
+// ── Admin ──
 export interface AdminStatsPayload {
   connectedCount: number;
   phase: GamePhase;
@@ -149,4 +202,6 @@ export interface AdminStatsPayload {
   totalQuestions: number;
   answeredCount: number;
   totalPlayers: number;
+  bankCount: number;       // number of questions currently in the bank
+  timerEndTime: number;    // epoch ms
 }

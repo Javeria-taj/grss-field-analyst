@@ -37,7 +37,7 @@ export default function DemoPage() {
   const timerClass = timerW < 25 ? 'crit' : timerW < 50 ? 'warn' : '';
 
   return (
-    <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'relative', zIndex: 1, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <div className="earth-deco" />
       <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', flex: 1 }}>
         {/* Header */}

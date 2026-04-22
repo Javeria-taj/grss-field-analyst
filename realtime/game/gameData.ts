@@ -120,11 +120,11 @@ const DATA: ServerGameData = {
 export default DATA;
 
 export const LEVEL_INTROS: Record<number, { icon: string; badge: string; title: string; story: string; rules: string }> = {
-  1: { icon: '🔤', badge: 'MISSION 01', title: 'TRAINING MISSION', story: "You've just been deployed as a GRSS Field Analyst. Unscramble classified satellite terminology and decode encrypted field riddles.", rules: '📋 Mission Rules\n• 10 questions: 5 Word Scrambles + 5 Riddles (randomised)\n• ⏱ 60 seconds per question\n• Type your answer and press Enter\n• Speed bonus awarded for fast correct answers' },
-  2: { icon: '🛰️', badge: 'MISSION 02', title: 'INTELLIGENCE GATHERING', story: "Ground sensors are offline. Analyse incoming satellite imagery and correctly identify what Earth's orbit is revealing.", rules: '📋 Mission Rules\n• 5 satellite image analysis questions\n• ⏱ 60 seconds per image\n• Select the correct interpretation from 4 options\n• Speed bonus applies throughout' },
-  3: { icon: '🔐', badge: 'MISSION 03', title: 'CODE BREAKING', story: "Intercepted transmissions contain encrypted geoscience terminology replaced with emoji sequences. Reconstruct the original words.", rules: '📋 Mission Rules\n• 5 Emoji Hangman challenges\n• ⏱ 120 seconds per challenge\n• Click letters to guess — 6 wrong guesses allowed\n• A letter auto-reveals at the 1-minute mark' },
-  4: { icon: '⚡', badge: 'MISSION 04', title: 'RAPID ASSESSMENT', story: "Incoming alert — a cascade of satellite data is flooding your terminal. You must rapidly assess and classify each data feed.", rules: '📋 Mission Rules\n• 10 multiple-choice questions\n• ⏱ 90 seconds per question\n• Progressive difficulty (⭐ → ⭐⭐⭐)\n• Higher difficulty = more base points' },
-  5: { icon: '🌍', badge: 'MISSION 05', title: 'CORE SIMULATION', story: "This is the final challenge. Acquire satellite monitoring tools from a live auction, then deploy them to respond to a real-world crisis.", rules: '📋 Mission Rules\n• Part A: Auction — $10,000 budget, max 5 tools, prices rise +10% every 20s\n• Part B: Disaster Response — deploy tools to address the crisis\n• Scoring = tool effectiveness + budget efficiency + combo bonuses' },
+  1: { icon: '🔤', badge: 'MISSION 01', title: 'WORD SCRAMBLE & RIDDLES', story: "Welcome Analyst. Your first mission is to decode encrypted field terminology. Unscramble the data and solve the geospatial riddles to proceed.", rules: '📋 Mission Rules\n• 10 challenges: 5 Scrambles + 5 Riddles\n• ⏱ 60 seconds per challenge\n• Speed is critical for high scores\n• Type and press Enter to submit' },
+  2: { icon: '🛰️', badge: 'MISSION 02', title: 'IMAGE GUESSING', story: "The visual feed is incoming. You must identify terrain, satellites, and environmental phenomena from high-resolution orbital imagery.", rules: '📋 Mission Rules\n• 5 orbital image analysis tasks\n• ⏱ 60 seconds per image\n• Choose the correct identification\n• Precision and speed generate max points' },
+  3: { icon: '🔐', badge: 'MISSION 03', title: 'EMOJI HANGMAN', story: "We've intercepted a series of emoji-encoded geoscience terms. Reconstruct the original terminology before the uplink times out.", rules: '📋 Mission Rules\n• 5 Emoji Hangman challenges\n• ⏱ 120 seconds per challenge\n• 6 wrong guesses allowed\n• Hints appear at the 60-second mark' },
+  4: { icon: '⚡', badge: 'MISSION 04', title: 'RAPID FIRE', story: "A massive data cascade is flooding the terminal. You have seconds to classify incoming remote sensing data. NO ROOM FOR ERROR.", rules: '📋 Mission Rules\n• 10 High-speed MCQs\n• ⏱ 90 seconds per question\n• Progressive difficulty scaling\n• Base points increase with difficulty level' },
+  5: { icon: '🌍', badge: 'MISSION 05', title: 'PRESSURE AUCTION', story: "This is the final simulation. Compete in a live auction to acquire critical monitoring tools, then deploy them to save a region in crisis.", rules: '📋 Mission Rules\n• Phase A: Auction — $10,000 budget, max 5 tools\n• Phase B: Deployment — use tools to mitigate the disaster\n• Score based on tool efficiency + combo bonuses' },
 };
 
 // Time limits per level type (seconds)
@@ -132,7 +132,7 @@ export const TIME_LIMITS: Record<number, number> = {
   1: 60,   // 60s per question
   2: 60,   // 60s per image
   3: 120,  // 120s per hangman
-  4: 90,   // 90s per MCQ
+  4: 45,   // 45s for Rapid Fire (increased intensity)
 };
 export const AUCTION_TIME = 120;  // 120s for tool auction
 export const DISASTER_TIME = 90;  // 90s for disaster response

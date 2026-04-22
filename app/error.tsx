@@ -17,7 +17,7 @@ export default function ErrorBoundary({
   }, [error]);
 
   return (
-    <div className="center-col" style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <div className="center-col" style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}

@@ -83,7 +83,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex' }}>
+    <div style={{ position: 'relative', zIndex: 1, minHeight: '100dvh', display: 'flex' }}>
       <StarfieldCanvas />
       <Toast />
       <div className="earth-deco" />

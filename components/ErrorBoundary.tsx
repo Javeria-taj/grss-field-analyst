@@ -53,7 +53,7 @@ export default class ErrorBoundary extends Component<Props, State> {
       return (
         <div
           className="center-col"
-          style={{ minHeight: '100vh', background: 'var(--bg)', position: 'relative', zIndex: 10 }}
+          style={{ minHeight: '100dvh', background: 'var(--bg)', position: 'relative', zIndex: 10 }}
         >
           <motion.div
             initial={{ scale: 0.88, opacity: 0 }}

@@ -20,7 +20,7 @@ export default function LeaderboardPage() {
   if (!user) return null;
 
   return (
-    <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh' }}>
+    <div style={{ position: 'relative', zIndex: 1, minHeight: '100dvh' }}>
       <div className="earth-deco" />
       <div style={{ position: 'relative', zIndex: 3 }}>
         <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
@@ -34,7 +34,7 @@ export default function LeaderboardPage() {
             {leaderboard.length === 0 ? (
               <div style={{ textAlign: 'center', color: 'var(--text2)', padding: 40 }}>No scores yet.</div>
             ) : (
-              leaderboard.map((e, i) => (
+              leaderboard.slice(0, 50).map((e, i) => (
                 <motion.div key={e.usn} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
                   style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',

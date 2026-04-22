@@ -17,7 +17,7 @@ import Toast from '@/components/ui/Toast';
 export default function DashboardPage() {
   const router = useRouter();
   const { user, logout } = useGameStore();
-  const { phase, init, destroy, connected, paused, lastAnnouncement } = useGameSyncStore();
+  const { phase, init, destroy, connected, paused, lastAnnouncement, preloadedAssets } = useGameSyncStore();
 
   useEffect(() => {
     if (!user) { router.replace('/'); return; }
@@ -43,7 +43,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'relative', zIndex: 1, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <div className="earth-deco" />
       <Toast />
       <GameHUD user={user} connected={connected} paused={paused} onLogout={async () => {
@@ -51,6 +51,11 @@ export default function DashboardPage() {
         logout(); router.replace('/');
       }} />
       <div style={{ position: 'relative', zIndex: 3, flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'none' }}>
+          {preloadedAssets.map(url => (
+            <link key={url} rel="preload" as="image" href={url} />
+          ))}
+        </div>
         {renderPhase()}
       </div>
     </div>

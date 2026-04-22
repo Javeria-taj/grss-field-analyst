@@ -1,4 +1,5 @@
 'use client';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
 
@@ -8,10 +9,49 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
   paused: boolean;
   onLogout: () => void;
 }) {
-  const { timerRemaining, timerTotal, leaderboard, currentLevel, phase } = useGameSyncStore();
+  const { timerEndTime, timerTotal, leaderboard, currentLevel, phase } = useGameSyncStore();
   const myEntry = leaderboard.find(e => e.usn === user.usn.toUpperCase());
-  const pct = timerTotal > 0 ? (timerRemaining / timerTotal) * 100 : 0;
-  const showTimer = phase === 'question_active' || phase === 'auction_active' || phase === 'disaster_active';
+  const showTimer = phase === 'question_active' || phase === 'auction_active' || phase === 'disaster_active' || phase === 'level_intro';
+
+  // Local butter-smooth timer
+  const [localRemaining, setLocalRemaining] = useState(0);
+  const [pct, setPct] = useState(0);
+
+  useEffect(() => {
+    if (!showTimer || timerEndTime === 0) {
+      setLocalRemaining(0);
+      setPct(0);
+      return;
+    }
+
+    let frameId: number;
+    const tick = () => {
+      if (paused) {
+        // When paused, don't tick down, wait for next frame
+        frameId = requestAnimationFrame(tick);
+        return;
+      }
+      
+      const now = Date.now();
+      const remainingMs = Math.max(0, timerEndTime - now);
+      const remainingSec = Math.ceil(remainingMs / 1000);
+      
+      setLocalRemaining(remainingSec);
+      
+      if (timerTotal > 0) {
+        setPct((remainingMs / 1000 / timerTotal) * 100);
+      } else {
+        setPct(0);
+      }
+
+      if (remainingMs > 0) {
+        frameId = requestAnimationFrame(tick);
+      }
+    };
+
+    frameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameId);
+  }, [timerEndTime, timerTotal, paused, showTimer]);
 
   return (
     <motion.div
@@ -66,13 +106,12 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
                 style={{
                   height: '100%', borderRadius: 3,
                   background: pct > 30 ? 'var(--accent)' : pct > 10 ? 'var(--warning)' : 'var(--danger)',
+                  width: `${Math.min(100, Math.max(0, pct))}%`,
                 }}
-                animate={{ width: `${pct}%` }}
-                transition={{ duration: 0.3 }}
               />
             </div>
-            <div className="font-orb" style={{ textAlign: 'center', fontSize: '0.85rem', color: timerRemaining <= 10 ? 'var(--danger)' : 'var(--text)' }}>
-              {timerRemaining}s
+            <div className="font-orb" style={{ textAlign: 'center', fontSize: '0.85rem', color: localRemaining <= 10 ? 'var(--danger)' : 'var(--text)' }}>
+              {localRemaining}s
             </div>
           </div>
         )}
