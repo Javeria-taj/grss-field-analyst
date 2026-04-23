@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
 
@@ -7,16 +7,20 @@ export default function QuestionManagerModal({ isOpen, onClose }: { isOpen: bool
   const { adminStats, bankQuestions, adminDeleteBankQuestion, adminGetBank } = useGameSyncStore();
   const [selectedLevel, setSelectedLevel] = useState<number>(1);
 
+  useEffect(() => {
+    if (isOpen) adminGetBank();
+  }, [isOpen, adminGetBank]);
+
   if (!isOpen) return null;
 
   const levels = [
-    { id: 1, name: 'Level 1: Scramble/Riddle', limit: adminStats?.levelLimits?.[1] ?? 5 },
+    { id: 1, name: 'Level 1: Scramble/Riddle', limit: adminStats?.levelLimits?.[1] ?? 10 },
     { id: 2, name: 'Level 2: Image MCQ', limit: adminStats?.levelLimits?.[2] ?? 5 },
     { id: 3, name: 'Level 3: Emoji Hangman', limit: adminStats?.levelLimits?.[3] ?? 5 },
     { id: 4, name: 'Level 4: Rapid Fire MCQ', limit: adminStats?.levelLimits?.[4] ?? 10 },
   ];
 
-  const filtered = bankQuestions.filter(q => q.level === selectedLevel);
+  const filtered = (bankQuestions || []).filter(q => Number(q.level) === Number(selectedLevel));
   const currentLimit = levels.find(l => l.id === selectedLevel)?.limit ?? 0;
 
   return (

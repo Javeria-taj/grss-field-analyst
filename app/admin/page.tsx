@@ -100,7 +100,7 @@ export default function AdminDashboard() {
 
             <div style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', display: 'grid', gap: 10, marginBottom: 16 }}>
               {LEVELS.map(lv => {
-                const limit = adminStats?.levelLimits?.[lv.id] ?? (lv.id === 4 ? 10 : 5);
+                const limit = adminStats?.levelLimits?.[lv.id] ?? (lv.id === 1 || lv.id === 4 ? 10 : 5);
                 return (
                   <div key={lv.id} style={{ display: 'flex', gap: 6, alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: 6, borderRadius: 8, border: '1px solid var(--border)' }}>
                     <motion.button className="btn btn-outline"
