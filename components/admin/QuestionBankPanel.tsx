@@ -5,23 +5,20 @@ import { useGameSyncStore } from '@/stores/useGameSyncStore';
 import { toast } from '@/components/ui/Toast';
 
 export default function QuestionBankPanel() {
-  const { 
-    adminGetBank, adminAddBankQuestion, adminUpdateBankQuestion, 
-    adminDeleteBankQuestion, adminLoadBank, bankQuestions 
-  } = useGameSyncStore();
+  const { adminGetBank, adminAddBankQuestion, adminUpdateBankQuestion, adminDeleteBankQuestion, adminLoadBank, bankQuestions } = useGameSyncStore();
   const [questions, setQuestions] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<any>({});
   const [uploading, setUploading] = useState(false);
 
+  useEffect(() => {
+    setQuestions(bankQuestions);
+  }, [bankQuestions]);
+
   // We should listen to bank updates if the server broadcasts them, but for now we manually fetch
   useEffect(() => {
     adminGetBank();
   }, [adminGetBank]);
-
-  useEffect(() => {
-    if (bankQuestions) setQuestions(bankQuestions);
-  }, [bankQuestions]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -118,14 +115,14 @@ export default function QuestionBankPanel() {
           <h4 style={{ marginBottom: 16, fontSize: '0.9rem', color: 'var(--text)' }}>
             {editingId ? 'Edit Question' : 'Add New Question'}
           </h4>
-          
+
           <div style={{ display: 'grid', gap: 12 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 12, border: '1px solid var(--border)' }}>
               <div>
                 <label className="label" style={{ color: 'var(--accent)', fontWeight: 700, fontSize: '0.65rem', marginBottom: 8, display: 'block' }}>TARGET MISSION</label>
-                <select className="input" 
+                <select className="input"
                   style={{ width: '100%', border: '1px solid var(--accent)', background: 'var(--bg)', color: 'var(--text)', fontSize: '0.9rem' }}
-                  value={formData.level || ''} 
+                  value={formData.level || ''}
                   onChange={e => setLevelAndType(parseInt(e.target.value))}
                 >
                   <option value="" disabled>-- Select Level --</option>
@@ -137,19 +134,19 @@ export default function QuestionBankPanel() {
               </div>
               <div>
                 <label className="label" style={{ color: 'var(--warning)', fontWeight: 700, fontSize: '0.65rem', marginBottom: 8, display: 'block' }}>MECHANIC TYPE</label>
-                <select 
-                  className="input" 
+                <select
+                  className="input"
                   disabled={formData.level > 1}
-                  style={{ 
-                    width: '100%', 
-                    border: '1px solid var(--border)', 
-                    background: formData.level > 1 ? 'rgba(255,255,255,0.05)' : 'var(--bg)', 
-                    color: formData.level > 1 ? 'var(--text2)' : 'var(--text)', 
+                  style={{
+                    width: '100%',
+                    border: '1px solid var(--border)',
+                    background: formData.level > 1 ? 'rgba(255,255,255,0.05)' : 'var(--bg)',
+                    color: formData.level > 1 ? 'var(--text2)' : 'var(--text)',
                     cursor: formData.level > 1 ? 'not-allowed' : 'pointer',
                     fontSize: '0.9rem',
                     opacity: formData.level > 1 ? 0.7 : 1
                   }}
-                  value={formData.type || ''} 
+                  value={formData.type || ''}
                   onChange={e => setFormData({ ...formData, type: e.target.value })}
                 >
                   <option value="" disabled>-- Auto-assigned --</option>
