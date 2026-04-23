@@ -9,8 +9,12 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
   paused: boolean;
   onLogout: () => void;
 }) {
-  const { timerEndTime, timerTotal, leaderboard, currentLevel, phase } = useGameSyncStore();
+  const { timerEndTime, timerTotal, leaderboard, currentLevel, phase, myTotalScore } = useGameSyncStore();
   const myEntry = leaderboard.find(e => e.usn === user.usn.toUpperCase());
+  
+  // Real-time score: prioritize store state (immediate feedback) over leaderboard entries (throttled)
+  const displayScore = myTotalScore > 0 ? myTotalScore : (myEntry?.totalScore ?? 0);
+  
   const showTimer = phase === 'question_active' || phase === 'auction_active' || phase === 'disaster_active' || phase === 'level_intro';
 
   // Local butter-smooth timer
@@ -117,7 +121,7 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
         )}
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: '0.55rem', color: 'var(--text2)' }}>SCORE</div>
-          <div className="font-orb t-gold" style={{ fontSize: '1.1rem' }}>{myEntry?.totalScore ?? 0}</div>
+          <div className="font-orb t-gold" style={{ fontSize: '1.1rem' }}>{displayScore}</div>
         </div>
         <button className="btn btn-outline btn-sm" onClick={onLogout} style={{ fontSize: '0.65rem', padding: '4px 8px' }}>↩</button>
       </div>

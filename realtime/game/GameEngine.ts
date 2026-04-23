@@ -367,7 +367,7 @@ export class GameEngine {
     this.startCountdown(q.clientQ.timeLimit, () => this.endQuestion());
   }
 
-  handleAnswer(usn: string, answer: string | number): { correct: boolean; score: number } | null {
+  handleAnswer(usn: string, answer: string | number): { correct: boolean; score: number; totalScore: number; currentLevelScore: number } | null {
     if (this.phase !== 'question_active') return null;
     if (this.currentAnswers.has(usn)) return null; // Already answered
 
@@ -384,17 +384,19 @@ export class GameEngine {
 
     const score = calcScore(correct, this.timerRemaining, this.timerTotal, q.clientQ.points);
 
-    const pa: PlayerAnswer = {
-      usn, answer, timeRemaining: this.timerRemaining, correct, score,
-    };
-    this.currentAnswers.set(usn, pa);
-
     // Update player scores
     const ps = this.playerScores.get(usn);
     if (ps) {
       ps.totalScore += score;
       ps.currentLevelScore += score;
     }
+
+    const pa: PlayerAnswer = {
+      usn, answer, timeRemaining: this.timerRemaining, correct, score,
+      totalScore: ps?.totalScore ?? 0,
+      currentLevelScore: ps?.currentLevelScore ?? 0
+    };
+    this.currentAnswers.set(usn, pa);
 
     // Flag for throttled broadcast
     this.leaderboardDirty = true;
@@ -409,7 +411,12 @@ export class GameEngine {
       setTimeout(() => this.endQuestion(), 1000);
     }
 
-    return { correct, score };
+    return { 
+      correct, 
+      score, 
+      totalScore: ps?.totalScore ?? 0, 
+      currentLevelScore: ps?.currentLevelScore ?? 0 
+    };
   }
 
   private endQuestion() {
@@ -696,6 +703,8 @@ export class GameEngine {
       }
     }
 
+    this.leaderboardDirty = true;
+    this.adminStatsDirty = true;
     this.io.emit('leaderboard_update', this.getLeaderboard());
     this.endLevel();
   }

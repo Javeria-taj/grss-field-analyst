@@ -55,6 +55,8 @@ export interface PlayerAnswer {
   timeRemaining: number;
   correct: boolean;
   score: number;
+  totalScore: number;
+  currentLevelScore: number;
 }
 
 export interface HangmanPlayerState {

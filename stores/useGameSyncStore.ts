@@ -62,8 +62,10 @@ interface GameSyncState {
   // Question
   currentQuestion: ClientQuestion | null;
 
-  // My answer
-  myAnswer: { correct: boolean; score: number } | null;
+  // My stats (real-time feedback)
+  myTotalScore: number;
+  myLevelScore: number;
+  myAnswer: { correct: boolean; score: number; totalScore?: number; currentLevelScore?: number } | null;
   hasAnswered: boolean;
 
   // Review
@@ -149,6 +151,8 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   timerEndTime: 0,
   timerTotal: 0,
   currentQuestion: null,
+  myTotalScore: 0,
+  myLevelScore: 0,
   myAnswer: null,
   hasAnswered: false,
   reviewData: null,
@@ -181,6 +185,8 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
     const socket = io(socketUrl, {
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 4000,
+      randomizationFactor: 0.5,
       withCredentials: true,
     });
 
@@ -201,6 +207,8 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         timerTotal: data.timerTotal,
         leaderboard: data.leaderboard,
         levelIntro: data.levelIntro,
+        myTotalScore: data.myScore?.totalScore ?? 0,
+        myLevelScore: data.myScore?.currentLevelScore ?? 0,
         myAnswer: data.myAnswer ? { correct: data.myAnswer.correct, score: data.myAnswer.score } : null,
         hasAnswered: !!data.myAnswer,
         hangmanGuessed: data.hangmanState?.guessedLetters ?? [],
@@ -257,9 +265,14 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       });
     });
 
-    // ── Answer result (individual) ──
-    socket.on('answer_result', (data: { correct: boolean; score: number }) => {
-      set({ myAnswer: data, hasAnswered: true });
+    // ── Answer result (immediate personal feedback) ──
+    socket.on('answer_result', (data: { correct: boolean; score: number; totalScore?: number; currentLevelScore?: number }) => {
+      set({ 
+        myAnswer: data, 
+        hasAnswered: true,
+        myTotalScore: data.totalScore ?? get().myTotalScore,
+        myLevelScore: data.currentLevelScore ?? get().myLevelScore
+      });
     });
 
     // ── Question review ──

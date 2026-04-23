@@ -161,7 +161,12 @@ export default function setupGameSockets(io: Server) {
         // If solved or dead, also send answer_result
         if (result.solved || result.livesLeft <= 0) {
           const pa = engine.getStateForClient(usn).myAnswer;
-          if (pa) socket.emit('answer_result', { correct: pa.correct, score: pa.score });
+          if (pa) socket.emit('answer_result', { 
+            correct: pa.correct, 
+            score: pa.score, 
+            totalScore: pa.totalScore, 
+            currentLevelScore: pa.currentLevelScore 
+          });
         }
       }
     });
