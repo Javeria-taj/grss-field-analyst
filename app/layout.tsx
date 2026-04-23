@@ -50,7 +50,7 @@ export default function RootLayout({
         <ClientShell>
           <StarfieldCanvas />
           <Toast />
-          <main id="app-root" style={{ position: "relative", zIndex: 3, minHeight: "100vh" }}>
+          <main id="app-root" style={{ position: "relative", zIndex: 3, minHeight: "100dvh" }}>
             <Suspense fallback={null}>
               {children}
             </Suspense>

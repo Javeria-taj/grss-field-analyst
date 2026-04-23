@@ -11,7 +11,7 @@ export default function GlobalError({
 }) {
   return (
     <html lang="en">
-      <body style={{ backgroundColor: '#050b14', color: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: 'sans-serif' }}>
+      <body style={{ backgroundColor: '#050b14', color: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', fontFamily: 'sans-serif' }}>
         <div style={{ textAlign: 'center', padding: '24px', background: 'rgba(15,23,42,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px' }}>
           <h2 style={{ color: '#fb7185', fontSize: '1.5rem', marginBottom: '16px' }}>CRITICAL SYSTEM MALFUNCTION</h2>
           <p style={{ color: '#94a3b8', marginBottom: '24px' }}>Global root layer initialization failed.</p>

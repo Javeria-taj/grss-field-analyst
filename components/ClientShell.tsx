@@ -78,6 +78,18 @@ export default function ClientShell({ children }: { children: React.ReactNode })
     };
   }, []);
 
+  // Prevent accidental navigation during active game phases
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (phase !== 'idle' && phase !== 'game_over') {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [phase]);
+
   return (
     <div id="app-viewport">
       {children}

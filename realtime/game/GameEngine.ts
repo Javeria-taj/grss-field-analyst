@@ -41,6 +41,10 @@ interface InternalQuestion {
 
 export class GameEngine {
   private io: Server;
+  private leaderboardDirty = false;
+  private adminStatsDirty = false;
+  private bankDirty = false;
+  private broadcastInterval: ReturnType<typeof setInterval> | null = null;
 
   // ── Core State ──
   phase: GamePhase = 'idle';
@@ -81,15 +85,21 @@ export class GameEngine {
   private levelCorrectCounts: number[] = [];
   private levelTotalAnswered: number[] = [];
 
-  private leaderboardDirty = false;
-  private broadcastInterval: NodeJS.Timeout | null = null;
-
   constructor(io: Server) {
     this.io = io;
+    // Throttle broadcasts to once every 1.5 seconds to prevent "broadcast storms"
     this.broadcastInterval = setInterval(() => {
       if (this.leaderboardDirty) {
         this.io.emit('leaderboard_update', this.getLeaderboard());
         this.leaderboardDirty = false;
+      }
+      if (this.adminStatsDirty) {
+        this.io.emit('admin_stats', this.getAdminStats());
+        this.adminStatsDirty = false;
+      }
+      if (this.bankDirty) {
+        this.io.emit('bank_questions', this.getBankQuestions());
+        this.bankDirty = false;
       }
     }, 1500);
   }
@@ -386,9 +396,9 @@ export class GameEngine {
       ps.currentLevelScore += score;
     }
 
-    // Flag leaderboard as dirty for throttled broadcast
+    // Flag for throttled broadcast
     this.leaderboardDirty = true;
-    this.broadcastAdminStats();
+    this.adminStatsDirty = true;
 
     // Check if all active players have answered
     const activeUSNs = this.getActiveUSNs();
@@ -831,11 +841,11 @@ export class GameEngine {
   }
 
   broadcastAdminStats() {
-    this.io.emit('admin_stats', this.getAdminStats());
+    this.adminStatsDirty = true;
   }
 
   broadcastBank() {
-    this.io.emit('bank_questions', this.getBankQuestions());
+    this.bankDirty = true;
   }
 
   // ═══════════════════════════════════════════════════════════════
