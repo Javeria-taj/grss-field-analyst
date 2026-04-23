@@ -57,7 +57,7 @@ export class GameEngine {
 
   // ── Question Bank (admin-managed, overrides gameData when populated) ──
   private questionBank: BankQuestion[] = [];
-  private levelLimits: Record<number, number> = { 1: 5, 2: 5, 3: 5, 4: 10 };
+  private levelLimits: Record<number, number> = { 1: 10, 2: 5, 3: 5, 4: 10 };
 
   // ── Questions (prepared for current level) ──
   private questions: InternalQuestion[] = [];
@@ -101,12 +101,14 @@ export class GameEngine {
   loadBank(questions: BankQuestion[]) {
     this.questionBank = questions.map(q => ({ ...q, id: q.id || randomUUID() }));
     this.broadcastAdminStats();
+    this.broadcastBank();
   }
 
   addBankQuestion(q: BankQuestion): BankQuestion {
     const newQ = { ...q, id: randomUUID() };
     this.questionBank.push(newQ);
     this.broadcastAdminStats();
+    this.broadcastBank();
     return newQ;
   }
 
@@ -115,6 +117,7 @@ export class GameEngine {
     if (idx === -1) return false;
     this.questionBank[idx] = { ...this.questionBank[idx], ...updates, id };
     this.broadcastAdminStats();
+    this.broadcastBank();
     return true;
   }
 
@@ -122,6 +125,7 @@ export class GameEngine {
     const before = this.questionBank.length;
     this.questionBank = this.questionBank.filter(q => q.id !== id);
     this.broadcastAdminStats();
+    this.broadcastBank();
     return this.questionBank.length < before;
   }
 
@@ -828,6 +832,10 @@ export class GameEngine {
 
   broadcastAdminStats() {
     this.io.emit('admin_stats', this.getAdminStats());
+  }
+
+  broadcastBank() {
+    this.io.emit('bank_questions', this.getBankQuestions());
   }
 
   // ═══════════════════════════════════════════════════════════════
