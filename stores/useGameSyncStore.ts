@@ -181,6 +181,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
     const socket = io(socketUrl, {
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
+      withCredentials: true,
     });
 
     socket.on('connect', () => {

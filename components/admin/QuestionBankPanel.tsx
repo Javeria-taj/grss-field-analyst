@@ -5,19 +5,20 @@ import { useGameSyncStore } from '@/stores/useGameSyncStore';
 import { toast } from '@/components/ui/Toast';
 
 export default function QuestionBankPanel() {
-  const { adminGetBank, adminAddBankQuestion, adminUpdateBankQuestion, adminDeleteBankQuestion, adminLoadBank } = useGameSyncStore();
+  const { adminGetBank, adminAddBankQuestion, adminUpdateBankQuestion, adminDeleteBankQuestion, adminLoadBank, bankQuestions } = useGameSyncStore();
   const [questions, setQuestions] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<any>({});
   const [uploading, setUploading] = useState(false);
 
+  useEffect(() => {
+    setQuestions(bankQuestions);
+  }, [bankQuestions]);
+
   // We should listen to bank updates if the server broadcasts them, but for now we manually fetch
   useEffect(() => {
     adminGetBank();
-    const handleBank = (data: any) => setQuestions(data);
-    // Listen directly to window for this specific event or handle via store
-    // Let's rely on manual fetch for simplicity if store doesn't store the bank
-  }, []);
+  }, [adminGetBank]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

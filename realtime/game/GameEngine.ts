@@ -232,7 +232,7 @@ export class GameEngine {
         };
         const answer = bq.type === 'mcq' || bq.type === 'image_mcq'
           ? (bq.correctOptionIndex ?? 0)
-          : normalise(bq.answer);
+          : bq.type === 'hangman' ? normalise(bq.word || '') : normalise(bq.answer || '');
         return { clientQ, answer, explanation: bq.explanation ?? '', word: bq.word ? normalise(bq.word) : undefined };
       });
       return;

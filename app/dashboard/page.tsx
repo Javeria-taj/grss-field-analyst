@@ -12,8 +12,7 @@ import AuctionPhase from '@/components/game/AuctionPhase';
 import DisasterPhase from '@/components/game/DisasterPhase';
 import GameOverPhase from '@/components/game/GameOverPhase';
 import GameHUD from '@/components/game/GameHUD';
-import Toast from '@/components/ui/Toast';
-
+import Toast, { toast } from '@/components/ui/Toast';
 export default function DashboardPage() {
   const router = useRouter();
   const { user, logout } = useGameStore();
@@ -25,6 +24,12 @@ export default function DashboardPage() {
     init();
     return () => { destroy(); };
   }, [user, router, init, destroy]);
+
+  useEffect(() => {
+    if (lastAnnouncement) {
+      toast(`📢 ${lastAnnouncement}`, 'inf');
+    }
+  }, [lastAnnouncement]);
 
   if (!user) return null;
 
