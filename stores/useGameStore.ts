@@ -5,6 +5,7 @@ export interface User {
   name: string;
   usn: string;
   isAdmin?: boolean;
+  faction?: string;
 }
 
 interface AuthState {

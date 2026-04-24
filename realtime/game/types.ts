@@ -10,7 +10,8 @@ export type GamePhase =
   | 'level_complete'
   | 'auction_active'
   | 'disaster_active'
-  | 'game_over';
+  | 'game_over'
+  | 'anomaly_active';
 
 // ── Question Bank (admin-editable, server-side with answers) ──
 export type BankQuestionType = 'scramble' | 'riddle' | 'image_mcq' | 'hangman' | 'mcq';
@@ -55,6 +56,8 @@ export interface PlayerScore {
   levelScores: Record<number, number>;
   currentLevelScore: number;
   telemetry: TelemetryData[];
+  streak: number;
+  faction?: string;
 }
 
 export interface PlayerAnswer {
@@ -159,6 +162,8 @@ export interface LeaderboardEntry {
   usn: string;
   totalScore: number;
   currentLevelScore: number;
+  streak: number;
+  faction?: string;
 }
 
 // ── Auction / Disaster ──
@@ -204,6 +209,7 @@ export interface GameStateSync {
     prices: Record<string, number>;
   } | null;
   disasterInfo: DisasterInfo | null;
+  factionScores?: Record<string, number>;
 }
 
 // ── Admin ──
@@ -222,4 +228,26 @@ export interface AdminStatsPayload {
 
 export interface AdminLiveStatsPayload {
   distribution: Record<string, number>; // e.g., {"A": 10, "B": 5} or {"SATELLITE": 2}
+  reactions?: { id: string; emoji: string }[];
+  factionScores?: Record<string, number>;
+}
+
+// ── Anomaly ──
+export interface AnomalyPayload {
+  type: 'patch' | 'identify';
+  targetId: string;
+  gridSize: number;
+  timeLimit: number;
+}
+
+export interface AnomalyResultPayload {
+  success: boolean;
+  penalty: number;
+  newTotalScore: number;
+}
+
+// ── Mission Commander ──
+export interface MissionCommentaryPayload {
+  text: string;
+  mood: 'snarky' | 'encouraging' | 'urgent' | 'celebratory';
 }

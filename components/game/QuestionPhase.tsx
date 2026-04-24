@@ -47,16 +47,36 @@ function RiddleQ({ q, onSubmit, disabled }: { q: any; onSubmit: (a: string) => v
 }
 
 function ImageMCQ({ q, onSubmit, disabled }: { q: any; onSubmit: (a: number) => void; disabled: boolean }) {
+  const [loaded, setLoaded] = useState(false);
   return (
     <div style={{ textAlign: 'center', opacity: disabled ? 0.6 : 1, transition: 'opacity 0.3s' }}>
       {q.imageUrl && (
-        <div style={{ minHeight: 250, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+        <div style={{ 
+          minHeight: 250, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          marginBottom: 16,
+          background: 'rgba(255,255,255,0.03)',
+          borderRadius: 12,
+          overflow: 'hidden',
+          position: 'relative'
+        }}>
+          {!loaded && <div className="skeleton" style={{ position: 'absolute', inset: 0 }} />}
           <img 
             src={q.imageUrl} 
             alt="Satellite" 
-            className="skeleton"
-            style={{ maxWidth: 400, width: '100%', borderRadius: 12, border: '1px solid var(--border)', objectFit: 'cover' }} 
-            onLoad={(e) => e.currentTarget.className = ""}
+            style={{ 
+              maxWidth: 400, 
+              width: '100%', 
+              minHeight: '250px',
+              borderRadius: 12, 
+              border: '1px solid var(--border)', 
+              objectFit: 'cover',
+              opacity: loaded ? 1 : 0,
+              transition: 'opacity 0.3s'
+            }} 
+            onLoad={() => setLoaded(true)}
           />
         </div>
       )}
@@ -144,8 +164,14 @@ function MCQ({ q, onSubmit, disabled }: { q: any; onSubmit: (a: number) => void;
 }
 
 export default function QuestionPhase() {
-  const { currentQuestion: q, hasAnswered, myAnswer, submitAnswer, currentLevel } = useGameSyncStore();
+  const { currentQuestion: q, hasAnswered, myAnswer, submitAnswer, currentLevel, myStreak } = useGameSyncStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [prevStreak, setPrevStreak] = useState(0);
+
+  useEffect(() => {
+    // Keep track of the streak before it resets
+    if (myStreak > 0) setPrevStreak(myStreak);
+  }, [myStreak]);
 
   useEffect(() => {
     if (hasAnswered) {
@@ -155,10 +181,18 @@ export default function QuestionPhase() {
 
   useEffect(() => {
     if (myAnswer) {
-      if (myAnswer.correct) SFX.correct();
-      else SFX.wrong();
+      if (myAnswer.correct) {
+        SFX.correct();
+      } else {
+        if (prevStreak >= 3) {
+          SFX.glassShatter();
+          setPrevStreak(0);
+        } else {
+          SFX.wrong();
+        }
+      }
     }
-  }, [myAnswer]);
+  }, [myAnswer, prevStreak]);
 
   const handleSubmit = (answer: string | number) => {
     if (isSubmitting || hasAnswered) return;

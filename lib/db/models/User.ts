@@ -20,6 +20,8 @@ export interface IUser extends Document {
     budget: number; bought: string[]; priceMulti: number; auctScore: number;
     disasterId: string | null; applied: string[]; disasterScore: number;
   };
+  streak: number;
+  faction?: string;
 }
 
 const UserSchema: Schema = new Schema({
@@ -28,6 +30,8 @@ const UserSchema: Schema = new Schema({
   score: { type: Number, default: 0, min: 0 },
   lastActive: { type: Date, default: Date.now },
   isAdmin: { type: Boolean, default: false },
+  streak: { type: Number, default: 0 },
+  faction: { type: String, enum: ['team_sentinel', 'team_landsat', 'team_modis'] },
   
   // Progress Persistence
   unlocked: { type: [Number], default: [1] },

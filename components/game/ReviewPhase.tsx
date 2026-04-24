@@ -1,6 +1,7 @@
 'use client';
 import { motion } from 'framer-motion';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
+import ReactionRow from './ReactionRow';
 
 export default function ReviewPhase() {
   const { reviewData, myAnswer } = useGameSyncStore();
@@ -29,6 +30,7 @@ export default function ReviewPhase() {
           </div>
         </div>
       </motion.div>
+      <ReactionRow />
     </div>
   );
 }

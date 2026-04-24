@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:realtime\"",
     "dev:frontend": "next dev",
-    "dev:realtime": "nodemon --exec ts-node --project realtime/tsconfig.json realtime/server.ts",
+    "dev:realtime": "nodemon -e ts,json --exec ts-node --project realtime/tsconfig.json realtime/server.ts",
     "build": "next build",
     "build:realtime": "tsc --project realtime/tsconfig.json",
     "start": "next start",

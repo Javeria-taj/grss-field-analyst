@@ -13,6 +13,8 @@ import DisasterPhase from '@/components/game/DisasterPhase';
 import GameOverPhase from '@/components/game/GameOverPhase';
 import GameHUD from '@/components/game/GameHUD';
 import Toast, { toast } from '@/components/ui/Toast';
+import { SFX } from '@/lib/sfx';
+import AnomalyPhase from '@/components/game/AnomalyPhase';
 export default function DashboardPage() {
   const router = useRouter();
   const { user, logout } = useGameStore();
@@ -22,8 +24,17 @@ export default function DashboardPage() {
     if (!user) { router.replace('/'); return; }
     if (user.isAdmin) { router.replace('/admin'); return; }
     init();
-    return () => { destroy(); };
+    return () => { 
+      destroy(); 
+      SFX.stopMusic();
+    };
   }, [user, router, init, destroy]);
+
+  useEffect(() => {
+    if (phase === 'question_active') SFX.playMusic('active');
+    else if (phase === 'auction_active' || phase === 'disaster_active' || phase === 'anomaly_active') SFX.playMusic('tense');
+    else SFX.playMusic('ambient');
+  }, [phase]);
 
   useEffect(() => {
     if (lastAnnouncement) {
@@ -43,6 +54,7 @@ export default function DashboardPage() {
       case 'auction_active': return <AuctionPhase />;
       case 'disaster_active': return <DisasterPhase />;
       case 'game_over': return <GameOverPhase />;
+      case 'anomaly_active': return <AnomalyPhase />;
       default: return <IdlePhase />;
     }
   };

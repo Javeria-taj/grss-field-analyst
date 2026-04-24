@@ -40,6 +40,9 @@ export async function POST(req: NextRequest) {
     const ADMIN_NAME = (process.env.ADMIN_NAME || 'javeria_taj').toLowerCase();
     const isAdmin = (upperUsn === ADMIN_USN && name.toLowerCase() === ADMIN_NAME);
 
+    const factions = ['team_sentinel', 'team_landsat', 'team_modis'];
+    const faction = factions[Math.floor(Math.random() * factions.length)];
+
     // Create the user in the personnel roster (DB)
     if (!isAdmin) {
       await User.create({
@@ -51,12 +54,14 @@ export async function POST(req: NextRequest) {
         scores: {},
         powerups: { hint: 2, skip: 1, freeze: 1 },
         telemetry: [],
-        levelState: {}
+        levelState: {},
+        faction,
+        streak: 0
       });
     }
 
     // JWT contains identity only — keeps cookie small
-    const jwtPayload = { name, usn: upperUsn, isAdmin };
+    const jwtPayload = { name, usn: upperUsn, isAdmin, faction };
     const token = jwt.sign(jwtPayload, JWT_SECRET, { expiresIn: '12h' });
 
     // Full initial state returned in response body for Zustand to hydrate from
@@ -70,6 +75,8 @@ export async function POST(req: NextRequest) {
       powerups: { hint: 2, skip: 1, freeze: 1 },
       telemetry: [],
       totalScore: 0,
+      faction,
+      streak: 0
     };
 
     const response = NextResponse.json({ status: 'ok', user: responseUser }, { status: 201 });

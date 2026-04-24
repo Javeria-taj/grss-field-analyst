@@ -2,10 +2,23 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
+import { Haptics } from '@/lib/haptics';
+import { useEffect } from 'react';
 
 export default function DisasterPhase() {
-  const { disasterInfo, auctionOwned, auctionTools, deployTools, hasDeployed } = useGameSyncStore();
+  const { disasterInfo, auctionOwned, auctionTools, deployTools, hasDeployed, timerEndTime, serverTimeOffset } = useGameSyncStore();
   const [selected, setSelected] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (hasDeployed) return;
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((timerEndTime - (Date.now() - serverTimeOffset)) / 1000));
+      if (remaining <= 5 && remaining > 0) {
+        Haptics.heartbeat();
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [timerEndTime, serverTimeOffset, hasDeployed]);
 
   if (!disasterInfo) return null;
 

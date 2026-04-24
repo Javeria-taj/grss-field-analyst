@@ -25,7 +25,7 @@ export default function AdminDashboard() {
     init, destroy, connected, phase, adminStats, leaderboard,
     adminStartLevel, adminPause, adminReset, adminBroadcast,
     timerEndTime, paused, adminTimerAdd10, adminTimerPauseResume, adminUpdateLevelLimit,
-    adminForceEndQuestion, adminKickPlayer, adminLiveStats
+    adminForceEndQuestion, adminKickPlayer, adminLiveStats, adminTriggerAnomaly
   } = useGameSyncStore();
   const [broadcastMsg, setBroadcastMsg] = useState('');
   const [localRemaining, setLocalRemaining] = useState(0);
@@ -147,14 +147,30 @@ export default function AdminDashboard() {
               <motion.button className="btn btn-outline btn-sm" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}
                 onClick={() => { if (!confirm('Reset entire game?')) return; SFX.click(); adminReset(); toast('Game reset', 'inf'); }}
                 whileHover={{ scale: 1.04 }}>🔄 RESET GAME</motion.button>
-              {phase === 'question_active' && (
-                <motion.button className="btn btn-outline btn-sm" 
-                  style={{ borderColor: 'var(--danger)', color: 'var(--danger)', background: 'rgba(251,113,133,0.1)' }}
-                  onClick={() => { if(confirm('⚠️ FORCE END CURRENT QUESTION?')) adminForceEndQuestion(); }}
-                  whileHover={{ scale: 1.04 }}>
-                  ⚠️ FORCE END QUESTION
-                </motion.button>
-              )}
+              <motion.button className="btn btn-outline btn-sm" 
+                disabled={phase !== 'question_active'}
+                style={{ 
+                  borderColor: 'var(--danger)', 
+                  color: 'var(--danger)', 
+                  background: phase === 'question_active' ? 'rgba(251,113,133,0.1)' : 'transparent',
+                  opacity: phase === 'question_active' ? 1 : 0.5
+                }}
+                onClick={() => { if(confirm('⚠️ FORCE END CURRENT QUESTION?')) adminForceEndQuestion(); }}
+                whileHover={phase === 'question_active' ? { scale: 1.04 } : {}}>
+                ⚠️ FORCE END QUESTION
+              </motion.button>
+              <motion.button className="btn btn-outline btn-sm" 
+                disabled={phase === 'anomaly_active' || phase === 'idle' || phase === 'game_over'}
+                style={{ 
+                  borderColor: '#ff0033', 
+                  color: '#ff0033', 
+                  background: 'rgba(255,0,51,0.1)',
+                  opacity: (phase === 'anomaly_active' || phase === 'idle' || phase === 'game_over') ? 0.5 : 1
+                }}
+                onClick={() => { if(confirm('🚀 INJECT ZERO-DAY ANOMALY?\nThis will sabotage all players immediately.')) adminTriggerAnomaly(); }}
+                whileHover={{ scale: 1.04 }}>
+                💀 TRIGGER ZERO-DAY
+              </motion.button>
             </div>
           </motion.div>
 

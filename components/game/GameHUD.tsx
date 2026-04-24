@@ -4,12 +4,12 @@ import { motion } from 'framer-motion';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
 
 export default function GameHUD({ user, connected, paused, onLogout }: {
-  user: { name: string; usn: string };
+  user: { name: string; usn: string; faction?: string };
   connected: boolean;
   paused: boolean;
   onLogout: () => void;
 }) {
-  const { timerEndTime, timerTotal, leaderboard, currentLevel, phase, myTotalScore, serverTimeOffset } = useGameSyncStore();
+  const { timerEndTime, timerTotal, leaderboard, currentLevel, phase, myTotalScore, serverTimeOffset, myStreak } = useGameSyncStore();
   const myEntry = leaderboard.find(e => e.usn === user.usn.toUpperCase());
   
   // Real-time score: prioritize store state (immediate feedback) over leaderboard entries (throttled)
@@ -57,10 +57,18 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
     return () => cancelAnimationFrame(frameId);
   }, [timerEndTime, timerTotal, paused, showTimer]);
 
+  const isFire = myStreak >= 3;
+  const factionColor = user.faction === 'team_sentinel' ? '#3b82f6' : user.faction === 'team_landsat' ? '#10b981' : user.faction === 'team_modis' ? '#a855f7' : 'var(--accent)';
+
   return (
     <motion.div
       initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
+      animate={{ 
+        y: 0, 
+        opacity: 1,
+        borderBottomColor: isFire ? '#f97316' : 'var(--border)',
+        boxShadow: isFire ? '0 0 20px rgba(249, 115, 22, 0.2)' : 'none'
+      }}
       style={{
         padding: '10px 16px', background: 'rgba(3,7,15,0.96)',
         borderBottom: '1px solid var(--border)', display: 'flex',
@@ -74,12 +82,15 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
           transition={{ duration: 1.5, repeat: connected ? Infinity : 0 }}
           style={{
             width: 8, height: 8, borderRadius: '50%',
-            background: connected ? 'var(--accent2)' : 'var(--danger)',
-            boxShadow: connected ? '0 0 6px var(--accent2)' : 'none',
+            background: connected ? factionColor : 'var(--danger)',
+            boxShadow: connected ? `0 0 8px ${factionColor}` : 'none',
           }}
         />
         <div>
-          <div className="font-orb t-accent" style={{ fontSize: '0.85rem' }}>{user.name.toUpperCase()}</div>
+          <div className="font-orb" style={{ fontSize: '0.85rem', color: factionColor, display: 'flex', alignItems: 'center', gap: 4 }}>
+            {user.name.toUpperCase()}
+            {isFire && <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity }}>🔥</motion.span>}
+          </div>
           <div style={{ fontSize: '0.65rem', color: 'var(--text2)' }}>{user.usn}</div>
         </div>
       </div>
@@ -99,7 +110,7 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
         {currentLevel > 0 && (
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '0.55rem', color: 'var(--text2)' }}>MISSION</div>
-            <div className="font-orb t-accent" style={{ fontSize: '1rem' }}>{currentLevel}</div>
+            <div className="font-orb" style={{ fontSize: '1rem', color: factionColor }}>{currentLevel}</div>
           </div>
         )}
         {showTimer && (

@@ -1,11 +1,12 @@
 import { create } from 'zustand';
 import { io, Socket } from 'socket.io-client';
 import { toast } from '@/components/ui/Toast';
+import { SFX } from '@/lib/sfx';
 
 // ── Types (mirrored from server protocol) ──
 export type GamePhase =
   | 'idle' | 'level_intro' | 'question_active' | 'question_review'
-  | 'level_complete' | 'auction_active' | 'disaster_active' | 'game_over';
+  | 'level_complete' | 'auction_active' | 'disaster_active' | 'game_over' | 'anomaly_active';
 
 export interface ClientQuestion {
   index: number; total: number;
@@ -19,6 +20,7 @@ export interface ClientQuestion {
 export interface LeaderboardEntry {
   rank: number; name: string; usn: string;
   totalScore: number; currentLevelScore: number;
+  streak: number; faction?: string;
 }
 
 export interface TelemetryData {
@@ -49,6 +51,30 @@ export interface DisasterInfo {
 
 export interface AuctionToolInfo {
   id: string; name: string; price: number; icon: string; desc: string;
+}
+
+export interface AnomalyPayload {
+  type: 'patch' | 'identify';
+  targetId: string;
+  gridSize: number;
+  timeLimit: number;
+}
+
+export interface AnomalyResultPayload {
+  success: boolean;
+  penalty: number;
+  newTotalScore: number;
+}
+
+export interface MissionCommentaryPayload {
+  text: string;
+  mood: 'snarky' | 'encouraging' | 'urgent' | 'celebratory';
+}
+
+export interface AnomalyResultPayload {
+  success: boolean;
+  penalty: number;
+  newTotalScore: number;
 }
 
 // ── Store State ──
@@ -120,7 +146,14 @@ interface GameSyncState {
     levelLimits: Record<number, number>;
   } | null;
 
-  adminLiveStats: { distribution: Record<string, number> } | null;
+  adminLiveStats: { 
+    distribution: Record<string, number>;
+    reactions?: { id: string; emoji: string }[];
+    factionScores?: Record<string, number>;
+  } | null;
+
+  factionScores: Record<string, number>;
+  myStreak: number;
 
   bankQuestions: any[];
 
@@ -129,6 +162,14 @@ interface GameSyncState {
 
   // Announcements
   lastAnnouncement: string | null;
+
+  // Anomaly (Sabotage)
+  anomalyData: AnomalyPayload | null;
+  anomalyResult: AnomalyResultPayload | null;
+  hasFixedAnomaly: boolean;
+
+  // Mission Commander
+  missionCommentary: MissionCommentaryPayload | null;
 
   // Actions
   init: () => void;
@@ -153,6 +194,10 @@ interface GameSyncState {
   adminUpdateLevelLimit: (level: number, limit: number) => void;
   adminForceEndQuestion: () => void;
   adminKickPlayer: (usn: string) => void;
+  adminTriggerAnomaly: () => void;
+  sendReaction: (emoji: string) => void;
+  submitAnomalyFix: (targetId: string) => void;
+  queuedAnswer: string | number | null;
 }
 
 export const useGameSyncStore = create<GameSyncState>((set, get) => ({
@@ -193,6 +238,13 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   bankQuestions: [],
   lastAnnouncement: null,
   preloadedAssets: [],
+  factionScores: {},
+  myStreak: 0,
+  queuedAnswer: null,
+  anomalyData: null,
+  anomalyResult: null,
+  hasFixedAnomaly: false,
+  missionCommentary: null,
 
   init: () => {
     if (get().socket?.connected) return;
@@ -204,10 +256,14 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       reconnectionDelayMax: 4000,
       randomizationFactor: 0.5,
       withCredentials: true,
+      query: { 
+        role: typeof window !== 'undefined' && window.location.pathname === '/projector' ? 'spectator' : 'player'
+      }
     });
 
-    socket.on('admin_live_stats', (data: { distribution: Record<string, number> }) => {
+    socket.on('admin_live_stats', (data: any) => {
       set({ adminLiveStats: data });
+      if (data.factionScores) set({ factionScores: data.factionScores });
     });
 
     socket.on('force_disconnect', (data: { reason: string }) => {
@@ -219,6 +275,27 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       set({ connected: true });
       // Emit full sync request in case of reconnect after server snapshot hydration
       socket.emit('request_full_sync');
+
+      // Offline Grace: check for queued answer in state
+      const { queuedAnswer } = get();
+      if (queuedAnswer !== null) {
+        socket.emit('submit_answer', { answer: queuedAnswer });
+        set({ queuedAnswer: null });
+        toast('Connection restored. Answer submitted!', 'ok');
+      }
+
+      // Legacy fallback: check for pending answer in localStorage
+      const pending = localStorage.getItem('grss_pending_answer');
+      if (pending) {
+        try {
+          const { answer, endTime } = JSON.parse(pending);
+          if (Date.now() < endTime) {
+            socket.emit('submit_answer', { answer });
+            toast('Reconnected. Answer submitted!', 'ok');
+          }
+        } catch (e) {}
+        localStorage.removeItem('grss_pending_answer');
+      }
     });
     socket.on('disconnect', () => set({ connected: false }));
 
@@ -248,6 +325,8 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         auctionPrices: data.auctionState?.prices ?? {},
         disasterInfo: data.disasterInfo,
         myTelemetry: data.myScore?.telemetry || [],
+        myStreak: data.myScore?.streak ?? 0,
+        factionScores: data.factionScores || {},
       });
     });
 
@@ -310,7 +389,8 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         hasAnswered: true,
         myTotalScore: data.totalScore ?? state.myTotalScore,
         myLevelScore: data.currentLevelScore ?? state.myLevelScore,
-        myTelemetry: data.telemetry ?? state.myTelemetry
+        myTelemetry: data.telemetry ?? state.myTelemetry,
+        myStreak: (data as any).streak ?? state.myStreak
       }));
     });
 
@@ -345,6 +425,8 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         auctionTools: [], auctionPrices: {}, auctionBudget: 10000,
         auctionOwned: [], disasterInfo: null, deployedTools: [], hasDeployed: false,
         finalLeaderboard: [],
+        anomalyData: null, anomalyResult: null, hasFixedAnomaly: false,
+        missionCommentary: null,
       });
     });
 
@@ -409,6 +491,45 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       set({ lastAnnouncement: msg });
     });
 
+    // ── Anomaly listeners ──
+    socket.on('anomaly_detected', (data: AnomalyPayload) => {
+      set({ 
+        phase: 'anomaly_active', 
+        anomalyData: data, 
+        anomalyResult: null,
+        hasFixedAnomaly: false 
+      });
+      SFX.glitch(); // We'll need to add this sound
+    });
+
+    socket.on('anomaly_fix_success', (data: { targetId: string }) => {
+      set({ hasFixedAnomaly: true });
+      SFX.success();
+    });
+
+    socket.on('anomaly_resolved', (data: AnomalyResultPayload) => {
+      set({ anomalyResult: data, myTotalScore: data.newTotalScore });
+      if (!data.success) {
+        SFX.alarm();
+        toast(`SECURITY BREACH: -${data.penalty} POINTS`, 'err');
+      } else {
+        toast('FIREWALL PATCHED', 'ok');
+      }
+    });
+
+    socket.on('anomaly_cleared', () => {
+      set({ phase: 'idle', anomalyData: null });
+      // If we were at Level 3, idle is fine as Level 4 usually started manually or by timer
+      // But actually, we should probably return to a neutral state
+    });
+
+    // ── Mission Commander ──
+    socket.on('mission_commander_comment', (data: MissionCommentaryPayload) => {
+      set({ missionCommentary: data });
+      // Clear after 10 seconds
+      setTimeout(() => set({ missionCommentary: null }), 10000);
+    });
+
     // ── Admin error ──
     socket.on('admin_error', (data: { error: string }) => {
       console.warn('Admin error:', data.error);
@@ -424,8 +545,20 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
 
   // ── Player Actions ──
   submitAnswer: (answer) => {
-    const { socket, hasAnswered } = get();
-    if (!socket?.connected || hasAnswered) return;
+    const { socket, hasAnswered, timerEndTime } = get();
+    if (hasAnswered) return;
+
+    if (!socket?.connected) {
+      // Offline Grace: Store in state and localStorage (for persistence)
+      set({ queuedAnswer: answer, hasAnswered: true });
+      localStorage.setItem('grss_pending_answer', JSON.stringify({ 
+        answer, 
+        endTime: timerEndTime 
+      }));
+      toast('Network unstable. Answer queued!', 'inf');
+      return;
+    }
+
     socket.emit('submit_answer', { answer });
   },
 
@@ -441,18 +574,21 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   buyTool: (toolId) => {
     const { socket } = get();
     if (!socket?.connected) return;
+    SFX.click();
     socket.emit('buy_tool', { toolId });
   },
 
   sellTool: (toolId) => {
     const { socket } = get();
     if (!socket?.connected) return;
+    SFX.click();
     socket.emit('sell_tool', { toolId });
   },
 
   deployTools: (toolIds) => {
     const { socket, hasDeployed } = get();
     if (!socket?.connected || hasDeployed) return;
+    SFX.click();
     set({ deployedTools: toolIds });
     socket.emit('deploy_tools', { toolIds });
   },
@@ -523,5 +659,21 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   adminKickPlayer: (usn) => {
     const { socket } = get();
     if (socket?.connected) socket.emit('admin_kick_player', { usn });
+  },
+
+  adminTriggerAnomaly: () => {
+    const { socket } = get();
+    if (socket?.connected) socket.emit('admin_trigger_anomaly');
+  },
+
+  sendReaction: (emoji) => {
+    const { socket } = get();
+    if (socket?.connected) socket.emit('reaction', emoji);
+  },
+
+  submitAnomalyFix: (targetId) => {
+    const { socket, hasFixedAnomaly } = get();
+    if (!socket?.connected || hasFixedAnomaly) return;
+    socket.emit('submit_anomaly_fix', { targetId });
   },
 }));

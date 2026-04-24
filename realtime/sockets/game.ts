@@ -23,32 +23,52 @@ export default function setupGameSockets(io: Server) {
   const engine = new GameEngine(io);
   const rateLimitMap = new Map<string, number>();
 
+  const checkRateLimit = (socketId: string, limitMs: number = 150): boolean => {
+    const now = Date.now();
+    const last = rateLimitMap.get(socketId) || 0;
+    if (now - last < limitMs) return false;
+    rateLimitMap.set(socketId, now);
+    return true;
+  };
+
   // Step 5: Hydrate engine from DB on boot
   engine.hydrateFromDb().catch(err => console.error('Failed to hydrate DB', err));
 
   // ── Auth Middleware ──
   io.use((socket: Socket, next) => {
     try {
+      const role = socket.handshake.query.role;
       const cookieStr = socket.request.headers.cookie || '';
       const cookies = parseCookies(cookieStr);
-      if (!cookies.auth_token) return next(new Error('Authentication required'));
-      const decoded = jwt.verify(cookies.auth_token, JWT_SECRET) as jwt.JwtPayload;
-      (socket as AuthSocket).user = decoded;
+      
+      if (!cookies.auth_token) {
+        if (role === 'spectator') return next();
+        return next(new Error('Authentication required'));
+      }
+      
+      const decoded = jwt.verify(cookies.auth_token, JWT_SECRET);
+      (socket as AuthSocket).user = decoded as jwt.JwtPayload;
       next();
     } catch {
+      if (socket.handshake.query.role === 'spectator') return next();
       next(new Error('Invalid or expired session'));
     }
   });
 
   io.on('connection', (rawSocket: Socket) => {
     const socket = rawSocket as AuthSocket;
-    const usn = socket.user?.usn?.toUpperCase() || '';
-    const name = socket.user?.name || 'Unknown';
+    const isSpectator = socket.handshake.query.role === 'spectator';
+    const usn = socket.user?.usn?.toUpperCase() || (isSpectator ? `SPECTATOR_${socket.id.slice(0, 4)}` : '');
+    const name = socket.user?.name || (isSpectator ? 'Spectator' : 'Unknown');
     const isAdmin = !!socket.user?.isAdmin;
 
-    // Register player (non-admin)
-    if (!isAdmin) {
-      engine.registerPlayer(socket.id, usn, name);
+    // Register player/spectator
+    if (isAdmin) {
+      // Admins don't need registration in player list
+    } else if (isSpectator) {
+      engine.registerSpectator(socket.id);
+    } else {
+      engine.registerPlayer(socket.id, usn, name, socket.user?.faction);
     }
 
     if (usn) socket.join(usn);
@@ -128,6 +148,11 @@ export default function setupGameSockets(io: Server) {
       engine.addBankQuestion(data.question);
     });
 
+    socket.on('admin_trigger_anomaly', () => {
+      if (!isAdmin) return;
+      engine.triggerAnomaly();
+    });
+
     socket.on('admin_update_bank_question', (data: { id: string; updates: Partial<BankQuestion> }) => {
       if (!isAdmin) return;
       engine.updateBankQuestion(data.id, data.updates);
@@ -162,16 +187,13 @@ export default function setupGameSockets(io: Server) {
     socket.on('submit_answer', (data: { answer: string | number }) => {
       if (isAdmin) return;
       // Rate limit
-      const now = Date.now();
-      const last = rateLimitMap.get(socket.id) || 0;
-      if (now - last < 500) return;
-      rateLimitMap.set(socket.id, now);
+      if (!checkRateLimit(socket.id, 150)) return;
 
       const result = engine.handleAnswer(usn, data.answer);
       if (result) {
         socket.emit('answer_result', result);
         // Admin Emit Live Stats (Exclusively to admins)
-        io.to('admins').emit('admin_live_stats', engine.getLiveStats());
+        io.to('admins').emit('admin_live_stats', engine.getLiveAnswerStats());
       }
     });
 
@@ -180,10 +202,7 @@ export default function setupGameSockets(io: Server) {
       if (typeof data.letter !== 'string' || data.letter.length !== 1) return;
 
       // Rate limit hangman guesses (150ms)
-      const now = Date.now();
-      const last = rateLimitMap.get(socket.id) || 0;
-      if (now - last < 150) return;
-      rateLimitMap.set(socket.id, now);
+      if (!checkRateLimit(socket.id, 150)) return;
 
       const result = engine.handleLetterGuess(usn, data.letter);
       if (result) {
@@ -203,12 +222,14 @@ export default function setupGameSockets(io: Server) {
 
     socket.on('buy_tool', (data: { toolId: string }) => {
       if (isAdmin) return;
+      if (!checkRateLimit(socket.id, 150)) return;
       const result = engine.handleBuyTool(usn, data.toolId);
       if (result) socket.emit('auction_update', result);
     });
 
     socket.on('sell_tool', (data: { toolId: string }) => {
       if (isAdmin) return;
+      if (!checkRateLimit(socket.id, 150)) return;
       const result = engine.handleSellTool(usn, data.toolId);
       if (result) socket.emit('auction_update', result);
     });
@@ -218,6 +239,20 @@ export default function setupGameSockets(io: Server) {
       if (!Array.isArray(data.toolIds)) return;
       const ok = engine.handleDeployTools(usn, data.toolIds);
       socket.emit('deploy_result', { success: ok });
+    });
+
+    socket.on('submit_anomaly_fix', (data: { targetId: string }) => {
+      if (isAdmin) return;
+      const success = engine.handleAnomalyFix(usn, data.targetId);
+      if (success) {
+        socket.emit('anomaly_fix_success', { targetId: data.targetId });
+      }
+    });
+
+    socket.on('reaction', (emoji: string) => {
+      if (isAdmin) return;
+      if (typeof emoji !== 'string' || emoji.length > 5) return; // Basic validation
+      engine.handleReaction(emoji);
     });
 
     // ════════════════════════════════════════════════════════════
@@ -255,6 +290,8 @@ export default function setupGameSockets(io: Server) {
     }
 
     // 2. Persist Engine Snapshot
-    engine.snapshotToDb();
+    if (mongoose.connection.readyState === 1) {
+      engine.snapshotToDb();
+    }
   }, 10000); // every 10 seconds
 }

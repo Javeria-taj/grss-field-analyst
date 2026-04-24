@@ -21,6 +21,8 @@ export interface IGameSnapshot extends Document {
     levelScores: Record<string, number>;
     currentLevelScore: number;
     telemetry: any[];
+    streak: number;
+    faction?: string;
   }>;
   questionBank: any[];  // serialised BankQuestion[]
   levelLimits: Record<number, number>;

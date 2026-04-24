@@ -5,11 +5,12 @@ import type {
   GamePhase, PlayerScore, PlayerAnswer, HangmanPlayerState, AuctionPlayerState,
   ClientQuestion, LeaderboardEntry, LevelIntroPayload, QuestionEndPayload,
   LevelCompletePayload, GameStateSync, AdminStatsPayload, DisasterInfo,
-  BankQuestion, TimerStartPayload, AdminLiveStatsPayload
+  BankQuestion, TimerStartPayload, AdminLiveStatsPayload, AnomalyPayload, AnomalyResultPayload
 } from './types';
 import dbConnect from '../../lib/db/connect';
 import { GameSnapshot } from '../../lib/db/models/GameSnapshot';
 import { randomUUID } from 'crypto';
+import { MissionCommander } from './MissionCommander';
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -80,6 +81,12 @@ export class GameEngine {
   private priceMulti = 1.0;
   private currentDisaster: typeof DATA.level5.disasters[0] | null = null;
   private l5phase: 'auction' | 'disaster' | null = null;
+  private recentReactions: { id: string; emoji: string }[] = [];
+  private factionScores: Record<string, number> = { team_sentinel: 0, team_landsat: 0, team_modis: 0 };
+
+  // ── Anomaly State ──
+  private anomalyTarget: string = '';
+  private anomalyFixers = new Set<string>();
 
   // ── Stats ──
   private levelCorrectCounts: number[] = [];
@@ -153,14 +160,18 @@ export class GameEngine {
   // PLAYER REGISTRATION
   // ═══════════════════════════════════════════════════════════════
 
-  registerPlayer(socketId: string, usn: string, name: string) {
+  registerPlayer(socketId: string, usn: string, name: string, faction?: string) {
     this.connectedPlayers.set(socketId, usn);
     if (!this.playerScores.has(usn)) {
       this.playerScores.set(usn, {
         usn, name, totalScore: 0, levelScores: {}, currentLevelScore: 0,
-        telemetry: [],
+        telemetry: [], streak: 0, faction: faction || 'team_sentinel'
       });
     }
+  }
+
+  registerSpectator(socketId: string) {
+    this.connectedPlayers.set(socketId, `SPECTATOR_${socketId.slice(0, 4)}`);
   }
 
   unregisterPlayer(socketId: string) {
@@ -403,20 +414,35 @@ export class GameEngine {
       ps.currentLevelScore += score;
       
       // Log Telemetry
-      ps.telemetry.push({
-        qIndex: this.currentQIndex,
-        timeTaken: this.timerTotal - this.timerRemaining,
-        correct,
-        points: score
-      });
-    }
+        ps.telemetry.push({
+          qIndex: this.currentQIndex,
+          timeTaken: this.timerTotal - this.timerRemaining,
+          correct,
+          points: score
+        });
 
-    const pa: PlayerAnswer = {
-      usn, answer, timeRemaining: this.timerRemaining, correct, score,
-      totalScore: ps?.totalScore ?? 0,
-      currentLevelScore: ps?.currentLevelScore ?? 0,
-      telemetry: ps?.telemetry || []
-    };
+        // Streak & Multiplier Logic
+        if (correct) {
+          ps.streak++;
+        } else {
+          ps.streak = 0;
+        }
+      }
+
+      // Apply multiplier if streak >= 3
+      const finalScore = (ps && ps.streak >= 3) ? Math.round(score * 1.2) : score;
+      if (ps && finalScore !== score) {
+        // Adjust totalScore if multiplier applied
+        ps.totalScore += (finalScore - score);
+        ps.currentLevelScore += (finalScore - score);
+      }
+
+      const pa: PlayerAnswer = {
+        usn, answer, timeRemaining: this.timerRemaining, correct, score: finalScore,
+        totalScore: ps?.totalScore ?? 0,
+        currentLevelScore: ps?.currentLevelScore ?? 0,
+        telemetry: ps?.telemetry || []
+      };
     this.currentAnswers.set(usn, pa);
 
     // Flag for throttled broadcast
@@ -433,7 +459,7 @@ export class GameEngine {
     }
 
     // For Admin: Calculate live stats distribution
-    this.io.to('admins').emit('admin_live_stats', this.getLiveStats());
+    this.io.to('admins').emit('admin_live_stats', this.getLiveAnswerStats());
 
     return { 
       usn,
@@ -480,8 +506,20 @@ export class GameEngine {
         avgTimeUsed: answeredCount > 0 ? Math.round(totalTimeUsed / answeredCount) : 0,
       },
     };
+    this.updateFactionScores();
     this.io.emit('question_end', payload);
     this.broadcastAdminStats();
+
+    // Trigger AI Mission Commander Commentary
+    MissionCommander.generateCommentary(
+      q.clientQ.question || q.clientQ.scrambled || 'Current Question',
+      String(q.answer),
+      this.getLiveAnswerStats(),
+      totalPlayers,
+      this.phase
+    ).then(commentary => {
+      this.io.emit('mission_commander_comment', commentary);
+    });
 
     // Auto-advance after review period
     this.startCountdown(REVIEW_TIME, () => {
@@ -517,6 +555,11 @@ export class GameEngine {
 
     this.io.emit('level_complete', payload);
     this.broadcastAdminStats();
+
+    // Zero-Day Anomaly (Sabotage Event) triggered 8 seconds after Level 3 completion
+    if (this.currentLevel === 3) {
+      setTimeout(() => this.triggerAnomaly(), 8000);
+    }
 
     // If level 5 just completed, game over
     if (this.currentLevel >= 5) {
@@ -737,6 +780,7 @@ export class GameEngine {
 
     this.leaderboardDirty = true;
     this.adminStatsDirty = true;
+    this.updateFactionScores();
     this.io.emit('leaderboard_update', this.getLeaderboard());
     this.endLevel();
   }
@@ -778,7 +822,7 @@ export class GameEngine {
     this.timerRemaining += seconds;
     this.timerTotal += seconds;
     this.endTime += seconds * 1000;
-    this.io.emit('timer_override', { endTime: this.endTime });
+    this.io.emit('timer_override', { endTime: this.endTime, serverTime: Date.now() });
     this.broadcastAdminStats();
   }
 
@@ -791,7 +835,7 @@ export class GameEngine {
     this.io.emit('game_paused', { paused: this.paused });
     // Whenever we pause or resume, recalculate the absolute end time
     // and broadcast it so clients can correct their local timers
-    this.io.emit('timer_override', { endTime: this.endTime });
+    this.io.emit('timer_override', { endTime: this.endTime, serverTime: Date.now() });
     return this.paused;
   }
 
@@ -805,6 +849,7 @@ export class GameEngine {
       .map((ps, i) => ({
         rank: i + 1, name: ps.name, usn: ps.usn,
         totalScore: ps.totalScore, currentLevelScore: ps.currentLevelScore,
+        streak: ps.streak, faction: ps.faction
       }));
     return entries;
   }
@@ -869,6 +914,7 @@ export class GameEngine {
       leaderboard: this.getLeaderboard(), levelIntro,
       reviewData: null, myScore: ps, myAnswer: pa,
       hangmanState, auctionState, disasterInfo,
+      factionScores: this.factionScores
     };
   }
 
@@ -919,6 +965,9 @@ export class GameEngine {
     this.levelCorrectCounts = [];
     this.levelTotalAnswered = [];
 
+    this.recentReactions = [];
+    this.factionScores = { team_sentinel: 0, team_landsat: 0, team_modis: 0 };
+
     this.io.emit('game_reset', {});
     this.broadcastAdminStats();
   }
@@ -928,13 +977,119 @@ export class GameEngine {
     return [...new Set(this.connectedPlayers.values())];
   }
 
-  public getLiveStats(): AdminLiveStatsPayload {
+  public getLiveAnswerStats(): AdminLiveStatsPayload {
     const distribution: Record<string, number> = {};
     for (const [, pa] of this.currentAnswers) {
       const val = String(pa.answer).toUpperCase();
       distribution[val] = (distribution[val] || 0) + 1;
     }
-    return { distribution };
+    const reactions = [...this.recentReactions];
+    this.recentReactions = []; // Clear after broadcast
+    return { distribution, reactions, factionScores: this.factionScores };
+  }
+
+  public handleReaction(emoji: string) {
+    this.recentReactions.push({ id: randomUUID(), emoji });
+    if (this.recentReactions.length > 50) this.recentReactions.shift();
+    this.adminStatsDirty = true; // Trigger broadcast
+  }
+
+  private updateFactionScores() {
+    const totals: Record<string, number> = { team_sentinel: 0, team_landsat: 0, team_modis: 0 };
+    const counts: Record<string, number> = { team_sentinel: 0, team_landsat: 0, team_modis: 0 };
+
+    for (const ps of this.playerScores.values()) {
+      const f = ps.faction || 'team_sentinel';
+      totals[f] = (totals[f] || 0) + ps.totalScore;
+      counts[f] = (counts[f] || 0) + 1;
+    }
+
+    for (const f in totals) {
+      this.factionScores[f] = counts[f] > 0 ? Math.round(totals[f] / counts[f]) : 0;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // ANOMALY (SABOTAGE EVENT)
+  // ═══════════════════════════════════════════════════════════════
+
+  public triggerAnomaly() {
+    if (this.phase === 'game_over') return;
+    this.phase = 'anomaly_active';
+    this.anomalyFixers.clear();
+    
+    // Create a 3x3 grid (9 nodes), pick one at random
+    const targetIdx = Math.floor(Math.random() * 9);
+    this.anomalyTarget = `node_${targetIdx}`;
+
+    const payload: AnomalyPayload = {
+      type: 'patch',
+      targetId: this.anomalyTarget,
+      gridSize: 9,
+      timeLimit: 15
+    };
+
+    this.io.emit('anomaly_detected', payload);
+    this.broadcastAdminStats();
+    
+    // Trigger Urgent AI Commentary
+    MissionCommander.generateCommentary(
+      "SECURITY BREACH",
+      this.anomalyTarget,
+      { distribution: {}, factionScores: {} },
+      this.getPlayerCount(),
+      this.phase
+    ).then(commentary => {
+      this.io.emit('mission_commander_comment', commentary);
+    });
+    
+    // Start 15-second countdown
+    this.startCountdown(15, () => this.endAnomaly());
+  }
+
+  public handleAnomalyFix(usn: string, targetId: string): boolean {
+    if (this.phase !== 'anomaly_active') return false;
+    if (targetId === this.anomalyTarget) {
+      this.anomalyFixers.add(usn);
+      return true;
+    }
+    return false;
+  }
+
+  private endAnomaly() {
+    if (this.phase !== 'anomaly_active') return;
+    
+    // Penalty for those who didn't fix it
+    const activeUSNs = this.getActiveUSNs();
+    for (const usn of activeUSNs) {
+      if (!this.anomalyFixers.has(usn)) {
+        const ps = this.playerScores.get(usn);
+        if (ps) {
+          const penalty = 500;
+          ps.totalScore = Math.max(0, ps.totalScore - penalty);
+          // Emit individual result
+          this.io.to(usn).emit('anomaly_resolved', { 
+            success: false, 
+            penalty, 
+            newTotalScore: ps.totalScore 
+          });
+        }
+      } else {
+        const ps = this.playerScores.get(usn);
+        if (ps) {
+          this.io.to(usn).emit('anomaly_resolved', { 
+            success: true, 
+            penalty: 0, 
+            newTotalScore: ps.totalScore 
+          });
+        }
+      }
+    }
+
+    this.phase = 'idle'; // Or return to where it was
+    this.io.emit('anomaly_cleared', {});
+    this.leaderboardDirty = true;
+    this.broadcastAdminStats();
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -995,7 +1150,8 @@ export class GameEngine {
         for (const ps of snap.playerScores) {
           this.playerScores.set(ps.usn, {
             ...ps,
-            telemetry: ps.telemetry || []
+            telemetry: ps.telemetry || [],
+            streak: ps.streak || 0
           });
         }
       }
