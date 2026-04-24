@@ -40,6 +40,13 @@ export interface BankQuestion {
   explanation?: string;  // shown at review — NEVER sent during active question
 }
 
+export interface TelemetryData {
+  qIndex: number;
+  timeTaken: number;
+  correct: boolean;
+  points: number;
+}
+
 // ── Player State ──
 export interface PlayerScore {
   usn: string;
@@ -47,6 +54,7 @@ export interface PlayerScore {
   totalScore: number;
   levelScores: Record<number, number>;
   currentLevelScore: number;
+  telemetry: TelemetryData[];
 }
 
 export interface PlayerAnswer {
@@ -57,6 +65,7 @@ export interface PlayerAnswer {
   score: number;
   totalScore: number;
   currentLevelScore: number;
+  telemetry: TelemetryData[];
 }
 
 export interface HangmanPlayerState {
@@ -105,6 +114,7 @@ type _NoBannedFields = Exclude<keyof ClientQuestion, 'answer' | 'word' | 'explan
 export interface TimerStartPayload {
   endTime: number; // epoch ms — client counts down locally
   total: number;   // total seconds (for progress bar %)
+  serverTime: number; // current server time for offset calculation
 }
 
 export interface TimerOverridePayload {
@@ -176,6 +186,7 @@ export interface GameStateSync {
   currentQuestion: ClientQuestion | null;
   timerEndTime: number;   // epoch ms (replaces timerRemaining)
   timerTotal: number;
+  serverTime: number;     // current server time
   leaderboard: LeaderboardEntry[];
   levelIntro: LevelIntroPayload | null;
   reviewData: QuestionEndPayload | null;
@@ -205,6 +216,10 @@ export interface AdminStatsPayload {
   answeredCount: number;
   totalPlayers: number;
   bankCount: number;       // number of questions currently in the bank
-  timerEndTime: number;    // epoch ms
+  timerEndTime: number;
   levelLimits: Record<number, number>;
+}
+
+export interface AdminLiveStatsPayload {
+  distribution: Record<string, number>; // e.g., {"A": 10, "B": 5} or {"SATELLITE": 2}
 }

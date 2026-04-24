@@ -39,7 +39,7 @@ export default function DashboardPage() {
       case 'level_intro': return <LevelIntroPhase />;
       case 'question_active': return <QuestionPhase />;
       case 'question_review': return <ReviewPhase />;
-      case 'level_complete': return <LevelCompletePhase />;
+      case 'level_complete': return <LevelCompletePhase user={user} />;
       case 'auction_active': return <AuctionPhase />;
       case 'disaster_active': return <DisasterPhase />;
       case 'game_over': return <GameOverPhase />;

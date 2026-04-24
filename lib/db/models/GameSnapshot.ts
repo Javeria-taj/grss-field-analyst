@@ -20,6 +20,7 @@ export interface IGameSnapshot extends Document {
     totalScore: number;
     levelScores: Record<string, number>;
     currentLevelScore: number;
+    telemetry: any[];
   }>;
   questionBank: any[];  // serialised BankQuestion[]
   levelLimits: Record<number, number>;

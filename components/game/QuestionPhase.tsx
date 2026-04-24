@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
+import { SFX } from '@/lib/sfx';
 
 function ScrambleQ({ q, onSubmit, disabled }: { q: any; onSubmit: (a: string) => void; disabled: boolean }) {
   const [val, setVal] = useState('');
@@ -48,7 +49,17 @@ function RiddleQ({ q, onSubmit, disabled }: { q: any; onSubmit: (a: string) => v
 function ImageMCQ({ q, onSubmit, disabled }: { q: any; onSubmit: (a: number) => void; disabled: boolean }) {
   return (
     <div style={{ textAlign: 'center', opacity: disabled ? 0.6 : 1, transition: 'opacity 0.3s' }}>
-      {q.imageUrl && <img src={q.imageUrl} alt="Satellite" style={{ maxWidth: 400, width: '100%', borderRadius: 12, marginBottom: 16, border: '1px solid var(--border)' }} />}
+      {q.imageUrl && (
+        <div style={{ minHeight: 250, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+          <img 
+            src={q.imageUrl} 
+            alt="Satellite" 
+            className="skeleton"
+            style={{ maxWidth: 400, width: '100%', borderRadius: 12, border: '1px solid var(--border)', objectFit: 'cover' }} 
+            onLoad={(e) => e.currentTarget.className = ""}
+          />
+        </div>
+      )}
       <div style={{ fontSize: '1rem', color: 'var(--text)', marginBottom: 16, maxWidth: 500, margin: '0 auto 16px' }}>{q.question}</div>
       <div style={{ display: 'grid', gap: 10, maxWidth: 500, margin: '0 auto' }}>
         {q.options?.map((opt: string, i: number) => (
@@ -142,6 +153,13 @@ export default function QuestionPhase() {
     }
   }, [hasAnswered]);
 
+  useEffect(() => {
+    if (myAnswer) {
+      if (myAnswer.correct) SFX.correct();
+      else SFX.wrong();
+    }
+  }, [myAnswer]);
+
   const handleSubmit = (answer: string | number) => {
     if (isSubmitting || hasAnswered) return;
     setIsSubmitting(true);
@@ -179,20 +197,37 @@ export default function QuestionPhase() {
 
       {myAnswer && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, scale: 0.8, y: 20 }}
+          animate={{ 
+            opacity: 1, 
+            scale: [0.8, 1.05, 1],
+            y: 0,
+            boxShadow: myAnswer.correct 
+              ? '0 0 30px rgba(74, 222, 128, 0.25)' 
+              : '0 0 30px rgba(251, 113, 133, 0.25)'
+          }}
           className="card card-sm"
           style={{
             maxWidth: 400, textAlign: 'center',
             borderColor: myAnswer.correct ? 'var(--accent2)' : 'var(--danger)',
+            background: myAnswer.correct 
+              ? 'rgba(74, 222, 128, 0.08)' 
+              : 'rgba(251, 113, 133, 0.08)',
           }}
         >
-          <div style={{ fontSize: '1.4rem' }}>{myAnswer.correct ? '✅' : '❌'}</div>
-          <div className="font-orb" style={{ color: myAnswer.correct ? 'var(--accent2)' : 'var(--danger)', fontSize: '1rem' }}>
+          <motion.div 
+            initial={{ scale: 0.5, rotate: -20 }}
+            animate={{ scale: [0.5, 1.4, 1], rotate: 0 }}
+            transition={{ duration: 0.45, type: 'spring', damping: 12 }}
+            style={{ fontSize: '2.2rem', marginBottom: 8 }}
+          >
+            {myAnswer.correct ? '✅' : '❌'}
+          </motion.div>
+          <div className="font-orb" style={{ color: myAnswer.correct ? 'var(--accent2)' : 'var(--danger)', fontSize: '1.2rem', fontWeight: 800 }}>
             {myAnswer.correct ? `+${myAnswer.score} POINTS` : 'INCORRECT'}
           </div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--text2)', marginTop: 4 }}>
-            {myAnswer.correct ? 'Waiting for others...' : 'Better luck next time!'}
+          <div style={{ fontSize: '0.85rem', color: 'var(--text2)', marginTop: 6 }}>
+            {myAnswer.correct ? 'Waiting for others...' : 'Mission compromised. Stay focused.'}
           </div>
         </motion.div>
       )}

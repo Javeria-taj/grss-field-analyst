@@ -1,14 +1,16 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, ReactNode } from 'react';
 import { SFX, getACtx } from '@/lib/sfx';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
+import { toast } from '@/components/ui/Toast';
 
-export default function ClientShell({ children }: { children: React.ReactNode }) {
+export default function ClientShell({ children }: { children: ReactNode }) {
   const ambianceStarted = useRef(false);
   const wakeLockRef = useRef<any>(null);
+  const focusLostRef = useRef(false);
   const { phase } = useGameSyncStore();
 
-  // Screen Wake Lock API
+  // Screen Wake Lock API & Visibility Tracking
   useEffect(() => {
     const requestWakeLock = async () => {
       if (typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
@@ -39,11 +41,24 @@ export default function ClientShell({ children }: { children: React.ReactNode })
       requestWakeLock();
     } else {
       releaseWakeLock();
+      focusLostRef.current = false; // Reset on phase change
     }
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && (phase === 'question_active' || phase === 'auction_active' || phase === 'disaster_active')) {
-        requestWakeLock();
+      if (document.visibilityState === 'hidden') {
+        if (phase === 'question_active') {
+          focusLostRef.current = true;
+        }
+      } else if (document.visibilityState === 'visible') {
+        if (phase === 'question_active' || phase === 'auction_active' || phase === 'disaster_active') {
+          requestWakeLock();
+        }
+        
+        if (focusLostRef.current && phase === 'question_active') {
+          SFX.urgency();
+          toast('WARNING: Focus lost. Ensure you remain on this screen during active missions.', 'err');
+          focusLostRef.current = false;
+        }
       }
     };
 

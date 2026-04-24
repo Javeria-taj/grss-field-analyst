@@ -48,5 +48,15 @@ npm run build
 - `/docs`: Documentation and original mission prompt.
 - `/legacy`: Original monolithic source for reference.
 
+## 🚀 CRITICAL DEPLOYMENT ARCHITECTURE
+> [!IMPORTANT]
+> This application follows a hybrid architecture to ensure maximum stability for 250+ concurrent users.
+
+- **Frontend & API**: Should be deployed to a **Serverless** provider (e.g., Vercel, Netlify, or AWS Amplify).
+- **Realtime Socket Server**: MUST be deployed to a **Stateful, Long-Running Instance** (e.g., Render, Railway, AWS EC2, or DigitalOcean Droplet).
+- **Environment Variables**:
+  - `NEXT_PUBLIC_SOCKET_URL`: Set this on the **Frontend** to point to your dedicated Socket Server URL (e.g., `https://realtime-server.up.railway.app`).
+  - `SESSION_SECRET`: Must be identical across both environments.
+
 ---
 *Created for the IEEE GRSS community.*

@@ -1,6 +1,6 @@
-'use client';
 import { create } from 'zustand';
 import { io, Socket } from 'socket.io-client';
+import { toast } from '@/components/ui/Toast';
 
 // ── Types (mirrored from server protocol) ──
 export type GamePhase =
@@ -19,6 +19,13 @@ export interface ClientQuestion {
 export interface LeaderboardEntry {
   rank: number; name: string; usn: string;
   totalScore: number; currentLevelScore: number;
+}
+
+export interface TelemetryData {
+  qIndex: number;
+  timeTaken: number;
+  correct: boolean;
+  points: number;
 }
 
 export interface LevelIntroPayload {
@@ -58,6 +65,7 @@ interface GameSyncState {
   // Timer (server-authoritative)
   timerEndTime: number; // epoch ms
   timerTotal: number;
+  serverTimeOffset: number; // local - server time
 
   // Question
   currentQuestion: ClientQuestion | null;
@@ -67,6 +75,7 @@ interface GameSyncState {
   myLevelScore: number;
   myAnswer: { correct: boolean; score: number; totalScore?: number; currentLevelScore?: number } | null;
   hasAnswered: boolean;
+  myTelemetry: TelemetryData[];
 
   // Review
   reviewData: QuestionEndPayload | null;
@@ -111,6 +120,8 @@ interface GameSyncState {
     levelLimits: Record<number, number>;
   } | null;
 
+  adminLiveStats: { distribution: Record<string, number> } | null;
+
   bankQuestions: any[];
 
   // Preloaded assets
@@ -140,6 +151,8 @@ interface GameSyncState {
   adminDeleteBankQuestion: (id: string) => void;
   adminGetBank: () => void;
   adminUpdateLevelLimit: (level: number, limit: number) => void;
+  adminForceEndQuestion: () => void;
+  adminKickPlayer: (usn: string) => void;
 }
 
 export const useGameSyncStore = create<GameSyncState>((set, get) => ({
@@ -150,11 +163,13 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   paused: false,
   timerEndTime: 0,
   timerTotal: 0,
+  serverTimeOffset: 0,
   currentQuestion: null,
   myTotalScore: 0,
   myLevelScore: 0,
   myAnswer: null,
   hasAnswered: false,
+  myTelemetry: [],
   reviewData: null,
   levelIntro: null,
   levelCompleteData: null,
@@ -174,6 +189,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   hasDeployed: false,
   finalLeaderboard: [],
   adminStats: null,
+  adminLiveStats: null,
   bankQuestions: [],
   lastAnnouncement: null,
   preloadedAssets: [],
@@ -190,6 +206,15 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       withCredentials: true,
     });
 
+    socket.on('admin_live_stats', (data: { distribution: Record<string, number> }) => {
+      set({ adminLiveStats: data });
+    });
+
+    socket.on('force_disconnect', (data: { reason: string }) => {
+      toast(data.reason || 'Kicked from session', 'err');
+      setTimeout(() => window.location.href = '/', 1500);
+    });
+
     socket.on('connect', () => {
       set({ connected: true });
       // Emit full sync request in case of reconnect after server snapshot hydration
@@ -199,6 +224,9 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
 
     // ── Full state sync (late joiners / reconnect) ──
     socket.on('game_state_sync', (data: any) => {
+      if (data.serverTime) {
+        set({ serverTimeOffset: Date.now() - data.serverTime });
+      }
       set({
         phase: data.phase,
         currentLevel: data.currentLevel,
@@ -219,6 +247,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         auctionOwned: data.auctionState?.ownedTools ?? [],
         auctionPrices: data.auctionState?.prices ?? {},
         disasterInfo: data.disasterInfo,
+        myTelemetry: data.myScore?.telemetry || [],
       });
     });
 
@@ -244,8 +273,11 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
     });
 
     // ── Timer Events (rAF based) ──
-    socket.on('timer_start', (data: { endTime: number; total: number }) => {
-      set({ timerEndTime: data.endTime, timerTotal: data.total });
+    socket.on('timer_start', (data: { endTime: number; total: number; serverTime?: number }) => {
+      if (data.serverTime) {
+        set({ serverTimeOffset: Date.now() - data.serverTime });
+      }
+      set({ timerEndTime: data.endTime, timerTotal: data.total, hasAnswered: false, myAnswer: null });
     });
 
     socket.on('timer_override', (data: { endTime: number }) => {
@@ -266,13 +298,20 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
     });
 
     // ── Answer result (immediate personal feedback) ──
-    socket.on('answer_result', (data: { correct: boolean; score: number; totalScore?: number; currentLevelScore?: number }) => {
-      set({ 
+    socket.on('answer_result', (data: { 
+      correct: boolean; 
+      score: number; 
+      totalScore?: number; 
+      currentLevelScore?: number;
+      telemetry?: TelemetryData[];
+    }) => {
+      set(state => ({ 
         myAnswer: data, 
         hasAnswered: true,
-        myTotalScore: data.totalScore ?? get().myTotalScore,
-        myLevelScore: data.currentLevelScore ?? get().myLevelScore
-      });
+        myTotalScore: data.totalScore ?? state.myTotalScore,
+        myLevelScore: data.currentLevelScore ?? state.myLevelScore,
+        myTelemetry: data.telemetry ?? state.myTelemetry
+      }));
     });
 
     // ── Question review ──
@@ -337,10 +376,11 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       set({ auctionPrices: data.prices, auctionMultiplier: data.multiplier });
     });
 
-    socket.on('auction_update', (data: { success: boolean; budget: number; owned: string[]; error?: string }) => {
-      if (data.success) {
-        set({ auctionBudget: data.budget, auctionOwned: data.owned });
+    socket.on('auction_update', (data: { budget: number; ownedTools: string[]; prices: Record<string, number>; success?: boolean; error?: string }) => {
+      if (data.success === false && data.error) {
+        toast(data.error, 'err');
       }
+      set({ auctionBudget: data.budget, auctionOwned: data.ownedTools, auctionPrices: data.prices });
     });
 
     // ── Disaster events ──
@@ -475,5 +515,13 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   adminUpdateLevelLimit: (level, limit) => {
     const { socket } = get();
     if (socket?.connected) socket.emit('admin_update_level_limit', { level, limit });
+  },
+  adminForceEndQuestion: () => {
+    const { socket } = get();
+    if (socket?.connected) socket.emit('admin_force_end_question');
+  },
+  adminKickPlayer: (usn) => {
+    const { socket } = get();
+    if (socket?.connected) socket.emit('admin_kick_player', { usn });
   },
 }));

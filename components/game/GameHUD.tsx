@@ -9,7 +9,7 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
   paused: boolean;
   onLogout: () => void;
 }) {
-  const { timerEndTime, timerTotal, leaderboard, currentLevel, phase, myTotalScore } = useGameSyncStore();
+  const { timerEndTime, timerTotal, leaderboard, currentLevel, phase, myTotalScore, serverTimeOffset } = useGameSyncStore();
   const myEntry = leaderboard.find(e => e.usn === user.usn.toUpperCase());
   
   // Real-time score: prioritize store state (immediate feedback) over leaderboard entries (throttled)
@@ -37,7 +37,7 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
       }
       
       const now = Date.now();
-      const remainingMs = Math.max(0, timerEndTime - now);
+      const remainingMs = Math.max(0, timerEndTime - (now - serverTimeOffset));
       const remainingSec = Math.ceil(remainingMs / 1000);
       
       setLocalRemaining(remainingSec);

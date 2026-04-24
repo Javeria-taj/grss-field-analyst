@@ -24,7 +24,8 @@ export default function AdminDashboard() {
   const {
     init, destroy, connected, phase, adminStats, leaderboard,
     adminStartLevel, adminPause, adminReset, adminBroadcast,
-    timerEndTime, paused, adminTimerAdd10, adminTimerPauseResume, adminUpdateLevelLimit
+    timerEndTime, paused, adminTimerAdd10, adminTimerPauseResume, adminUpdateLevelLimit,
+    adminForceEndQuestion, adminKickPlayer, adminLiveStats
   } = useGameSyncStore();
   const [broadcastMsg, setBroadcastMsg] = useState('');
   const [localRemaining, setLocalRemaining] = useState(0);
@@ -146,8 +147,42 @@ export default function AdminDashboard() {
               <motion.button className="btn btn-outline btn-sm" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}
                 onClick={() => { if (!confirm('Reset entire game?')) return; SFX.click(); adminReset(); toast('Game reset', 'inf'); }}
                 whileHover={{ scale: 1.04 }}>🔄 RESET GAME</motion.button>
+              {phase === 'question_active' && (
+                <motion.button className="btn btn-outline btn-sm" 
+                  style={{ borderColor: 'var(--danger)', color: 'var(--danger)', background: 'rgba(251,113,133,0.1)' }}
+                  onClick={() => { if(confirm('⚠️ FORCE END CURRENT QUESTION?')) adminForceEndQuestion(); }}
+                  whileHover={{ scale: 1.04 }}>
+                  ⚠️ FORCE END QUESTION
+                </motion.button>
+              )}
             </div>
           </motion.div>
+
+          {/* Live Answer Distribution */}
+          {phase === 'question_active' && adminLiveStats && (
+            <motion.div className="card" style={{ maxWidth: 900, width: '100%', borderTop: '2px solid var(--accent2)' }}
+              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+              <div className="label t-accent2" style={{ marginBottom: 12 }}>👁️ LIVE ANSWER DISTRIBUTION</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {Object.entries(adminLiveStats.distribution).map(([ans, count]) => {
+                  const pct = Math.min(100, (count / (adminStats?.totalPlayers || 1)) * 100);
+                  return (
+                    <div key={ans} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 120, fontSize: '0.75rem', color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ans}</div>
+                      <div style={{ flex: 1, height: 10, background: 'rgba(255,255,255,0.05)', borderRadius: 5, overflow: 'hidden' }}>
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }}
+                          style={{ height: '100%', background: 'var(--accent2)' }} />
+                      </div>
+                      <div style={{ width: 40, fontSize: '0.75rem', textAlign: 'right' }}>{count}</div>
+                    </div>
+                  );
+                })}
+                {Object.keys(adminLiveStats.distribution).length === 0 && (
+                  <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text3)', padding: 10 }}>Waiting for first submission...</div>
+                )}
+              </div>
+            </motion.div>
+          )}
 
           {/* Question Bank */}
           <QuestionBankPanel />
@@ -177,7 +212,14 @@ export default function AdminDashboard() {
                       <span>{e.name}</span>
                       <span className="t-muted">({e.usn})</span>
                     </div>
-                    <div className="font-orb t-accent2" style={{ fontWeight: 700 }}>{e.totalScore}</div>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                      <div className="font-orb t-accent2" style={{ fontWeight: 700 }}>{e.totalScore}</div>
+                      <button className="btn btn-outline btn-sm" 
+                        style={{ padding: '2px 6px', fontSize: '0.6rem', borderColor: 'var(--danger)', color: 'var(--danger)', borderRadius: 4 }}
+                        onClick={() => { if(confirm(`🚫 KICK PLAYER ${e.usn}?\nThis will permanently remove them from this session.`)) adminKickPlayer(e.usn); }}>
+                        🚫 KICK
+                      </button>
+                    </div>
                   </div>
                 ))
               )}

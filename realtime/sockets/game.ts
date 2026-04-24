@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { Server, Socket } from 'socket.io';
+import mongoose from 'mongoose';
 import { GameEngine } from '../game/GameEngine';
 import dbConnect from '../../lib/db/connect';
 import { User } from '../../lib/db/models/User';
@@ -49,6 +50,9 @@ export default function setupGameSockets(io: Server) {
     if (!isAdmin) {
       engine.registerPlayer(socket.id, usn, name);
     }
+
+    if (usn) socket.join(usn);
+    if (isAdmin) socket.join('admins');
 
     console.log(`👤 Connected: ${socket.id} | ${usn} | Admin: ${isAdmin} (Total: ${engine.getConnectedCount()})`);
     engine.broadcastAdminStats();
@@ -101,6 +105,24 @@ export default function setupGameSockets(io: Server) {
       console.log(`📂 Bank loaded (${data.questions.length} Qs) by ${usn}`);
     });
 
+    socket.on('admin_force_end_question', () => {
+      if (!isAdmin) return;
+      engine.forceEndQuestion();
+    });
+
+    socket.on('admin_kick_player', async (data: { usn: string }) => {
+      if (!isAdmin || !data.usn) return;
+      const targetUsn = data.usn.toUpperCase();
+      engine.kickPlayer(targetUsn);
+      try {
+        await User.deleteOne({ usn: targetUsn });
+        io.to(targetUsn).emit('force_disconnect', { reason: 'Kicked by administrator' });
+        console.log(`🚫 Kicked: ${targetUsn}`);
+      } catch (err) {
+        console.error('Kick deletion err', err);
+      }
+    });
+
     socket.on('admin_add_bank_question', (data: { question: BankQuestion }) => {
       if (!isAdmin) return;
       engine.addBankQuestion(data.question);
@@ -148,12 +170,20 @@ export default function setupGameSockets(io: Server) {
       const result = engine.handleAnswer(usn, data.answer);
       if (result) {
         socket.emit('answer_result', result);
+        // Admin Emit Live Stats (Exclusively to admins)
+        io.to('admins').emit('admin_live_stats', engine.getLiveStats());
       }
     });
 
     socket.on('guess_letter', (data: { letter: string }) => {
       if (isAdmin) return;
       if (typeof data.letter !== 'string' || data.letter.length !== 1) return;
+
+      // Rate limit hangman guesses (150ms)
+      const now = Date.now();
+      const last = rateLimitMap.get(socket.id) || 0;
+      if (now - last < 150) return;
+      rateLimitMap.set(socket.id, now);
 
       const result = engine.handleLetterGuess(usn, data.letter);
       if (result) {
@@ -206,6 +236,7 @@ export default function setupGameSockets(io: Server) {
   setInterval(async () => {
     // 1. Sync scores using bulkWrite
     try {
+      if (mongoose.connection.readyState !== 1) return; // Only run if DB is connected
       await dbConnect();
       const leaderboard = engine.getLeaderboard();
       if (leaderboard.length > 0) {

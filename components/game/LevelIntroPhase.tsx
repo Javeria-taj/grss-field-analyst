@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
 
 export default function LevelIntroPhase() {
-  const { levelIntro, timerEndTime, paused } = useGameSyncStore();
+  const { levelIntro, timerEndTime, paused, serverTimeOffset } = useGameSyncStore();
   const [localRemaining, setLocalRemaining] = useState(0);
 
   useEffect(() => {
@@ -20,7 +20,7 @@ export default function LevelIntroPhase() {
         return;
       }
       const now = Date.now();
-      const remainingMs = Math.max(0, timerEndTime - now);
+      const remainingMs = Math.max(0, timerEndTime - (now - serverTimeOffset));
       setLocalRemaining(Math.ceil(remainingMs / 1000));
       if (remainingMs > 0) {
         frameId = requestAnimationFrame(tick);

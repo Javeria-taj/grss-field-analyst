@@ -20,9 +20,26 @@ export default function QuestionBankPanel() {
     adminGetBank();
   }, [adminGetBank]);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') setIsDragging(true);
+    else if (e.type === 'dragleave') setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) await uploadFile(file);
+  };
+
+  const uploadFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast('Please upload an image file', 'err');
+      return;
+    }
     setUploading(true);
     const fd = new FormData();
     fd.append('file', file);
@@ -182,10 +199,53 @@ export default function QuestionBankPanel() {
             )}
 
             {(formData.type === 'image_mcq') && (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input type="file" accept="image/*" onChange={handleUpload} disabled={uploading} style={{ fontSize: '0.8rem' }} />
-                {uploading && <span className="t-warning" style={{ fontSize: '0.8rem' }}>Uploading...</span>}
-                {formData.imageUrl && <img src={formData.imageUrl} style={{ height: 40, borderRadius: 4 }} alt="Preview" />}
+              <div 
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+                style={{ 
+                  border: `2px dashed ${isDragging ? 'var(--accent)' : 'var(--border)'}`,
+                  borderRadius: 12,
+                  padding: 20,
+                  textAlign: 'center',
+                  background: isDragging ? 'rgba(56,189,248,0.05)' : 'rgba(255,255,255,0.02)',
+                  transition: 'all 0.2s ease',
+                  position: 'relative',
+                  cursor: 'pointer'
+                }}
+                onClick={() => document.getElementById('image-upload-input')?.click()}
+              >
+                <input 
+                  id="image-upload-input"
+                  type="file" 
+                  accept="image/*" 
+                  onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0])} 
+                  disabled={uploading} 
+                  style={{ display: 'none' }} 
+                />
+                
+                {formData.imageUrl ? (
+                  <div style={{ position: 'relative', display: 'inline-block' }}>
+                    <img src={formData.imageUrl} style={{ maxWidth: '100%', maxHeight: 120, borderRadius: 8, border: '1px solid var(--border)' }} alt="Preview" />
+                    <div style={{ fontSize: '0.65rem', color: 'var(--text2)', marginTop: 8 }}>Click or drag to replace</div>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: '1.5rem', marginBottom: 8 }}>🖼️</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text2)' }}>
+                      {uploading ? 'UPLOADING...' : 'DRAG & DROP IMAGE OR CLICK TO BROWSE'}
+                    </div>
+                    <div style={{ fontSize: '0.6rem', color: 'var(--text3)', marginTop: 4 }}>Supports JPG, PNG, WEBP</div>
+                  </div>
+                )}
+                
+                {uploading && (
+                  <motion.div 
+                    initial={{ width: 0 }} animate={{ width: '100%' }}
+                    style={{ position: 'absolute', bottom: 0, left: 0, height: 3, background: 'var(--accent)' }} 
+                  />
+                )}
               </div>
             )}
 

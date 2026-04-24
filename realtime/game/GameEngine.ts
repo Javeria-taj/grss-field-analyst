@@ -5,7 +5,7 @@ import type {
   GamePhase, PlayerScore, PlayerAnswer, HangmanPlayerState, AuctionPlayerState,
   ClientQuestion, LeaderboardEntry, LevelIntroPayload, QuestionEndPayload,
   LevelCompletePayload, GameStateSync, AdminStatsPayload, DisasterInfo,
-  BankQuestion, TimerStartPayload,
+  BankQuestion, TimerStartPayload, AdminLiveStatsPayload
 } from './types';
 import dbConnect from '../../lib/db/connect';
 import { GameSnapshot } from '../../lib/db/models/GameSnapshot';
@@ -158,12 +158,24 @@ export class GameEngine {
     if (!this.playerScores.has(usn)) {
       this.playerScores.set(usn, {
         usn, name, totalScore: 0, levelScores: {}, currentLevelScore: 0,
+        telemetry: [],
       });
     }
   }
 
   unregisterPlayer(socketId: string) {
     this.connectedPlayers.delete(socketId);
+  }
+
+  kickPlayer(usn: string) {
+    this.playerScores.delete(usn);
+    // Remove from connectedPlayers (Map<socketId, usn>)
+    for (const [sid, pUsn] of this.connectedPlayers.entries()) {
+      if (pUsn === usn) {
+        this.connectedPlayers.delete(sid);
+      }
+    }
+    this.leaderboardDirty = true;
   }
 
   getPlayerCount(): number {
@@ -367,7 +379,7 @@ export class GameEngine {
     this.startCountdown(q.clientQ.timeLimit, () => this.endQuestion());
   }
 
-  handleAnswer(usn: string, answer: string | number): { correct: boolean; score: number; totalScore: number; currentLevelScore: number } | null {
+  handleAnswer(usn: string, answer: string | number): PlayerAnswer | null {
     if (this.phase !== 'question_active') return null;
     if (this.currentAnswers.has(usn)) return null; // Already answered
 
@@ -389,12 +401,21 @@ export class GameEngine {
     if (ps) {
       ps.totalScore += score;
       ps.currentLevelScore += score;
+      
+      // Log Telemetry
+      ps.telemetry.push({
+        qIndex: this.currentQIndex,
+        timeTaken: this.timerTotal - this.timerRemaining,
+        correct,
+        points: score
+      });
     }
 
     const pa: PlayerAnswer = {
       usn, answer, timeRemaining: this.timerRemaining, correct, score,
       totalScore: ps?.totalScore ?? 0,
-      currentLevelScore: ps?.currentLevelScore ?? 0
+      currentLevelScore: ps?.currentLevelScore ?? 0,
+      telemetry: ps?.telemetry || []
     };
     this.currentAnswers.set(usn, pa);
 
@@ -411,12 +432,23 @@ export class GameEngine {
       setTimeout(() => this.endQuestion(), 1000);
     }
 
+    // For Admin: Calculate live stats distribution
+    this.io.to('admins').emit('admin_live_stats', this.getLiveStats());
+
     return { 
+      usn,
+      answer,
+      timeRemaining: this.timerRemaining,
       correct, 
       score, 
       totalScore: ps?.totalScore ?? 0, 
-      currentLevelScore: ps?.currentLevelScore ?? 0 
+      currentLevelScore: ps?.currentLevelScore ?? 0,
+      telemetry: ps?.telemetry || []
     };
+  }
+
+  public forceEndQuestion() {
+    this.endQuestion();
   }
 
   private endQuestion() {
@@ -720,7 +752,11 @@ export class GameEngine {
     this.endTime = Date.now() + seconds * 1000;
 
     // Emit the single authoritative start event to clients
-    this.io.emit('timer_start', { endTime: this.endTime, total: this.timerTotal });
+    this.io.emit('timer_start', { 
+      endTime: this.endTime, 
+      total: this.timerTotal,
+      serverTime: Date.now()
+    });
 
     this.timerInterval = setInterval(() => {
       if (this.paused) {
@@ -829,8 +865,9 @@ export class GameEngine {
     return {
       phase: this.phase, currentLevel: this.currentLevel,
       currentQuestion: currentQ, timerEndTime: this.endTime,
-      timerTotal: this.timerTotal, leaderboard: this.getLeaderboard(),
-      levelIntro, reviewData: null, myScore: ps, myAnswer: pa,
+      timerTotal: this.timerTotal, serverTime: Date.now(),
+      leaderboard: this.getLeaderboard(), levelIntro,
+      reviewData: null, myScore: ps, myAnswer: pa,
       hangmanState, auctionState, disasterInfo,
     };
   }
@@ -891,6 +928,15 @@ export class GameEngine {
     return [...new Set(this.connectedPlayers.values())];
   }
 
+  public getLiveStats(): AdminLiveStatsPayload {
+    const distribution: Record<string, number> = {};
+    for (const [, pa] of this.currentAnswers) {
+      const val = String(pa.answer).toUpperCase();
+      distribution[val] = (distribution[val] || 0) + 1;
+    }
+    return { distribution };
+  }
+
   // ═══════════════════════════════════════════════════════════════
   // PERSISTENCE (Crash Recovery)
   // ═══════════════════════════════════════════════════════════════
@@ -947,7 +993,10 @@ export class GameEngine {
       this.playerScores.clear();
       if (Array.isArray(snap.playerScores)) {
         for (const ps of snap.playerScores) {
-          this.playerScores.set(ps.usn, ps);
+          this.playerScores.set(ps.usn, {
+            ...ps,
+            telemetry: ps.telemetry || []
+          });
         }
       }
 
@@ -974,6 +1023,7 @@ export class GameEngine {
            // However, this is just for crash recovery.
         };
         // Simplified recovery countdown
+        this.clearTimer();
         this.startCountdown(this.timerRemaining, () => {
            if(this.phase === 'question_active') this.endQuestion();
            // Implement other phase endings if needed here

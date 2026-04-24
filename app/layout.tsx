@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Orbitron, Exo_2 } from "next/font/google";
-import { Suspense } from "react";
+import { Suspense, ReactNode } from "react";
 import "./globals.css";
 import StarfieldCanvas from "@/components/ui/StarfieldCanvas";
 import Toast from "@/components/ui/Toast";
@@ -39,11 +39,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className={`${orbitron.variable} ${exo2.variable} antialiased`}>
