@@ -6,6 +6,10 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 import http from 'http';
 import { Server } from 'socket.io';
 import setupGameSockets from './sockets/game';
+import dbConnect from '../lib/db/connect';
+
+// Connect to MongoDB
+dbConnect();
 
 const PORT = parseInt(process.env.SOCKET_PORT ?? process.env.PORT ?? '4001', 10);
 

@@ -73,7 +73,18 @@ export default function DashboardPage() {
             <link key={url} rel="preload" as="image" href={url} />
           ))}
         </div>
-        {renderPhase()}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={phase}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+          >
+            {renderPhase()}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

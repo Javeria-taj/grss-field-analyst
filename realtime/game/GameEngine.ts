@@ -23,7 +23,9 @@ function shuffle<T>(arr: T[]): T[] {
 
 function calcScore(correct: boolean, timeLeft: number, maxTime: number, base: number): number {
   if (!correct) return 0;
-  return base + Math.round(base * 0.5 * (timeLeft / maxTime));
+  // Base points + speed bonus (0% to 100% of base points)
+  const speedBonus = Math.round(base * (timeLeft / maxTime));
+  return base + speedBonus;
 }
 
 // Strict normalisation: strips all non-alphanumeric chars before comparison
@@ -59,6 +61,7 @@ export class GameEngine {
   endTime = 0;         // epoch ms; clients count down locally
   private timerInterval: ReturnType<typeof setInterval> | null = null;
   private priceTickInterval: ReturnType<typeof setInterval> | null = null;
+  private heatMultiplier = 1.0;
 
   // ── Question Bank (admin-managed, overrides gameData when populated) ──
   private questionBank: BankQuestion[] = [];
@@ -92,8 +95,31 @@ export class GameEngine {
   private levelCorrectCounts: number[] = [];
   private levelTotalAnswered: number[] = [];
 
+  private earnAchievement(usn: string, achievementId: string) {
+    const ps = this.playerScores.get(usn);
+    if (!ps) return;
+    if (ps.achievements.includes(achievementId)) return;
+
+    ps.achievements.push(achievementId);
+    this.io.to(usn).emit('achievement_earned', achievementId);
+
+    // Global Feed Notification
+    this.io.emit('mission_event', {
+      type: 'achievement',
+      user: ps.name,
+      achievementId
+    });
+  }
+
   constructor(io: Server) {
     this.io = io;
+    
+    // Hydrate state from last snapshot
+    this.hydrateFromDb();
+
+    // Snapshot tick counter
+    let snapshotTick = 0;
+
     // Throttle broadcasts to once every 1.5 seconds to prevent "broadcast storms"
     this.broadcastInterval = setInterval(() => {
       if (this.leaderboardDirty) {
@@ -107,6 +133,13 @@ export class GameEngine {
       if (this.bankDirty) {
         this.io.emit('bank_questions', this.getBankQuestions());
         this.bankDirty = false;
+      }
+
+      // Save snapshot every ~15 seconds (10 ticks * 1.5s)
+      snapshotTick++;
+      if (snapshotTick >= 10) {
+        this.snapshotToDb();
+        snapshotTick = 0;
       }
     }, 1500);
   }
@@ -165,7 +198,7 @@ export class GameEngine {
     if (!this.playerScores.has(usn)) {
       this.playerScores.set(usn, {
         usn, name, totalScore: 0, levelScores: {}, currentLevelScore: 0,
-        telemetry: [], streak: 0, faction: faction || 'team_sentinel'
+        telemetry: [], streak: 0, achievements: [], faction: faction || 'team_sentinel'
       });
     }
   }
@@ -289,7 +322,7 @@ export class GameEngine {
               clientQ: {
                 index: i, total: all.length, type: 'scramble' as const,
                 timeLimit: TIME_LIMITS[1], points: sq.pts,
-                scrambled: sq.sc, hint: sq.hint, category: sq.cat,
+                scrambled: sq.sc, hint: sq.hint, hint2: sq.hint2, category: sq.cat,
               },
               answer: normalise(sq.word),
               explanation: `The answer is ${sq.word}.`,
@@ -300,7 +333,7 @@ export class GameEngine {
               clientQ: {
                 index: i, total: all.length, type: 'riddle' as const,
                 timeLimit: TIME_LIMITS[1], points: rq.pts,
-                question: rq.q, hint: rq.hint, category: rq.cat,
+                question: rq.q, hint: rq.hint, hint2: rq.hint2, category: rq.cat,
               },
               answer: normalise(rq.ans),
               explanation: `The answer is ${rq.ans}.`,
@@ -316,6 +349,7 @@ export class GameEngine {
             index: i, total: qs.length, type: 'image_mcq' as const,
             timeLimit: TIME_LIMITS[2], points: q.pts,
             imageUrl: q.img, question: q.q, options: q.opts,
+            hint: q.hint, hint2: q.hint2,
           },
           answer: q.ans,
           explanation: q.expl,
@@ -328,7 +362,7 @@ export class GameEngine {
           clientQ: {
             index: i, total: chs.length, type: 'hangman' as const,
             timeLimit: TIME_LIMITS[3], points: c.pts,
-            emoji: c.em, hint: c.hint, wordLength: c.word.length,
+            emoji: c.em, hint: c.hint, hint2: c.hint2, wordLength: c.word.length,
           },
           answer: normalise(c.word),
           explanation: c.expl,
@@ -378,7 +412,10 @@ export class GameEngine {
       }
     }
 
-    this.io.emit('question_start', q.clientQ);
+    this.io.emit('question_start', { 
+      ...q.clientQ, 
+      timeLimit: Math.round(q.clientQ.timeLimit * this.heatMultiplier) 
+    });
     this.broadcastAdminStats();
 
     // Preload next question's image silently so clients cache it before it appears
@@ -387,7 +424,7 @@ export class GameEngine {
       this.io.emit('preload_asset', { url: nextQ.clientQ.imageUrl });
     }
 
-    this.startCountdown(q.clientQ.timeLimit, () => this.endQuestion());
+    this.startCountdown(Math.round(q.clientQ.timeLimit * this.heatMultiplier), () => this.endQuestion());
   }
 
   handleAnswer(usn: string, answer: string | number): PlayerAnswer | null {
@@ -405,45 +442,53 @@ export class GameEngine {
       correct = answer === q.answer;
     }
 
-    const score = calcScore(correct, this.timerRemaining, this.timerTotal, q.clientQ.points);
+    const preciseTimeLeft = Math.max(0, (this.endTime - Date.now()) / 1000);
+    const score = calcScore(correct, preciseTimeLeft, this.timerTotal, q.clientQ.points);
+
+    let finalScore = score;
 
     // Update player scores
     const ps = this.playerScores.get(usn);
     if (ps) {
-      ps.totalScore += score;
-      ps.currentLevelScore += score;
-      
-      // Log Telemetry
-        ps.telemetry.push({
-          qIndex: this.currentQIndex,
-          timeTaken: this.timerTotal - this.timerRemaining,
-          correct,
-          points: score
-        });
-
-        // Streak & Multiplier Logic
-        if (correct) {
-          ps.streak++;
-        } else {
-          ps.streak = 0;
+      if (correct) {
+        ps.streak++;
+        
+        // Achievements: Speed Demon (< 2.2s)
+        const timeTaken = this.timerTotal - this.timerRemaining;
+        if (timeTaken < 2.2) {
+          this.earnAchievement(usn, 'SPEED_DEMON');
         }
+        
+        // Achievements: Streak 5
+        if (ps.streak === 5) {
+          this.earnAchievement(usn, 'STREAK_5');
+        }
+      } else {
+        ps.streak = 0;
       }
 
       // Apply multiplier if streak >= 3
-      const finalScore = (ps && ps.streak >= 3) ? Math.round(score * 1.2) : score;
-      if (ps && finalScore !== score) {
-        // Adjust totalScore if multiplier applied
-        ps.totalScore += (finalScore - score);
-        ps.currentLevelScore += (finalScore - score);
-      }
+      finalScore = (ps.streak >= 3) ? Math.round(score * 1.2) : score;
+      
+      ps.totalScore += finalScore;
+      ps.currentLevelScore += finalScore;
+      
+      // Log Telemetry
+      ps.telemetry.push({
+        qIndex: this.currentQIndex,
+        timeTaken: this.timerTotal - this.timerRemaining,
+        correct,
+        points: finalScore
+      });
 
       const pa: PlayerAnswer = {
         usn, answer, timeRemaining: this.timerRemaining, correct, score: finalScore,
-        totalScore: ps?.totalScore ?? 0,
-        currentLevelScore: ps?.currentLevelScore ?? 0,
-        telemetry: ps?.telemetry || []
+        totalScore: ps.totalScore,
+        currentLevelScore: ps.currentLevelScore,
+        telemetry: ps.telemetry
       };
-    this.currentAnswers.set(usn, pa);
+      this.currentAnswers.set(usn, pa);
+    }
 
     // Flag for throttled broadcast
     this.leaderboardDirty = true;
@@ -454,8 +499,7 @@ export class GameEngine {
     const allAnswered = activeUSNs.every(u => this.currentAnswers.has(u));
     if (allAnswered && activeUSNs.length > 0) {
       this.clearTimer();
-      // Small delay so last answerer sees their result
-      setTimeout(() => this.endQuestion(), 1000);
+      this.endQuestion();
     }
 
     // For Admin: Calculate live stats distribution
@@ -466,11 +510,51 @@ export class GameEngine {
       answer,
       timeRemaining: this.timerRemaining,
       correct, 
-      score, 
+      score: finalScore, 
       totalScore: ps?.totalScore ?? 0, 
       currentLevelScore: ps?.currentLevelScore ?? 0,
       telemetry: ps?.telemetry || []
     };
+  }
+
+  public handlePowerup(usn: string, type: 'radar_pulse' | 'thermal_scan'): any {
+    if (this.phase !== 'question_active') return { success: false, error: 'Mission not active' };
+    const ps = this.playerScores.get(usn);
+    if (!ps) return { success: false, error: 'Agent not found' };
+
+    const q = this.questions[this.currentQIndex];
+    if (!q) return { success: false, error: 'Mission data error' };
+
+    if (type === 'radar_pulse') {
+      const cost = 200;
+      if (ps.totalScore < cost) return { success: false, error: 'Insufficient credits (200 req)' };
+      
+      // Only works for ImageMCQ (level 2) or Rapid Fire (level 4) if it has options
+      if (!q.clientQ.options) return { success: false, error: 'Radar not compatible with this mission' };
+
+      ps.totalScore -= cost;
+      
+      // Pick 2 wrong answers to remove
+      const correctIdx = q.answer as number;
+      const wrongIndices = q.clientQ.options.map((_, i) => i).filter(i => i !== correctIdx);
+      const toRemove = [];
+      while (toRemove.length < 2 && wrongIndices.length > 0) {
+        const rand = Math.floor(Math.random() * wrongIndices.length);
+        toRemove.push(wrongIndices.splice(rand, 1)[0]);
+      }
+
+      return { success: true, type: 'radar_pulse', removed: toRemove };
+    }
+
+    if (type === 'thermal_scan') {
+      const cost = 300;
+      if (ps.totalScore < cost) return { success: false, error: 'Insufficient credits (300 req)' };
+      
+      ps.totalScore -= cost;
+      return { success: true, type: 'thermal_scan', distribution: this.getLiveAnswerStats().distribution };
+    }
+
+    return { success: false, error: 'Unknown toolkit' };
   }
 
   public forceEndQuestion() {
@@ -496,6 +580,15 @@ export class GameEngine {
     this.levelTotalAnswered.push(answeredCount);
 
     const totalPlayers = this.getActiveUSNs().length;
+    const accuracy = totalPlayers > 0 ? (correctCount / totalPlayers) : 0;
+    
+    // Dynamic Difficulty Scaling (Heat)
+    if (accuracy > 0.8) {
+      this.heatMultiplier = Math.max(0.6, this.heatMultiplier - 0.05);
+    } else if (accuracy < 0.4) {
+      this.heatMultiplier = Math.min(1.0, this.heatMultiplier + 0.05);
+    }
+
     const payload: QuestionEndPayload = {
       correctAnswer: String(q.answer),
       explanation: q.explanation,
@@ -510,21 +603,25 @@ export class GameEngine {
     this.io.emit('question_end', payload);
     this.broadcastAdminStats();
 
-    // Trigger AI Mission Commander Commentary
+    // Generate AI Commentary
     MissionCommander.generateCommentary(
-      q.clientQ.question || q.clientQ.scrambled || 'Current Question',
+      String(q.clientQ.question || q.clientQ.scrambled || 'Mission task'),
       String(q.answer),
       this.getLiveAnswerStats(),
       totalPlayers,
       this.phase
     ).then(commentary => {
-      this.io.emit('mission_commander_comment', commentary);
+      this.io.emit('mission_commentary', commentary);
     });
 
     // Auto-advance after review period
     this.startCountdown(REVIEW_TIME, () => {
       this.currentQIndex++;
-      this.startQuestion();
+      if (this.currentQIndex >= this.questions.length) {
+        this.endLevel();
+      } else {
+        this.startQuestion();
+      }
     });
   }
 
@@ -532,9 +629,15 @@ export class GameEngine {
     this.clearTimer();
     this.phase = 'level_complete';
 
-    // Persist level scores
-    for (const [, ps] of this.playerScores) {
+    // Persist level scores and check for Perfect Level achievement
+    for (const [usn, ps] of this.playerScores) {
       ps.levelScores[this.currentLevel] = ps.currentLevelScore;
+      
+      const levelTelemetry = ps.telemetry.slice(-this.levelCorrectCounts.length);
+      const isPerfect = levelTelemetry.length > 0 && levelTelemetry.every(t => t.correct);
+      if (isPerfect) {
+        this.earnAchievement(usn, 'PERFECT_LEVEL');
+      }
     }
 
     const leaderboard = this.getLeaderboard();
@@ -573,7 +676,7 @@ export class GameEngine {
   // ═══════════════════════════════════════════════════════════════
 
   handleLetterGuess(usn: string, letter: string): {
-    hit: boolean; positions: number[]; livesLeft: number; solved: boolean;
+    hit: boolean; positions: number[]; livesLeft: number; solved: boolean; maskedWord: string;
   } | null {
     if (this.phase !== 'question_active' || this.currentLevel !== 3) return null;
 
@@ -607,6 +710,12 @@ export class GameEngine {
     if (allRevealed) {
       hs.solved = true;
       hs.submitted = true;
+      
+      // Achievements: Survivor (solve with 1 life)
+      if (hs.lives === 1) {
+        this.earnAchievement(usn, 'SURVIVOR');
+      }
+
       // Auto-submit correct answer
       this.handleAnswer(usn, word);
     } else if (hs.lives <= 0) {
@@ -615,7 +724,11 @@ export class GameEngine {
       this.handleAnswer(usn, '');
     }
 
-    return { hit, positions, livesLeft: hs.lives, solved: hs.solved };
+    const maskedWord = word.split('').map((char, idx) => 
+      (hs.revealedPositions.includes(idx) || char === ' ') ? char : '_'
+    ).join('');
+
+    return { hit, positions, livesLeft: hs.lives, solved: hs.solved, maskedWord };
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -660,6 +773,14 @@ export class GameEngine {
     this.startCountdown(AUCTION_TIME, () => {
       if (this.priceTickInterval) clearInterval(this.priceTickInterval);
       this.priceTickInterval = null;
+
+      // Achievements: Auction Master (spend exactly 10000)
+      for (const [usn, as] of this.auctionStates) {
+        if (as.budget === 0 && as.ownedTools.length > 0) {
+          this.earnAchievement(usn, 'AUCTION_MASTER');
+        }
+      }
+
       this.startDisaster();
     });
   }
@@ -850,7 +971,8 @@ export class GameEngine {
         rank: i + 1, name: ps.name, usn: ps.usn,
         totalScore: ps.totalScore, currentLevelScore: ps.currentLevelScore,
         streak: ps.streak, faction: ps.faction
-      }));
+      }))
+      .slice(0, 50);
     return entries;
   }
 
@@ -867,9 +989,14 @@ export class GameEngine {
       const hs = this.hangmanStates.get(usn);
       const q = this.questions[this.currentQIndex];
       if (hs && q?.word) {
+        const masked = q.word.split('').map((char, idx) => 
+          (hs.revealedPositions.includes(idx) || char === ' ') ? char : '_'
+        ).join('');
+        
         hangmanState = {
           guessedLetters: hs.guessedLetters, lives: hs.lives,
           revealedPositions: hs.revealedPositions, wordLength: q.word.length,
+          maskedWord: masked,
         };
       }
     }
@@ -989,9 +1116,14 @@ export class GameEngine {
   }
 
   public handleReaction(emoji: string) {
-    this.recentReactions.push({ id: randomUUID(), emoji });
+    const payload = { id: randomUUID(), emoji };
+    this.recentReactions.push(payload);
     if (this.recentReactions.length > 50) this.recentReactions.shift();
-    this.adminStatsDirty = true; // Trigger broadcast
+    
+    // Broadcast to EVERYONE for the floating overlay
+    this.io.emit('reaction_broadcast', payload);
+    
+    this.adminStatsDirty = true; // Still update admin view
   }
 
   private updateFactionScores() {
@@ -1045,6 +1177,34 @@ export class GameEngine {
     
     // Start 15-second countdown
     this.startCountdown(15, () => this.endAnomaly());
+  }
+
+  public triggerScenario(type: 'solar_flare' | 'data_corruption') {
+    if (this.phase === 'game_over' || this.phase === 'idle') return;
+
+    if (type === 'solar_flare') {
+      // Speed up timer for everyone
+      if (this.timerRemaining > 10) {
+        this.timerRemaining = Math.floor(this.timerRemaining / 2);
+        this.endTime = Date.now() + this.timerRemaining * 1000;
+        this.io.emit('timer_start', { 
+          endTime: this.endTime, 
+          total: this.timerTotal,
+          serverTime: Date.now(),
+          flare: true
+        });
+      }
+      this.io.emit('mission_event', { type: 'scenario', text: 'SOLAR FLARE: TIMERS COMPRESSED', user: 'SYSTEM' });
+    }
+
+    if (type === 'data_corruption') {
+      this.io.emit('targeted_sabotage', { type: 'glitch' });
+      this.io.emit('mission_event', { type: 'scenario', text: 'DATA CORRUPTION: DISTORTION ACTIVE', user: 'SYSTEM' });
+    }
+  }
+
+  public sabotagePlayer(targetUsn: string) {
+    this.io.to(targetUsn).emit('targeted_sabotage', { type: 'glitch' });
   }
 
   public handleAnomalyFix(usn: string, targetId: string): boolean {
@@ -1151,7 +1311,8 @@ export class GameEngine {
           this.playerScores.set(ps.usn, {
             ...ps,
             telemetry: ps.telemetry || [],
-            streak: ps.streak || 0
+            streak: ps.streak || 0,
+            achievements: ps.achievements || []
           });
         }
       }

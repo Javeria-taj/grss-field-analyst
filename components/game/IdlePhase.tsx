@@ -36,28 +36,6 @@ export default function IdlePhase() {
         <ReactionRow />
       </motion.div>
 
-      {leaderboard.length > 0 && (
-        <motion.div
-          className="card"
-          style={{ maxWidth: 500, width: '100%' }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          <div className="label t-gold" style={{ marginBottom: 12 }}>🏆 CURRENT STANDINGS</div>
-          {leaderboard.slice(0, 10).map((e, i) => (
-            <div key={e.usn} style={{
-              display: 'flex', justifyContent: 'space-between', padding: '6px 0',
-              borderBottom: i < 9 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-            }}>
-              <span style={{ color: i < 3 ? 'var(--gold)' : 'var(--text2)', fontSize: '0.85rem' }}>
-                #{e.rank} {e.name}
-              </span>
-              <span className="font-orb t-accent2" style={{ fontSize: '0.85rem' }}>{e.totalScore}</span>
-            </div>
-          ))}
-        </motion.div>
-      )}
     </div>
   );
 }

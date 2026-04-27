@@ -41,8 +41,9 @@ export default function LevelIntroPhase() {
         transition={{ type: 'spring', stiffness: 200 }}
       >
         <motion.div
-          style={{ fontSize: '4.5rem', marginBottom: 12 }}
-          animate={{ scale: [1, 1.15, 1] }}
+          className="intro-icon"
+          style={{ fontSize: '4rem', marginBottom: 12 }}
+          animate={{ scale: [1, 1.1, 1] }}
           transition={{ duration: 1.5, repeat: Infinity }}
         >
           {levelIntro.icon}
@@ -50,23 +51,48 @@ export default function LevelIntroPhase() {
         <div className="badge badge-purple" style={{ fontSize: '0.7rem', marginBottom: 12 }}>
           {levelIntro.badge}
         </div>
-        <div className="font-orb t-accent" style={{ fontSize: '1.6rem', letterSpacing: 2, marginBottom: 16 }}>
+        <div className="font-orb t-accent intro-title" style={{ fontSize: '1.5rem', letterSpacing: 2, marginBottom: 16 }}>
           {levelIntro.title}
         </div>
-        <div style={{ color: 'var(--text2)', fontSize: '0.92rem', lineHeight: 1.6, marginBottom: 20 }}>
+        <div style={{ color: 'var(--text2)', fontSize: '0.88rem', lineHeight: 1.6, marginBottom: 20 }}>
           {levelIntro.story}
         </div>
-        <div className="card" style={{ textAlign: 'left', fontSize: '0.82rem', color: 'var(--text2)', lineHeight: 1.8, whiteSpace: 'pre-line' }}>
-          {levelIntro.rules}
+        <div className="card" style={{ textAlign: 'left', fontSize: '0.7rem', fontFamily: 'monospace', color: 'var(--accent)', background: 'rgba(0,0,0,0.4)', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ marginBottom: 4 }}>[ SYSTEM ] INITIALIZING NEURAL LINK...</div>
+          <div style={{ marginBottom: 4 }}>[ DATA ] FETCHING SATELLITE TELEMETRY...</div>
+          <div style={{ marginBottom: 8 }}>[ AUTH ] ANALYST CREDENTIALS VERIFIED.</div>
+          <div style={{ height: 2, background: 'rgba(255,255,255,0.1)', borderRadius: 1, overflow: 'hidden' }}>
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: '100%' }}
+              transition={{ duration: timerEndTime > 0 ? (timerEndTime - Date.now())/1000 : 5, ease: 'linear' }}
+              style={{ height: '100%', background: 'var(--accent)' }}
+            />
+          </div>
+          <motion.div 
+            animate={{ opacity: [1, 0, 1] }} 
+            transition={{ repeat: Infinity, duration: 0.8 }}
+            style={{ position: 'absolute', right: 12, top: 12, fontSize: '0.6rem' }}
+          >
+            ● LIVE_LINK
+          </motion.div>
         </div>
         <motion.div
-          className="font-orb t-warning"
-          style={{ fontSize: '2rem', marginTop: 24 }}
-          animate={{ scale: [1, 1.1, 1] }}
+          className="font-orb t-warning intro-countdown"
+          style={{ fontSize: '1.8rem', marginTop: 24 }}
+          animate={{ scale: [1, 1.05, 1] }}
           transition={{ duration: 0.5, repeat: Infinity }}
         >
           STARTS IN {localRemaining}s
         </motion.div>
+
+        <style jsx>{`
+          @media (max-width: 600px) {
+            .intro-icon { font-size: 3rem !important; }
+            .intro-title { font-size: 1.25rem !important; }
+            .intro-countdown { font-size: 1.4rem !important; }
+          }
+        `}</style>
       </motion.div>
     </div>
   );

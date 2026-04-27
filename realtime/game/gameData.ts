@@ -5,21 +5,21 @@
 // ============================================================
 
 export interface ScrambleQ {
-  word: string; sc: string; hint: string; cat: string; pts: number; type: 'scramble';
+  word: string; sc: string; hint: string; hint2?: string; cat: string; pts: number; type: 'scramble';
 }
 export interface RiddleQ {
-  q: string; ans: string; hint: string; cat: string; pts: number; type: 'riddle';
+  q: string; ans: string; hint: string; hint2?: string; cat: string; pts: number; type: 'riddle';
 }
 export type Level1Q = ScrambleQ | RiddleQ;
 
 export interface ImageQ {
-  img: string; q: string; opts: string[]; ans: number; expl: string; pts: number;
+  img: string; q: string; opts: string[]; ans: number; expl: string; pts: number; hint?: string; hint2?: string;
 }
 export interface HangmanChallenge {
-  em: string; word: string; hint: string; expl: string; pts: number;
+  em: string; word: string; hint: string; hint2?: string; expl: string; pts: number;
 }
 export interface MCQQuestion {
-  q: string; opts: string[]; ans: number; expl: string; diff: 1|2|3; pts: number;
+  q: string; opts: string[]; ans: number; expl: string; diff: 1 | 2 | 3; pts: number;
 }
 export interface Tool {
   id: string; name: string; price: number; icon: string; desc: string;
@@ -29,7 +29,7 @@ export interface Combo {
   tools: string[]; name: string; bonus: number; desc: string; icon: string;
 }
 export interface Disaster {
-  id: 'flood'|'wildfire'|'earthquake'; name: string; icon: string; color: string;
+  id: 'flood' | 'wildfire' | 'earthquake'; name: string; icon: string; color: string;
   desc: string; optTools: string[]; metrics: string[];
 }
 
@@ -44,50 +44,50 @@ export interface ServerGameData {
 const DATA: ServerGameData = {
   level1: {
     scrambles: [
-      { word: 'LIDAR', sc: 'RIDAL', hint: 'Light Detection And Ranging — uses laser pulses to measure distance to the ground surface', cat: 'Remote Sensing', pts: 100, type: 'scramble' },
-      { word: 'RADAR', sc: 'ARRAD', hint: 'Radio Detection And Ranging — uses radio waves to detect objects and measure distances', cat: 'Remote Sensing', pts: 100, type: 'scramble' },
-      { word: 'PIXEL', sc: 'XELIP', hint: 'The smallest discrete unit of a digital satellite image', cat: 'Image Basics', pts: 100, type: 'scramble' },
-      { word: 'THERMAL', sc: 'LAHRMET', hint: 'Related to heat energy; infrared satellite sensors detect this to map surface temperatures', cat: 'Electromagnetics', pts: 150, type: 'scramble' },
-      { word: 'LANDSAT', sc: 'TASLAND', hint: "The world's longest-running Earth observation satellite programme, operated since 1972", cat: 'Satellites', pts: 200, type: 'scramble' },
+      { word: 'PENGUIN', sc: 'GNIUNEP', hint: "A bird that can't fly.", hint2: "Looks like it's wearing a tuxedo.", cat: 'Fun', pts: 100, type: 'scramble' },
+      { word: 'CHOCOLATE', sc: 'CCOAHTOEL', hint: 'A sweet treat.', hint2: 'Made from cocoa beans.', cat: 'Fun', pts: 100, type: 'scramble' },
+      { word: 'CINEMA', sc: 'NMEACIN', hint: 'Get your popcorn ready.', hint2: 'A place to watch blockbuster movies.', cat: 'Fun', pts: 100, type: 'scramble' },
+      { word: 'VAMPIRE', sc: 'VIMRAEPL', hint: 'A mythical creature.', hint2: 'Hates garlic and sunlight.', cat: 'Fun', pts: 100, type: 'scramble' },
+      { word: 'BACKPACK', sc: 'KPABCACK', hint: 'Something you wear on your shoulders.', hint2: 'Students carry books in it.', cat: 'Fun', pts: 100, type: 'scramble' },
     ],
     riddles: [
-      { q: "I have 8 spectral bands but can't play music. I've orbited Earth since 1972, and my latest version is number 9. What am I?", ans: 'LANDSAT', hint: 'A famous NASA/USGS satellite programme for continuous Earth observation since 1972', cat: 'Satellites', pts: 150, type: 'riddle' },
-      { q: "Scientists love me when I'm between 0.6 and 0.9. Healthy forests make me high; concrete and deserts keep me low. I compare red and near-infrared light. What am I?", ans: 'NDVI', hint: 'A vegetation health index calculated from two spectral bands', cat: 'Vegetation', pts: 200, type: 'riddle' },
-      { q: "I was drilled from 3 km below Antarctic ice. I hold tiny air bubbles from 800,000 years ago. What am I?", ans: 'ICE CORE', hint: 'A cylindrical sample extracted from glaciers', cat: 'Climate Science', pts: 200, type: 'riddle' },
-      { q: "30 of my siblings orbit Earth at 20,200 km altitude. Together we help ships, pilots, and hikers know exactly where they are. What system are we?", ans: 'GPS', hint: 'A satellite-based navigation system originally developed by the US Department of Defense', cat: 'Navigation', pts: 150, type: 'riddle' },
-      { q: "I am a Copernicus mission launched by ESA. I see through clouds using C-band microwaves. What am I?", ans: 'SENTINEL', hint: "ESA's Earth observation satellite constellation", cat: 'Satellites', pts: 250, type: 'riddle' },
+      { q: "I measure but have no ruler. I fly but have no wings. I can see everything, yet I have no eyes. What am I?", ans: 'SATELLITE', hint: 'I am far above you most of the time.', hint2: 'I orbit the Earth.', cat: 'GRSS', pts: 100, type: 'riddle' },
+      { q: "I shave every day, but my beard stays the exact same. What am I?", ans: 'BARBER', hint: "Think of a profession.", hint2: "I work on other people's hair.", cat: 'Fun', pts: 100, type: 'riddle' },
+      { q: "I have keys but open no doors. I have space but no room. You can enter but can’t go outside. What am I?", ans: 'KEYBOARD', hint: 'You use me to write.', hint2: 'QWERTY.', cat: 'Fun', pts: 100, type: 'riddle' },
+      { q: "I send out signals you cannot see, and I listen for their return. From silence, I build a picture of what surrounds you. What am I?", ans: 'RADAR', hint: 'Used in weather and aviation.', hint2: 'Works using radio waves.', cat: 'GRSS', pts: 100, type: 'riddle' },
+      { q: "I have cities but no houses, forests but no trees, and oceans but no water. What am I?", ans: 'MAP', hint: 'I help you navigate.', hint2: 'Google makes a digital version of me.', cat: 'Fun', pts: 100, type: 'riddle' },
     ],
   },
   level2: {
     qs: [
-      { img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/500px-The_Earth_seen_from_Apollo_17.jpg', q: 'This iconic photograph known as "The Blue Marble" was captured from space. What type of satellite imaging does it represent?', opts: ['True Color Composite', 'False Color Infrared', 'Synthetic Aperture Radar (SAR)', 'Thermal Infrared Mosaic'], ans: 0, expl: 'The Blue Marble is a true color composite — showing Earth as human eyes would see it.', pts: 150 },
-      { img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Hurricane_Isabel_from_ISS.jpg/500px-Hurricane_Isabel_from_ISS.jpg', q: 'This photo was captured from the ISS. What extreme weather phenomenon is shown?', opts: ['Tornado', 'Hurricane / Tropical Cyclone', 'Dust Storm', 'Volcanic Ash Plume'], ans: 1, expl: 'Hurricane Isabel (2003) shows the characteristic spiral bands and clear eye of a tropical cyclone.', pts: 150 },
-      { img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Amazon_deforestation.jpg/500px-Amazon_deforestation.jpg', q: 'This Landsat satellite image of the Amazon Basin reveals a major environmental crisis. What is being shown?', opts: ['River Flooding', 'Systematic Deforestation', 'Agricultural Irrigation Grid', 'Oil Spill from Pipeline'], ans: 1, expl: 'The geometric clearing pattern is a classic signature of systematic deforestation.', pts: 200 },
-      { img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/NOAA-NASA_Suomi_NPP_satellite_image_of_northern_India_and_surrounding_countries_at_night.jpg/500px-NOAA-NASA_Suomi_NPP_satellite_image_of_northern_India_and_surrounding_countries_at_night.jpg', q: 'This nighttime satellite composite from Suomi NPP is used by economists and geographers to measure what?', opts: ['Lightning Activity Patterns', 'Human Settlement Density & Economic Activity', 'Volcanic Hotspot Activity', 'Aurora Borealis Distribution'], ans: 1, expl: 'Night lights detected by the VIIRS instrument are a powerful proxy for economic activity.', pts: 200 },
-      { img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Aletschgletscher_mit_Jungfrau.jpg/500px-Aletschgletscher_mit_Jungfrau.jpg', q: 'Multi-temporal satellite imagery of Alpine glaciers like this one is used to track which critical environmental indicator?', opts: ['Tectonic Uplift of Mountain Ranges', 'Glacial Retreat due to Climate Change', 'New Volcanic Formation', 'Increased Snowfall from La Niña'], ans: 1, expl: 'Repeat satellite observations document Alpine glacier retreat at 50+ metres per year.', pts: 250 },
+      { img: '/images/level2/cyclone.jpeg', q: 'What are you looking at? (The Spinning Monster)', opts: ['Tornado', 'Cyclone', 'Whirlpool', 'Alien portal'], ans: 2, expl: 'Cyclones are massive rotating storm systems that form over warm tropical waters.', pts: 150, hint: 'Big, organized storm system', hint2: 'Born over warm seas' },
+      { img: '/images/level2/drought.jpeg', q: "What's happening? (The Thirsty Earth)", opts: ['Flood party', 'Forest growth', 'Drought', 'Snowfall'], ans: 3, expl: 'Droughts occur when a region receives significantly less rain than normal for a long period.', pts: 150, hint: 'Too much sun, not enough rain', hint2: 'Water = missing' },
+      { img: '/images/level2/vegetation_health.jpeg', q: 'What is being analyzed? (The Color Code Mystery)', opts: ['Volcano heat', 'Vegetation health', 'Ocean depth', 'Airplanes'], ans: 2, expl: 'Vegetation health is measured using NDVI, where healthy plants reflect more near-infrared light.', pts: 150, hint: 'Farmers love this data', hint2: 'NDVI is involved' },
+      { img: '/images/level2/landslide.jpeg', q: 'Identify the disaster: (The Mountain Collapse)', opts: ['Earthquake', 'Landslide', 'Avalanche', 'Tsunami'], ans: 2, expl: 'Landslides involve the downward movement of rock or earth from a mountain or cliff.', pts: 150, hint: 'Gravity is the villain', hint2: 'Things get buried' },
+      { img: '/images/level2/sar.jpeg', q: 'What tech is this? (The Night Vision Satellite)', opts: ['Normal camera', 'Thermal sensor', 'Synthetic Aperture Radar (SAR)', 'Drone footage'], ans: 3, expl: 'SAR uses microwave signals to see through clouds, rain, and darkness, providing clear imagery 24/7.', pts: 150, hint: 'Clouds? No problem', hint2: 'Sends its own signals' },
     ],
   },
   level3: {
     chs: [
-      { em: '🛰️💡🌍', word: 'LIDAR', hint: 'Pulses of laser light measure precise distance to the ground surface', expl: 'Satellite + Laser light + Earth surface = LiDAR.', pts: 150 },
+      { em: '🕷️👨🕸️', word: 'SPIDERMAN', hint: 'A friendly neighborhood hero.', hint2: 'Word Length: 10 Letters', expl: 'Spider + Man + Web = SPIDERMAN.', pts: 150 },
       { em: '🌊⚠️🌏', word: 'TSUNAMI', hint: 'A massive ocean wave triggered by a submarine earthquake', expl: 'Ocean wave + hazard warning + global coastline impact = TSUNAMI.', pts: 200 },
       { em: '❄️🏔️📉', word: 'GLACIER', hint: 'A slow-moving mass of compacted ice that shapes mountain valleys', expl: 'Ice + mountain terrain + shrinking over time = GLACIER.', pts: 200 },
       { em: '🌪️👁️🌀', word: 'CYCLONE', hint: 'A large rotating storm system tracked continuously by geostationary weather satellites', expl: 'Rotating winds + eye + spiral structure = CYCLONE.', pts: 250 },
-      { em: '🔥🌲🗺️', word: 'WILDFIRE', hint: 'An uncontrolled fire spreading through vegetation, monitored by thermal infrared satellite sensors', expl: 'Fire + forest/vegetation + mapped from space = WILDFIRE.', pts: 250 },
+      { em: '🧊🚢💔', word: 'TITANIC', hint: 'A tragic, blockbuster romance movie from 1997.', hint2: 'Word Length: 7 Letters', expl: 'Ice + Ship + Heartbreak = TITANIC.', pts: 250 },
     ],
   },
   level4: {
     qs: [
-      { q: 'What does NDVI stand for in remote sensing?', opts: ['Normalized Difference Vegetation Index', 'National Digital Vegetation Interface', 'Natural Data Visualization Index', 'Normalized Distribution Visual Index'], ans: 0, expl: 'NDVI = (NIR − Red)/(NIR + Red). Values range from −1 to +1.', diff: 1, pts: 100 },
-      { q: 'Which type of radar sensor does the ESA Sentinel-1 satellite carry?', opts: ['X-band Radar', 'L-band Radar', 'C-band SAR', 'P-band SAR'], ans: 2, expl: 'Sentinel-1 carries a C-band SAR operating at 5.4 GHz.', diff: 2, pts: 150 },
-      { q: 'Which spectral band combination is BEST for delineating water bodies?', opts: ['Red + Green bands', 'NIR + SWIR bands', 'Blue + Green bands', 'Thermal + Panchromatic'], ans: 1, expl: 'Water strongly absorbs NIR and SWIR energy, appearing very dark.', diff: 2, pts: 150 },
-      { q: 'IEEE GRSS is primarily focused on:', opts: ['GPS navigation and positioning systems', 'Geoscience and remote sensing science and technology', 'Geological rock formation studies', 'Ground robotics and spatial computing'], ans: 1, expl: 'IEEE GRSS is the premier professional society for Earth observation scientists.', diff: 1, pts: 100 },
-      { q: 'What is the PRIMARY advantage of SAR over optical satellite sensors?', opts: ['Higher spatial resolution', 'All-weather, day-and-night imaging capability', 'More spectral bands available', 'Significantly lower cost per scene'], ans: 1, expl: 'SAR uses microwave energy that penetrates cloud cover and operates independently of sunlight.', diff: 2, pts: 150 },
-      { q: 'Which programme provides FREE and OPEN access to the full Sentinel satellite data archive?', opts: ['NASA Earthdata', 'The Copernicus Programme (ESA)', 'JAXA EORC', 'ISRO Bhuvan'], ans: 1, expl: 'The EU Copernicus Programme provides completely free and open access to all Sentinel data.', diff: 2, pts: 150 },
-      { q: 'In remote sensing, what does "temporal resolution" refer to?', opts: ['The pixel size on the ground', 'How often a satellite revisits the same location', 'The number of spectral bands a sensor records', 'The altitude of the satellite orbit'], ans: 1, expl: 'Temporal resolution = revisit time.', diff: 2, pts: 150 },
-      { q: 'Which spectral band is MOST useful for highlighting vegetation health?', opts: ['Blue band (0.45–0.52 μm)', 'Green band (0.52–0.60 μm)', 'Near-Infrared band (0.76–0.90 μm)', 'Thermal Infrared band (10–12 μm)'], ans: 2, expl: 'Healthy vegetation strongly reflects NIR while absorbing Red light.', diff: 3, pts: 200 },
-      { q: 'What is "orthorectification" in remote sensing image processing?', opts: ['Enhancing image brightness and contrast', 'Correcting geometric distortions caused by terrain relief and sensor geometry', 'Removing atmospheric scattering and haze', 'Classifying pixels into land cover categories'], ans: 1, expl: 'Orthorectification removes spatial distortions caused by terrain relief displacement.', diff: 3, pts: 200 },
-      { q: 'The Landsat 9 satellite was launched in which year?', opts: ['2015', '2018', '2021', '2023'], ans: 2, expl: 'Landsat 9 launched on September 27, 2021.', diff: 3, pts: 200 },
+      { q: 'In what sport is the word "love" considered a score?', opts: ['Volleyball', 'Badminton', 'Tennis', 'Table Tennis'], ans: 2, expl: '[Tennis / Love]: "Love" comes from the French word for egg (l\'œuf), meaning zero!', diff: 1, pts: 100 },
+      { q: 'How many bones do sharks have in their bodies?', opts: ['0', '100', '206', '300'], ans: 0, expl: '[Sharks / Bones]: Zero bones! Their entire skeleton is made of flexible cartilage.', diff: 1, pts: 100 },
+      { q: 'Which iconic Bollywood movie features the legendary villain dialogue, "Kitne aadmi the?"', opts: ['Don', 'Sholay', 'Deewaar', 'Agneepath'], ans: 1, expl: '[Sholay / Dialogue]: The legendary Gabbar Singh says this in the 1975 classic, Sholay.', diff: 2, pts: 150 },
+      { q: 'Which planet in our solar system is known as the "Morning Star" or "Evening Star"?', opts: ['Mars', 'Jupiter', 'Venus', 'Mercury'], ans: 2, expl: "[Venus / Morning Star]: It's the brightest planet in our sky just before sunrise and after sunset.", diff: 2, pts: 150 },
+      { q: 'Which animal has fingerprints so similar to human beings that they have actually confused investigators at crime scenes?', opts: ['Chimpanzee', 'Koala', 'Sloth', 'Raccoon'], ans: 1, expl: "[Koalas / Fingerprints]: Their fingerprints are so human-like they've actually confused police at crime scenes!", diff: 2, pts: 150 },
+      { q: 'In the blockbuster movie 3 Idiots, what is Rancho’s actual real name revealed at the end of the film?', opts: ['Chatur Ramalingam', 'Viru Sahastrabuddhe', 'Phunsukh Wangdu', 'Farhan Qureshi'], ans: 2, expl: '[3 Idiots / Rancho]: The climax reveals Rancho is actually the genius inventor, Phunsukh Wangdu.', diff: 2, pts: 150 },
+      { q: 'What is the only food that is known to practically never spoil or go bad, even after thousands of years?', opts: ['White Rice', 'Honey', 'Dark Chocolate', 'Salted Butter'], ans: 1, expl: '[Honey / Spoiling]: Its unique chemistry makes it impossible for bacteria to survive inside it.', diff: 3, pts: 200 },
+      { q: 'Which country is credited with the original invention of Tea?', opts: ['India', 'United Kingdom', 'China', 'Japan'], ans: 2, expl: '[Tea / China]: Legend says a Chinese Emperor accidentally discovered it in 2737 BC!', diff: 3, pts: 200 },
+      { q: "Which layer of Earth's atmosphere protects us from harmful UV rays?", opts: ['Troposphere', 'Stratosphere', 'Mesosphere', 'Thermosphere'], ans: 1, expl: "[Stratosphere / UV Rays]: This layer contains the ozone, which acts as Earth's ultimate natural sunscreen.", diff: 3, pts: 200 },
+      { q: 'Synthetic Aperture Radar (SAR) is powerful because it can:', opts: ['Work only in bright sunlight', 'Measure Earth\'s core temperature', 'See through clouds, day and night', 'Stop hurricanes from forming'], ans: 2, expl: '[SAR / Clouds]: SAR uses microwaves that easily pierce right through thick clouds and rain.', diff: 3, pts: 200 },
     ],
   },
   level5: {
@@ -129,10 +129,10 @@ export const LEVEL_INTROS: Record<number, { icon: string; badge: string; title: 
 
 // Time limits per level type (seconds)
 export const TIME_LIMITS: Record<number, number> = {
-  1: 60,   // 60s per question
-  2: 60,   // 60s per image
-  3: 120,  // 120s per hangman
-  4: 45,   // 45s for Rapid Fire (increased intensity)
+  1: 25,   // 25s per question
+  2: 25,   // 25s per image
+  3: 25,   // 25s per hangman
+  4: 12,   // 12s for Rapid Fire (increased intensity)
 };
 export const AUCTION_TIME = 120;  // 120s for tool auction
 export const DISASTER_TIME = 90;  // 90s for disaster response

@@ -113,6 +113,20 @@ export const SFX = {
   stopMusic: () => {
     Object.values(musicGains).forEach(g => g.gain.setTargetAtTime(0, getACtx().currentTime, 0.5));
   },
+  
+  _musicTimer: null as any,
+  _intensity: 1.0,
+
+  setMusicIntensity: (intensity: number) => {
+    SFX._intensity = intensity;
+    const ctx = getACtx();
+    Object.values(musicGains).forEach(g => {
+      if (g.gain.value > 0.01) {
+        g.gain.setTargetAtTime(0.05 * intensity, ctx.currentTime, 1);
+      }
+    });
+  },
+
   playMusic: (type: 'ambient' | 'active' | 'tense') => {
     const ctx = getACtx();
     if (ctx.state === 'suspended') ctx.resume();
@@ -135,7 +149,7 @@ export const SFX = {
 
     const freqs = type === 'ambient' ? [55, 110, 82.41] : 
                   type === 'active' ? [110, 220, 164.81, 130.81] : 
-                  [40, 80, 60, 120]; // Tense/Heist: lower, more dissonance
+                  [40, 80, 60, 120];
 
     musicOscs[type] = freqs.map((f, i) => {
       const o = ctx.createOscillator();
@@ -143,7 +157,6 @@ export const SFX = {
       o.type = type === 'tense' ? 'sawtooth' : 'sine';
       o.frequency.setValueAtTime(f, ctx.currentTime);
       
-      // Add subtle modulation
       const mod = ctx.createOscillator();
       const modG = ctx.createGain();
       mod.frequency.value = 0.5 + i * 0.1;
@@ -159,15 +172,18 @@ export const SFX = {
       return o;
     });
 
-    // Add rhythmic "pulse" for active/tense
+    if (SFX._musicTimer) clearInterval(SFX._musicTimer);
+    
     if (type !== 'ambient') {
-      const pulseInterval = type === 'active' ? 0.5 : 0.25;
-      const pulseFreq = type === 'active' ? 110 : 60;
-      setInterval(() => {
+      const tick = () => {
         if (musicGains[type].gain.value > 0.01) {
-          tone(pulseFreq, 0.1, 'square', 0.03);
+          const pulseFreq = type === 'active' ? 110 : 60;
+          tone(pulseFreq, 0.1, 'square', 0.03 * SFX._intensity);
         }
-      }, pulseInterval * 1000);
+        const nextInterval = (type === 'active' ? 500 : 250) / SFX._intensity;
+        SFX._musicTimer = setTimeout(tick, nextInterval);
+      };
+      SFX._musicTimer = setTimeout(tick, type === 'active' ? 500 : 250);
     }
   }
 };

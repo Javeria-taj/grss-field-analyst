@@ -44,7 +44,7 @@ export default function GameOverPhase() {
               width: '100%', maxWidth: 420,
               background: '#030712',
               borderRadius: 32,
-              padding: 40,
+              padding: 'clamp(20px, 8vw, 40px)',
               border: `2px solid ${archetype.color}44`,
               boxShadow: `0 0 40px ${archetype.color}22, inset 0 0 20px ${archetype.color}11`,
               position: 'relative',
@@ -61,6 +61,7 @@ export default function GameOverPhase() {
               
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 32 }}>
                 <motion.div 
+                  className="arch-icon"
                   initial={{ rotate: -10, scale: 0.8 }}
                   animate={{ rotate: 0, scale: 1 }}
                   transition={{ type: 'spring', damping: 10 }}
@@ -71,22 +72,22 @@ export default function GameOverPhase() {
                 >
                   {archetype.icon}
                 </motion.div>
-                <div className="font-orb" style={{ fontSize: '2.5rem', fontWeight: 900, color: '#fff', textAlign: 'center', lineHeight: 1 }}>{archetype.title.toUpperCase()}</div>
-                <div style={{ color: 'var(--text2)', fontSize: '0.85rem', textAlign: 'center', marginTop: 12, maxWidth: '80%', fontStyle: 'italic', opacity: 0.8 }}>
+                <div className="font-orb arch-title" style={{ fontSize: '2.5rem', fontWeight: 900, color: '#fff', textAlign: 'center', lineHeight: 1 }}>{archetype.title.toUpperCase()}</div>
+                <div style={{ color: 'var(--text2)', fontSize: '0.85rem', textAlign: 'center', marginTop: 12, maxWidth: '90%', fontStyle: 'italic', opacity: 0.8 }}>
                   "{archetype.desc}"
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 32 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'clamp(10px, 4vw, 20px)', marginBottom: 32 }}>
                 {stats.map((s, i) => (
-                  <div key={s.label} style={{ background: 'rgba(255,255,255,0.03)', padding: '16px 12px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
+                  <div key={s.label} style={{ background: 'rgba(255,255,255,0.03)', padding: 'clamp(10px, 3vw, 16px)', borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
                     <div style={{ fontSize: '0.65rem', color: 'var(--text2)', letterSpacing: 2, marginBottom: 4 }}>{s.label}</div>
                     <div className="font-orb" style={{ fontSize: '1.2rem', color: '#fff', fontWeight: 'bold' }}>{s.value}</div>
                   </div>
                 ))}
               </div>
 
-              <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ display: 'flex', gap: 12 }} className="flex-responsive">
                 <motion.button 
                   whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={() => alert('Summary card saved to simulation storage. Screenshot to share!')}
@@ -104,6 +105,13 @@ export default function GameOverPhase() {
                   🏆 LEADERBOARD
                 </motion.button>
               </div>
+
+              <style jsx>{`
+                @media (max-width: 600px) {
+                  .arch-icon { font-size: 3.5rem !important; }
+                  .arch-title { font-size: 1.8rem !important; }
+                }
+              `}</style>
 
               <div style={{ marginTop: 24, textAlign: 'center', fontSize: '0.6rem', color: 'var(--text2)', opacity: 0.4, letterSpacing: 2 }}>
                 GRSS FIELD ANALYST PROGRAM // VER 2.0.4 // SATELLITE LINK STABLE

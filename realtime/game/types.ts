@@ -57,6 +57,7 @@ export interface PlayerScore {
   currentLevelScore: number;
   telemetry: TelemetryData[];
   streak: number;
+  achievements: string[]; // IDs
   faction?: string;
 }
 
@@ -202,6 +203,7 @@ export interface GameStateSync {
     lives: number;
     revealedPositions: number[];
     wordLength: number;
+    maskedWord: string;
   } | null;
   auctionState: {
     budget: number;

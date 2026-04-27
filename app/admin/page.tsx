@@ -9,6 +9,7 @@ import { toast } from '@/components/ui/Toast';
 import QuestionBankPanel from '@/components/admin/QuestionBankPanel';
 import QuestionManagerModal from '@/components/admin/QuestionManagerModal';
 import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
+import AdminLiveView from '@/components/admin/AdminLiveView';
 
 const LEVELS = [
   { id: 1, icon: '🔤', label: 'SCRAMBLE/RIDDLES' },
@@ -25,7 +26,7 @@ export default function AdminDashboard() {
     init, destroy, connected, phase, adminStats, leaderboard,
     adminStartLevel, adminPause, adminReset, adminBroadcast,
     timerEndTime, paused, adminTimerAdd10, adminTimerPauseResume, adminUpdateLevelLimit,
-    adminForceEndQuestion, adminKickPlayer, adminLiveStats, adminTriggerAnomaly
+    adminForceEndQuestion, adminKickPlayer, adminLiveStats, adminTriggerAnomaly, adminTriggerScenario
   } = useGameSyncStore();
   const [broadcastMsg, setBroadcastMsg] = useState('');
   const [localRemaining, setLocalRemaining] = useState(0);
@@ -81,6 +82,7 @@ export default function AdminDashboard() {
             <div style={{ fontSize: '0.65rem', color: 'var(--text2)', marginTop: 2 }}>MISSION OVERSEER PORTAL · {connected ? '🟢 ONLINE' : '🔴 OFFLINE'}</div>
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
+            <a href="/api/admin/export" download className="btn btn-primary btn-sm" style={{ textDecoration: 'none' }}>REPORT (.CSV)</a>
             <button className="btn btn-outline btn-sm" onClick={handleLogout}>LOGOUT</button>
           </div>
         </motion.div>
@@ -172,6 +174,16 @@ export default function AdminDashboard() {
                 💀 TRIGGER ZERO-DAY
               </motion.button>
             </div>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text3)', alignSelf: 'center', marginRight: 10 }}>SCENARIO DIRECTOR:</div>
+              <button className="btn btn-outline btn-sm" 
+                style={{ borderColor: '#f97316', color: '#f97316', fontSize: '0.7rem' }}
+                onClick={() => adminTriggerScenario('solar_flare')}>🔥 SOLAR FLARE</button>
+              <button className="btn btn-outline btn-sm" 
+                style={{ borderColor: '#a855f7', color: '#a855f7', fontSize: '0.7rem' }}
+                onClick={() => adminTriggerScenario('data_corruption')}>☣️ DATA CORRUPTION</button>
+            </div>
           </motion.div>
 
           {/* Live Answer Distribution */}
@@ -213,34 +225,10 @@ export default function AdminDashboard() {
             </div>
           </motion.div>
 
-          {/* Leaderboard Slice */}
-          <motion.div className="card" style={{ maxWidth: 900, width: '100%', borderTop: '2px solid var(--accent2)' }}
-            initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <div className="label t-accent2" style={{ marginBottom: 16 }}>📊 LIVE LEADERS (TOP 20)</div>
-            <div style={{ display: 'grid', gap: 6 }}>
-              {leaderboard.length === 0 ? (
-                <div className="t-muted" style={{ fontSize: '0.8rem' }}>No data yet.</div>
-              ) : (
-                leaderboard.slice(0, 20).map((e, i) => (
-                  <div key={e.usn} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.05)', borderRadius: 6, fontSize: '0.85rem' }}>
-                    <div style={{ display: 'flex', gap: 12 }}>
-                      <span className="t-accent">#{i + 1}</span>
-                      <span>{e.name}</span>
-                      <span className="t-muted">({e.usn})</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                      <div className="font-orb t-accent2" style={{ fontWeight: 700 }}>{e.totalScore}</div>
-                      <button className="btn btn-outline btn-sm" 
-                        style={{ padding: '2px 6px', fontSize: '0.6rem', borderColor: 'var(--danger)', color: 'var(--danger)', borderRadius: 4 }}
-                        onClick={() => { if(confirm(`🚫 KICK PLAYER ${e.usn}?\nThis will permanently remove them from this session.`)) adminKickPlayer(e.usn); }}>
-                        🚫 KICK
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </motion.div>
+          {/* Operative Monitor */}
+          <AdminLiveView />
+
+          {/* Broadcast */}
         </div>
       </div>
       <QuestionManagerModal isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
