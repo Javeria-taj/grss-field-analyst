@@ -61,6 +61,7 @@ export default function AnomalyPhase() {
         <motion.h1 
           animate={{ scale: [1, 1.1, 1], x: [-2, 2, -2] }}
           transition={{ duration: 0.1, repeat: Infinity }}
+          className="anomaly-header"
           style={{ 
             fontSize: '3rem', fontWeight: 900, textTransform: 'uppercase',
             background: '#000', color: '#ff0033', padding: '10px 20px',
@@ -71,7 +72,7 @@ export default function AnomalyPhase() {
           Zero-Day Anomaly
         </motion.h1>
 
-        <div style={{ 
+        <div className="anomaly-sub" style={{ 
           background: '#fff', color: '#000', padding: 15, 
           border: '4px solid #000', boxShadow: '8px 8px 0px #000',
           marginBottom: 30, fontSize: '1.2rem', fontWeight: 'bold'
@@ -80,12 +81,14 @@ export default function AnomalyPhase() {
           PATCH THE CORRUPT DATA NODE IMMEDIATELY.
         </div>
 
-        <div className="font-orb" style={{ 
+        <div className="font-orb anomaly-timer" style={{ 
           fontSize: '4rem', marginBottom: 30, color: localTime <= 5 ? '#ff0033' : '#fff',
           background: '#000', padding: '0 20px', border: '4px solid #fff'
         }}>
           00:{localTime.toString().padStart(2, '0')}
         </div>
+
+
 
         {!anomalyResult ? (
           <div style={{ 
@@ -161,6 +164,11 @@ export default function AnomalyPhase() {
           80% { transform: translate(-1px, -1px) rotate(1deg); }
           90% { transform: translate(1px, 2px) rotate(0deg); }
           100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+        @media (max-width: 600px) {
+          .anomaly-header { font-size: 1.8rem !important; box-shadow: 5px 5px 0px #fff !important; }
+          .anomaly-sub { font-size: 0.9rem !important; }
+          .anomaly-timer { font-size: 2.5rem !important; }
         }
       `}</style>
     </div>

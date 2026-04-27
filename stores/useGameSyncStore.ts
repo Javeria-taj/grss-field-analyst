@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { io, Socket } from 'socket.io-client';
 import { toast } from '@/components/ui/Toast';
 import { SFX } from '@/lib/sfx';
+import { VoiceEngine } from '@/lib/VoiceEngine';
+import { ACHIEVEMENTS } from '@/lib/achievements';
 
 // ── Types (mirrored from server protocol) ──
 export type GamePhase =
@@ -120,6 +122,7 @@ interface GameSyncState {
   hangmanLives: number;
   hangmanRevealed: number[];
   hangmanWordLength: number;
+  hangmanMaskedWord: string;
   hangmanSolved: boolean;
 
   // Level 5 — Auction
@@ -154,6 +157,7 @@ interface GameSyncState {
 
   factionScores: Record<string, number>;
   myStreak: number;
+  myAchievements: string[];
 
   bankQuestions: any[];
 
@@ -171,6 +175,13 @@ interface GameSyncState {
   // Mission Commander
   missionCommentary: MissionCommentaryPayload | null;
 
+  // Live UX Feed
+  activeReactions: { id: string; emoji: string }[];
+  missionEvents: { id: string; type: string; user: string; achievementId?: string; text?: string }[];
+
+  // Toolkit / Powerups
+  powerupResult: { type: string; removed?: number[]; distribution?: Record<string, number> } | null;
+
   // Actions
   init: () => void;
   destroy: () => void;
@@ -179,6 +190,7 @@ interface GameSyncState {
   buyTool: (toolId: string) => void;
   sellTool: (toolId: string) => void;
   deployTools: (toolIds: string[]) => void;
+  usePowerup: (type: 'radar_pulse' | 'thermal_scan') => void;
   // Admin actions
   adminStartLevel: (level: number) => void;
   adminPause: () => void;
@@ -195,6 +207,8 @@ interface GameSyncState {
   adminForceEndQuestion: () => void;
   adminKickPlayer: (usn: string) => void;
   adminTriggerAnomaly: () => void;
+  adminTriggerScenario: (type: 'solar_flare' | 'data_corruption') => void;
+  adminSabotagePlayer: (usn: string) => void;
   sendReaction: (emoji: string) => void;
   submitAnomalyFix: (targetId: string) => void;
   queuedAnswer: string | number | null;
@@ -223,6 +237,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   hangmanLives: 6,
   hangmanRevealed: [],
   hangmanWordLength: 0,
+  hangmanMaskedWord: '',
   hangmanSolved: false,
   auctionTools: [],
   auctionPrices: {},
@@ -240,11 +255,15 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   preloadedAssets: [],
   factionScores: {},
   myStreak: 0,
+  myAchievements: [],
   queuedAnswer: null,
   anomalyData: null,
   anomalyResult: null,
   hasFixedAnomaly: false,
   missionCommentary: null,
+  activeReactions: [],
+  missionEvents: [],
+  powerupResult: null,
 
   init: () => {
     if (get().socket?.connected) return;
@@ -320,12 +339,14 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         hangmanLives: data.hangmanState?.lives ?? 6,
         hangmanRevealed: data.hangmanState?.revealedPositions ?? [],
         hangmanWordLength: data.hangmanState?.wordLength ?? 0,
+        hangmanMaskedWord: data.hangmanState?.maskedWord ?? '',
         auctionBudget: data.auctionState?.budget ?? 10000,
         auctionOwned: data.auctionState?.ownedTools ?? [],
         auctionPrices: data.auctionState?.prices ?? {},
         disasterInfo: data.disasterInfo,
         myTelemetry: data.myScore?.telemetry || [],
         myStreak: data.myScore?.streak ?? 0,
+        myAchievements: data.myScore?.achievements || [],
         factionScores: data.factionScores || {},
       });
     });
@@ -347,7 +368,10 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         myAnswer: null, hasAnswered: false, reviewData: null,
         // Reset hangman for new question
         hangmanGuessed: [], hangmanLives: 6, hangmanRevealed: [],
-        hangmanWordLength: data.wordLength ?? 0, hangmanSolved: false,
+        hangmanWordLength: data.wordLength ?? 0,
+        hangmanMaskedWord: '_'.repeat(data.wordLength ?? 0),
+        hangmanSolved: false,
+        powerupResult: null,
       });
     });
 
@@ -414,6 +438,12 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       set({ phase: 'game_over', finalLeaderboard: data.finalLeaderboard });
     });
 
+    // ── Mission Commentary (AI) ──
+    socket.on('mission_commentary', (data: MissionCommentaryPayload) => {
+      set({ missionCommentary: data });
+      VoiceEngine.speak(data.text, data.mood);
+    });
+
     // ── Game reset ──
     socket.on('game_reset', () => {
       set({
@@ -435,12 +465,44 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       set({ paused: data.paused });
     });
 
+    // ── Asset Preloading ──
+    socket.on('preload_asset', (data: { url: string }) => {
+      if (!data.url) return;
+      const img = new Image();
+      img.src = data.url;
+    });
+
+    // ── Achievements ──
+    socket.on('achievement_earned', (id: string) => {
+      const achievement = ACHIEVEMENTS[id];
+      if (achievement) {
+        toast(`🏆 Achievement Unlocked: ${achievement.name}`, 'ok');
+        SFX.levelComplete(); // Use levelComplete sound for achievements
+      }
+      set(s => ({
+        myAchievements: [...s.myAchievements, id]
+      }));
+    });
+
+    // ── Sabotage (Admin Interference) ──
+    socket.on('sabotage_event', (data: { type: string; duration: number; message: string }) => {
+      if (data.type === 'glitch') {
+        toast(`⚠️ ${data.message}`, 'err');
+        SFX.error();
+        document.body.classList.add('glitch-active');
+        setTimeout(() => {
+          document.body.classList.remove('glitch-active');
+        }, data.duration);
+      }
+    });
+
     // ── Hangman result ──
-    socket.on('hangman_letter_result', (data: { hit: boolean; positions: number[]; livesLeft: number; solved: boolean }) => {
+    socket.on('hangman_letter_result', (data: { hit: boolean; positions: number[]; livesLeft: number; solved: boolean; maskedWord?: string }) => {
       set(s => ({
         hangmanRevealed: data.hit ? [...s.hangmanRevealed, ...data.positions] : s.hangmanRevealed,
         hangmanLives: data.livesLeft,
         hangmanSolved: data.solved,
+        hangmanMaskedWord: data.maskedWord || s.hangmanMaskedWord,
         hangmanGuessed: s.hangmanGuessed, // already updated optimistically
       }));
     });
@@ -519,8 +581,40 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
 
     socket.on('anomaly_cleared', () => {
       set({ phase: 'idle', anomalyData: null });
-      // If we were at Level 3, idle is fine as Level 4 usually started manually or by timer
-      // But actually, we should probably return to a neutral state
+    });
+
+    socket.on('targeted_sabotage', (data: { type: string }) => {
+      if (data.type === 'glitch') {
+        document.body.classList.add('glitch-active');
+        setTimeout(() => document.body.classList.remove('glitch-active'), 3000);
+      }
+      SFX.glitch();
+    });
+
+    // ── Live UX Feed ──
+    socket.on('reaction_broadcast', (data: { id: string; emoji: string }) => {
+      set(s => ({ activeReactions: [...s.activeReactions, data].slice(-30) }));
+      setTimeout(() => {
+        set(s => ({ activeReactions: s.activeReactions.filter(r => r.id !== data.id) }));
+      }, 4000);
+    });
+
+    socket.on('mission_event', (data: any) => {
+      const event = { ...data, id: Math.random().toString(36).slice(2, 9) };
+      set(s => ({ missionEvents: [event, ...s.missionEvents].slice(0, 5) }));
+      setTimeout(() => {
+        set(s => ({ missionEvents: s.missionEvents.filter(e => e.id !== event.id) }));
+      }, 6000);
+    });
+
+    socket.on('powerup_result', (data: any) => {
+      if (data.success) {
+        set({ powerupResult: data });
+        SFX.success();
+      } else {
+        toast(data.error || 'Toolkit failed', 'err');
+        SFX.wrong();
+      }
     });
 
     // ── Mission Commander ──
@@ -593,6 +687,12 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
     socket.emit('deploy_tools', { toolIds });
   },
 
+  usePowerup: (type) => {
+    const { socket } = get();
+    if (!socket?.connected) return;
+    socket.emit('use_powerup', { type });
+  },
+
   // ── Admin Actions ──
   adminStartLevel: (level) => {
     const { socket } = get();
@@ -639,6 +739,16 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
     if (socket?.connected) socket.emit('admin_update_bank_question', { id, updates });
   },
 
+  adminTriggerAnomaly: () => {
+    const { socket } = get();
+    if (socket?.connected) socket.emit('admin_trigger_anomaly');
+  },
+
+  adminTriggerScenario: (type) => {
+    const { socket } = get();
+    if (socket?.connected) socket.emit('admin_trigger_scenario', { type });
+  },
+
   adminDeleteBankQuestion: (id) => {
     const { socket } = get();
     if (socket?.connected) socket.emit('admin_delete_bank_question', { id });
@@ -661,9 +771,9 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
     if (socket?.connected) socket.emit('admin_kick_player', { usn });
   },
 
-  adminTriggerAnomaly: () => {
+  adminSabotagePlayer: (usn) => {
     const { socket } = get();
-    if (socket?.connected) socket.emit('admin_trigger_anomaly');
+    if (socket?.connected) socket.emit('admin_sabotage_player', { usn });
   },
 
   sendReaction: (emoji) => {

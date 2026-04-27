@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
+import { SFX } from '@/lib/sfx';
 
 export default function GameHUD({ user, connected, paused, onLogout }: {
   user: { name: string; usn: string; faction?: string };
@@ -42,6 +43,13 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
       
       setLocalRemaining(remainingSec);
       
+      // Dynamic music intensity
+      if (remainingSec <= 5 && remainingSec > 0) {
+        SFX.setMusicIntensity(1.5);
+      } else {
+        SFX.setMusicIntensity(1.0);
+      }
+
       if (timerTotal > 0) {
         setPct((remainingMs / 1000 / timerTotal) * 100);
       } else {
@@ -58,6 +66,7 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
   }, [timerEndTime, timerTotal, paused, showTimer]);
 
   const isFire = myStreak >= 3;
+  const isAnomaly = phase === 'anomaly_active';
   const factionColor = user.faction === 'team_sentinel' ? '#3b82f6' : user.faction === 'team_landsat' ? '#10b981' : user.faction === 'team_modis' ? '#a855f7' : 'var(--accent)';
 
   return (
@@ -66,32 +75,33 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
       animate={{ 
         y: 0, 
         opacity: 1,
-        borderBottomColor: isFire ? '#f97316' : 'var(--border)',
-        boxShadow: isFire ? '0 0 20px rgba(249, 115, 22, 0.2)' : 'none'
+        borderBottomColor: isFire ? '#f97316' : isAnomaly ? '#ff0033' : 'var(--border)',
+        boxShadow: isFire 
+          ? '0 0 20px rgba(249, 115, 22, 0.2)' 
+          : isAnomaly 
+            ? '0 0 20px rgba(255, 0, 51, 0.2)' 
+            : 'none',
+        x: isAnomaly ? [0, -2, 2, -1, 1, 0] : 0
       }}
-      style={{
-        padding: '10px 16px', background: 'rgba(3,7,15,0.96)',
-        borderBottom: '1px solid var(--border)', display: 'flex',
-        justifyContent: 'space-between', alignItems: 'center', gap: 10,
-        backdropFilter: 'blur(12px)', position: 'sticky', top: 0, zIndex: 50,
-      }}
+      transition={isAnomaly ? { repeat: Infinity, duration: 0.2 } : {}}
+      className="hud"
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <motion.div
           animate={{ opacity: connected ? [0.5, 1, 0.5] : 1 }}
           transition={{ duration: 1.5, repeat: connected ? Infinity : 0 }}
           style={{
-            width: 8, height: 8, borderRadius: '50%',
+            width: 6, height: 6, borderRadius: '50%',
             background: connected ? factionColor : 'var(--danger)',
             boxShadow: connected ? `0 0 8px ${factionColor}` : 'none',
           }}
         />
-        <div>
-          <div className="font-orb" style={{ fontSize: '0.85rem', color: factionColor, display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ minWidth: 0 }}>
+          <div className="font-orb" style={{ fontSize: '0.8rem', color: factionColor, display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {user.name.toUpperCase()}
             {isFire && <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity }}>🔥</motion.span>}
           </div>
-          <div style={{ fontSize: '0.65rem', color: 'var(--text2)' }}>{user.usn}</div>
+          <div style={{ fontSize: '0.6rem', color: 'var(--text2)' }}>{user.usn}</div>
         </div>
       </div>
 
@@ -100,42 +110,48 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
           animate={{ opacity: [1, 0.4, 1] }}
           transition={{ duration: 1, repeat: Infinity }}
           className="font-orb"
-          style={{ color: 'var(--warning)', fontSize: '0.8rem', letterSpacing: 2 }}
+          style={{ color: 'var(--warning)', fontSize: '0.7rem', letterSpacing: 1 }}
         >
-          ⏸ PAUSED
+          ⏸
         </motion.div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         {currentLevel > 0 && (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '0.55rem', color: 'var(--text2)' }}>MISSION</div>
-            <div className="font-orb" style={{ fontSize: '1rem', color: factionColor }}>{currentLevel}</div>
+          <div style={{ textAlign: 'center', display: 'none' }} className="hud-mission-label">
+            <div style={{ fontSize: '0.5rem', color: 'var(--text2)' }}>MISSION</div>
+            <div className="font-orb hud-level" style={{ color: factionColor }}>{currentLevel}</div>
           </div>
         )}
         {showTimer && (
-          <div style={{ width: 100 }}>
-            <div style={{ fontSize: '0.55rem', color: 'var(--text2)', textAlign: 'center' }}>TIME</div>
-            <div style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+          <div style={{ width: 60 }} className="hud-timer">
+            <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
               <motion.div
                 style={{
-                  height: '100%', borderRadius: 3,
-                  background: pct > 30 ? 'var(--accent)' : pct > 10 ? 'var(--warning)' : 'var(--danger)',
+                  height: '100%', borderRadius: 2,
+                  background: pct > 30 ? 'var(--accent2)' : pct > 10 ? 'var(--warning)' : 'var(--danger)',
                   width: `${Math.min(100, Math.max(0, pct))}%`,
                 }}
               />
             </div>
-            <div className="font-orb" style={{ textAlign: 'center', fontSize: '0.85rem', color: localRemaining <= 10 ? 'var(--danger)' : 'var(--text)' }}>
+            <div className="font-orb" style={{ textAlign: 'center', fontSize: '0.75rem', color: localRemaining <= 10 ? 'var(--danger)' : 'var(--text)' }}>
               {localRemaining}s
             </div>
           </div>
         )}
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '0.55rem', color: 'var(--text2)' }}>SCORE</div>
-          <div className="font-orb t-gold" style={{ fontSize: '1.1rem' }}>{displayScore}</div>
+          <div style={{ fontSize: '0.5rem', color: 'var(--text2)' }}>SCORE</div>
+          <div className="font-orb t-gold hud-score">{displayScore}</div>
         </div>
-        <button className="btn btn-outline btn-sm" onClick={onLogout} style={{ fontSize: '0.65rem', padding: '4px 8px' }}>↩</button>
+        <button className="btn btn-outline btn-sm" onClick={onLogout} style={{ fontSize: '0.6rem', padding: '4px 6px', minHeight: 30, minWidth: 30 }}>↩</button>
       </div>
+
+      <style jsx>{`
+        @media (min-width: 480px) {
+          .hud-mission-label { display: block !important; }
+          .hud-timer { width: 90px !important; }
+        }
+      `}</style>
     </motion.div>
   );
 }

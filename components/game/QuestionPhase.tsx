@@ -9,9 +9,9 @@ function ScrambleQ({ q, onSubmit, disabled }: { q: any; onSubmit: (a: string) =>
   return (
     <div style={{ textAlign: 'center', opacity: disabled ? 0.6 : 1, transition: 'opacity 0.3s' }}>
       <div className="label t-accent" style={{ marginBottom: 8 }}>{q.category}</div>
-      <div className="font-orb" style={{ fontSize: '2.2rem', letterSpacing: 6, color: 'var(--warning)', marginBottom: 12 }}>{q.scrambled}</div>
+      <div className="font-orb scramble-disp" style={{ color: 'var(--warning)', marginBottom: 12 }}>{q.scrambled}</div>
       <div style={{ fontSize: '0.85rem', color: 'var(--text2)', marginBottom: 16 }}>💡 {q.hint}</div>
-      <div style={{ display: 'flex', gap: 8, maxWidth: 400, margin: '0 auto' }}>
+      <div style={{ display: 'flex', gap: 8, maxWidth: '100%', margin: '0 auto' }}>
         <input className="input" style={{ flex: 1, textTransform: 'uppercase', textAlign: 'center', fontSize: '1.1rem' }}
           placeholder="Type your answer..." value={val} disabled={disabled}
           onChange={e => setVal(e.target.value)}
@@ -30,9 +30,9 @@ function RiddleQ({ q, onSubmit, disabled }: { q: any; onSubmit: (a: string) => v
   return (
     <div style={{ textAlign: 'center', opacity: disabled ? 0.6 : 1, transition: 'opacity 0.3s' }}>
       <div className="label t-accent" style={{ marginBottom: 8 }}>{q.category}</div>
-      <div style={{ fontSize: '1.05rem', color: 'var(--text)', lineHeight: 1.6, marginBottom: 16, maxWidth: 500, margin: '0 auto 16px' }}>{q.question}</div>
+      <div style={{ fontSize: '1rem', color: 'var(--text)', lineHeight: 1.6, marginBottom: 16, maxWidth: '100%', margin: '0 auto 16px' }}>{q.question}</div>
       <div style={{ fontSize: '0.85rem', color: 'var(--text2)', marginBottom: 16 }}>💡 {q.hint}</div>
-      <div style={{ display: 'flex', gap: 8, maxWidth: 400, margin: '0 auto' }}>
+      <div style={{ display: 'flex', gap: 8, maxWidth: '100%', margin: '0 auto' }}>
         <input className="input" style={{ flex: 1, textTransform: 'uppercase', textAlign: 'center', fontSize: '1.1rem' }}
           placeholder="Type your answer..." value={val} disabled={disabled}
           onChange={e => setVal(e.target.value)}
@@ -80,30 +80,56 @@ function ImageMCQ({ q, onSubmit, disabled }: { q: any; onSubmit: (a: number) => 
           />
         </div>
       )}
-      <div style={{ fontSize: '1rem', color: 'var(--text)', marginBottom: 16, maxWidth: 500, margin: '0 auto 16px' }}>{q.question}</div>
-      <div style={{ display: 'grid', gap: 10, maxWidth: 500, margin: '0 auto' }}>
-        {q.options?.map((opt: string, i: number) => (
-          <motion.button key={i} className="btn btn-outline" disabled={disabled}
-            style={{ textAlign: 'left', padding: '12px 16px', fontSize: '0.88rem' }}
-            whileHover={{ scale: disabled ? 1 : 1.02 }} whileTap={{ scale: disabled ? 1 : 0.98 }}
-            onClick={() => onSubmit(i)}>
-            <span style={{ color: 'var(--accent)', marginRight: 10 }}>{String.fromCharCode(65 + i)}.</span> {opt}
-          </motion.button>
-        ))}
+      <div style={{ fontSize: '1rem', color: 'var(--text)', marginBottom: 16, maxWidth: '100%', margin: '0 auto 16px' }}>{q.question}</div>
+      <div style={{ display: 'grid', gap: 10, maxWidth: '100%', margin: '0 auto' }}>
+        {q.options?.map((opt: string, i: number) => {
+          const isRemoved = useGameSyncStore.getState().powerupResult?.type === 'radar_pulse' && useGameSyncStore.getState().powerupResult?.removed?.includes(i);
+          const distribution = useGameSyncStore.getState().powerupResult?.type === 'thermal_scan' ? useGameSyncStore.getState().powerupResult?.distribution : null;
+          const popularity = distribution ? (distribution[String.fromCharCode(65 + i)] || 0) : 0;
+          
+          return (
+            <motion.button 
+              key={i} 
+              className="btn btn-outline" 
+              disabled={disabled || isRemoved}
+              initial={isRemoved ? { opacity: 1 } : {}}
+              animate={isRemoved ? { opacity: 0.1, scale: 0.95 } : { opacity: 1, scale: 1 }}
+              style={{ 
+                textAlign: 'left', 
+                padding: '12px 16px', 
+                fontSize: '0.88rem',
+                position: 'relative'
+              }}
+              whileHover={{ scale: (disabled || isRemoved) ? 1 : 1.02 }} 
+              whileTap={{ scale: (disabled || isRemoved) ? 1 : 0.98 }}
+              onClick={() => onSubmit(i)}>
+              <span style={{ color: 'var(--accent)', marginRight: 10 }}>{String.fromCharCode(65 + i)}.</span> {opt}
+              {popularity > 0 && (
+                <div style={{ 
+                  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                  background: 'var(--accent)', color: '#000', padding: '2px 6px', borderRadius: 4, fontSize: '0.65rem', fontWeight: 900
+                }}>
+                  {popularity} AGENTS
+                </div>
+              )}
+            </motion.button>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 function HangmanQ({ disabled }: { disabled: boolean }) {
-  const { currentQuestion: q, hangmanGuessed, hangmanLives, hangmanRevealed, hangmanWordLength, hangmanSolved, guessLetter } = useGameSyncStore();
+  const { 
+    currentQuestion: q, hangmanGuessed, hangmanLives, 
+    hangmanRevealed, hangmanMaskedWord, hangmanSolved, guessLetter 
+  } = useGameSyncStore();
   const [isSubmittingLetter, setIsSubmittingLetter] = useState(false);
 
   if (!q) return null;
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-  const blanks = Array.from({ length: hangmanWordLength }, (_, i) =>
-    hangmanRevealed.includes(i) ? '?' : '_'
-  );
+  const blanks = hangmanMaskedWord.split('');
 
   const handleGuess = (l: string) => {
     setIsSubmittingLetter(true);
@@ -113,22 +139,32 @@ function HangmanQ({ disabled }: { disabled: boolean }) {
 
   return (
     <div style={{ textAlign: 'center', opacity: disabled ? 0.6 : 1, transition: 'opacity 0.3s' }}>
-      <div style={{ fontSize: '3rem', marginBottom: 12 }}>{q.emoji}</div>
+      <div className="font-orb em-clue" style={{ marginBottom: 12 }}>{q.emoji}</div>
       <div style={{ fontSize: '0.85rem', color: 'var(--text2)', marginBottom: 16 }}>💡 {q.hint}</div>
-      <div className="font-orb" style={{ fontSize: '2rem', letterSpacing: 12, marginBottom: 16, color: 'var(--accent)' }}>
-        {blanks.join(' ')}
+      <div className="font-orb word-slots" style={{ marginBottom: 16, color: 'var(--accent)' }}>
+        {blanks.map((char, i) => {
+          const isSpace = char === ' ';
+          const isRevealed = char !== '_' && !isSpace;
+          return (
+            <div 
+              key={i} 
+              className={`letter-slot ${isSpace ? 'space' : ''} ${isRevealed ? 'shown pop' : ''}`}
+            >
+              {isSpace || char === '_' ? '' : char}
+            </div>
+          );
+        })}
       </div>
       <div style={{ marginBottom: 16 }}>
         <span style={{ color: hangmanLives <= 2 ? 'var(--danger)' : 'var(--text2)' }}>
           {'❤️'.repeat(hangmanLives)}{'🖤'.repeat(6 - hangmanLives)}
         </span>
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', maxWidth: 500, margin: '0 auto' }}>
+      <div className="alpha-grid">
         {alphabet.map(l => (
-          <button key={l} className="btn btn-outline btn-sm"
+          <button key={l} className="alpha-key"
             disabled={disabled || isSubmittingLetter || hangmanGuessed.includes(l) || hangmanSolved}
             style={{
-              width: 36, height: 36, padding: 0, fontSize: '0.8rem',
               opacity: hangmanGuessed.includes(l) ? 0.3 : 1,
               borderColor: hangmanGuessed.includes(l)
                 ? (hangmanRevealed.length > 0 ? 'var(--accent2)' : 'var(--danger)')
@@ -148,16 +184,41 @@ function MCQ({ q, onSubmit, disabled }: { q: any; onSubmit: (a: number) => void;
   return (
     <div style={{ textAlign: 'center', opacity: disabled ? 0.6 : 1, transition: 'opacity 0.3s' }}>
       <div style={{ fontSize: '0.75rem', color: 'var(--text2)', marginBottom: 8 }}>{stars}</div>
-      <div style={{ fontSize: '1.05rem', color: 'var(--text)', marginBottom: 20, maxWidth: 550, margin: '0 auto 20px', lineHeight: 1.6 }}>{q.question}</div>
-      <div style={{ display: 'grid', gap: 10, maxWidth: 500, margin: '0 auto' }}>
-        {q.options?.map((opt: string, i: number) => (
-          <motion.button key={i} className="btn btn-outline" disabled={disabled}
-            style={{ textAlign: 'left', padding: '12px 16px', fontSize: '0.88rem' }}
-            whileHover={{ scale: disabled ? 1 : 1.02 }} whileTap={{ scale: disabled ? 1 : 0.98 }}
-            onClick={() => onSubmit(i)}>
-            <span style={{ color: 'var(--accent)', marginRight: 10 }}>{String.fromCharCode(65 + i)}.</span> {opt}
-          </motion.button>
-        ))}
+      <div style={{ fontSize: '1rem', color: 'var(--text)', marginBottom: 20, maxWidth: '100%', margin: '0 auto 20px', lineHeight: 1.6 }}>{q.question}</div>
+      <div style={{ display: 'grid', gap: 10, maxWidth: '100%', margin: '0 auto' }}>
+        {q.options?.map((opt: string, i: number) => {
+          const isRemoved = useGameSyncStore.getState().powerupResult?.type === 'radar_pulse' && useGameSyncStore.getState().powerupResult?.removed?.includes(i);
+          const distribution = useGameSyncStore.getState().powerupResult?.type === 'thermal_scan' ? useGameSyncStore.getState().powerupResult?.distribution : null;
+          const popularity = distribution ? (distribution[String.fromCharCode(65 + i)] || 0) : 0;
+
+          return (
+            <motion.button 
+              key={i} 
+              className="btn btn-outline" 
+              disabled={disabled || isRemoved}
+              initial={isRemoved ? { opacity: 1 } : {}}
+              animate={isRemoved ? { opacity: 0.1, scale: 0.95 } : { opacity: 1, scale: 1 }}
+              style={{ 
+                textAlign: 'left', 
+                padding: '12px 16px', 
+                fontSize: '0.88rem',
+                position: 'relative'
+              }}
+              whileHover={{ scale: (disabled || isRemoved) ? 1 : 1.02 }} 
+              whileTap={{ scale: (disabled || isRemoved) ? 1 : 0.98 }}
+              onClick={() => onSubmit(i)}>
+              <span style={{ color: 'var(--accent)', marginRight: 10 }}>{String.fromCharCode(65 + i)}.</span> {opt}
+              {popularity > 0 && (
+                <div style={{ 
+                  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                  background: 'var(--accent)', color: '#000', padding: '2px 6px', borderRadius: 4, fontSize: '0.65rem', fontWeight: 900
+                }}>
+                  {popularity} AGENTS
+                </div>
+              )}
+            </motion.button>
+          );
+        })}
       </div>
     </div>
   );
@@ -217,7 +278,7 @@ export default function QuestionPhase() {
 
       <motion.div
         className="card"
-        style={{ maxWidth: 620, width: '100%', pointerEvents: disabled ? 'none' : 'auto' }}
+        style={{ maxWidth: 620, width: '100%', pointerEvents: disabled ? 'none' : 'auto', margin: '0 auto' }}
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         key={`${currentLevel}-${q.index}`}
@@ -251,8 +312,13 @@ export default function QuestionPhase() {
         >
           <motion.div 
             initial={{ scale: 0.5, rotate: -20 }}
-            animate={{ scale: [0.5, 1.4, 1], rotate: 0 }}
-            transition={{ duration: 0.45, type: 'spring', damping: 12 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ 
+              type: 'spring', 
+              damping: 12, 
+              stiffness: 200, 
+              mass: 1 
+            }}
             style={{ fontSize: '2.2rem', marginBottom: 8 }}
           >
             {myAnswer.correct ? '✅' : '❌'}

@@ -32,7 +32,7 @@ export default function setupGameSockets(io: Server) {
   };
 
   // Step 5: Hydrate engine from DB on boot
-  engine.hydrateFromDb().catch(err => console.error('Failed to hydrate DB', err));
+  engine.hydrateFromDb().catch((err: any) => console.error('Failed to hydrate DB', err));
 
   // ── Auth Middleware ──
   io.use((socket: Socket, next) => {
@@ -143,6 +143,11 @@ export default function setupGameSockets(io: Server) {
       }
     });
 
+    socket.on('admin_sabotage_player', (data: { usn: string }) => {
+      if (!isAdmin || !data.usn) return;
+      engine.sabotagePlayer(data.usn.toUpperCase());
+    });
+
     socket.on('admin_add_bank_question', (data: { question: BankQuestion }) => {
       if (!isAdmin) return;
       engine.addBankQuestion(data.question);
@@ -151,6 +156,11 @@ export default function setupGameSockets(io: Server) {
     socket.on('admin_trigger_anomaly', () => {
       if (!isAdmin) return;
       engine.triggerAnomaly();
+    });
+
+    socket.on('admin_trigger_scenario', (data: { type: 'solar_flare' | 'data_corruption' }) => {
+      if (!isAdmin) return;
+      engine.triggerScenario(data.type);
     });
 
     socket.on('admin_update_bank_question', (data: { id: string; updates: Partial<BankQuestion> }) => {
@@ -247,6 +257,12 @@ export default function setupGameSockets(io: Server) {
       if (success) {
         socket.emit('anomaly_fix_success', { targetId: data.targetId });
       }
+    });
+
+    socket.on('use_powerup', (data: { type: 'radar_pulse' | 'thermal_scan' }) => {
+      if (isAdmin) return;
+      const result = engine.handlePowerup(usn, data.type);
+      socket.emit('powerup_result', result);
     });
 
     socket.on('reaction', (emoji: string) => {

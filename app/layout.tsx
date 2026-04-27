@@ -5,6 +5,11 @@ import "./globals.css";
 import StarfieldCanvas from "@/components/ui/StarfieldCanvas";
 import Toast from "@/components/ui/Toast";
 import ClientShell from "@/components/ClientShell";
+import BackgroundSystem from "@/components/game/BackgroundSystem";
+import ReactionOverlay from "@/components/game/ReactionOverlay";
+import MissionFeed from "@/components/game/MissionFeed";
+import MissionCommander from "@/components/game/MissionCommander";
+import AnalystToolkit from "@/components/game/AnalystToolkit";
 
 const orbitron = Orbitron({
   variable: "--font-orbitron",
@@ -54,6 +59,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body className={`${orbitron.variable} ${exo2.variable} antialiased`}>
         <ClientShell>
+          <BackgroundSystem />
+          <ReactionOverlay />
+          <MissionFeed />
+          <MissionCommander />
+          <AnalystToolkit />
           <StarfieldCanvas />
           <Toast />
           <main id="app-root" style={{ position: "relative", zIndex: 3, minHeight: "100dvh" }}>
