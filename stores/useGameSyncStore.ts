@@ -212,6 +212,9 @@ interface GameSyncState {
   sendReaction: (emoji: string) => void;
   submitAnomalyFix: (targetId: string) => void;
   queuedAnswer: string | number | null;
+  focusViolation: boolean;
+  breachCount: number;
+  setFocusViolation: (v: boolean) => void;
 }
 
 export const useGameSyncStore = create<GameSyncState>((set, get) => ({
@@ -253,7 +256,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   bankQuestions: [],
   lastAnnouncement: null,
   preloadedAssets: [],
-  factionScores: {},
+  factionScores: { team_sentinel: 0, team_landsat: 0, team_modis: 0 },
   myStreak: 0,
   myAchievements: [],
   queuedAnswer: null,
@@ -264,11 +267,31 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   activeReactions: [],
   missionEvents: [],
   powerupResult: null,
+  focusViolation: false,
+  breachCount: 0,
+  setFocusViolation: (v: boolean) => set((state) => {
+    if (v && !state.focusViolation) {
+      const newCount = state.breachCount + 1;
+      if (newCount > 1 && state.socket) {
+        state.socket.emit('focus_breach_penalty');
+      }
+      return { focusViolation: true, breachCount: newCount };
+    }
+    return { focusViolation: v };
+  }),
 
   init: () => {
     if (get().socket?.connected) return;
 
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL ?? 'http://localhost:4001';
+    // Derive socket URL from the browser's current hostname so cross-device
+    // LAN testing works (e.g., phone at 192.168.x.x reaches the server).
+    const envSocket = process.env.NEXT_PUBLIC_SOCKET_URL;
+    const socketUrl = envSocket
+      ? envSocket
+      : typeof window !== 'undefined'
+        ? `${window.location.protocol}//${window.location.hostname}:4001`
+        : 'http://localhost:4001';
+
     const socket = io(socketUrl, {
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
@@ -416,6 +439,12 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         myTelemetry: data.telemetry ?? state.myTelemetry,
         myStreak: (data as any).streak ?? state.myStreak
       }));
+    });
+
+    socket.on('penalty_applied', (data: { penalty: number; newTotalScore: number }) => {
+      set({ myTotalScore: data.newTotalScore });
+      toast(`SECURITY BREACH: ${data.penalty} point penalty applied!`, 'err');
+      SFX.glitch();
     });
 
     // ── Question review ──

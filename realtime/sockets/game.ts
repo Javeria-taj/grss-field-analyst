@@ -271,6 +271,13 @@ export default function setupGameSockets(io: Server) {
       engine.handleReaction(emoji);
     });
 
+    socket.on('focus_breach_penalty', () => {
+      if (isAdmin) return;
+      if (!checkRateLimit(socket.id, 2000)) return; // prevent spamming penalties
+      engine.applyPenalty(usn, 100);
+      console.log(`⚠️ Security Breach: ${usn} penalized 100 pts for focus loss.`);
+    });
+
     // ════════════════════════════════════════════════════════════
     // DISCONNECT
     // ════════════════════════════════════════════════════════════

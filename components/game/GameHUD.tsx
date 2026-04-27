@@ -97,7 +97,7 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
           }}
         />
         <div style={{ minWidth: 0 }}>
-          <div className="font-orb" style={{ fontSize: '0.8rem', color: factionColor, display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div className="font-orb hud-user-name" style={{ fontSize: '0.8rem', color: factionColor, display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {user.name.toUpperCase()}
             {isFire && <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity }}>🔥</motion.span>}
           </div>
@@ -150,6 +150,9 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
         @media (min-width: 480px) {
           .hud-mission-label { display: block !important; }
           .hud-timer { width: 90px !important; }
+        }
+        @media (max-width: 400px) {
+          .hud-user-name { display: none !important; }
         }
       `}</style>
     </motion.div>

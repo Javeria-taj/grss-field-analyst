@@ -13,7 +13,7 @@ const FEATURE_CHIPS = ['🌍 Remote Sensing', '🛰️ Satellite Imagery', '⚡ 
 
 export default function AuthPage() {
   const router = useRouter();
-  const { user, login } = useGameStore();
+  const { user, login, _hasHydrated } = useGameStore();
   const [tab, setTab] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
   const [usn, setUsn] = useState('');
@@ -23,6 +23,7 @@ export default function AuthPage() {
   const [focused, setFocused] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!_hasHydrated) return; // Wait for localStorage hydration
     if (user) {
       if (user.isAdmin || user.usn === 'SUPER_ADMIN') {
         router.replace('/admin');
@@ -30,7 +31,7 @@ export default function AuthPage() {
         router.replace('/dashboard');
       }
     }
-  }, [user, router]);
+  }, [user, router, _hasHydrated]);
 
   const validate = () => {
     let ok = true;

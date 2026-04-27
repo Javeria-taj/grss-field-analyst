@@ -12,6 +12,7 @@ import dbConnect from '../lib/db/connect';
 dbConnect();
 
 const PORT = parseInt(process.env.SOCKET_PORT ?? process.env.PORT ?? '4001', 10);
+const isDev = process.env.NODE_ENV !== 'production';
 
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -20,7 +21,8 @@ const server = http.createServer((req, res) => {
 
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL ?? 'http://localhost:3000',
+    // In dev, allow any origin so cross-device LAN testing works
+    origin: isDev ? true : (process.env.CLIENT_URL ?? 'http://localhost:3000'),
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -28,7 +30,7 @@ const io = new Server(server, {
 
 setupGameSockets(io);
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Dedicated Realtime Server listening on port ${PORT}`);
-  console.log(`📡 WebSocket endpoint: ws://localhost:${PORT}`);
+  console.log(`📡 WebSocket endpoint: ws://0.0.0.0:${PORT}`);
 });

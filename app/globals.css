@@ -946,47 +946,59 @@ html, body {
    RESPONSIVE
 ───────────────────────────────────────── */
 @media (max-width: 600px) {
-  html, body { font-size: 14px; }
+  html, body { font-size: 14px; touch-action: manipulation; }
   
-  .hud { padding: 6px 12px; gap: 6px; }
-  .hud-score { font-size: 0.9rem; }
-  .hud-level { font-size: 0.8rem; }
+  /* Prevent iOS Safari auto-zoom on inputs */
+  input, textarea, select { font-size: 16px !important; }
 
-  .page-content { padding: 10px; gap: 10px; }
+  .hud { padding: 6px 10px; gap: 4px; }
+  .hud-score { font-size: 0.85rem; }
+  .hud-level { font-size: 0.75rem; }
+
+  .page-content { padding: 8px; gap: 8px; }
   
-  .card { padding: 16px; border-radius: 12px; }
-  .card-sm { padding: 12px; border-radius: 10px; }
+  .card { padding: 14px; border-radius: 12px; }
+  .card-sm { padding: 10px; border-radius: 10px; }
 
-  .btn { padding: 8px 16px; font-size: 0.85rem; }
-  .btn-lg { padding: 12px 24px; font-size: 1rem; min-height: 44px; }
+  .btn { padding: 8px 14px; font-size: 0.8rem; min-height: 38px; }
+  .btn-lg { padding: 12px 20px; font-size: 0.95rem; min-height: 44px; }
 
-  .logo-icon { font-size: 2.4rem; }
-  .logo-title { font-size: 1.1rem; }
-  .logo-sub { font-size: 0.6rem; letter-spacing: 1px; }
+  .logo-icon { font-size: 2.2rem; }
+  .logo-title { font-size: 1.05rem; }
+  .logo-sub { font-size: 0.55rem; letter-spacing: 1px; }
 
-  .scramble-disp { font-size: 1.2rem; letter-spacing: 3px; padding: 12px; }
-  .em-clue { font-size: 1.8rem; padding: 10px; letter-spacing: 4px; }
-  .word-slots { gap: 3px; }
-  .letter-slot { width: 24px; height: 32px; font-size: 0.9rem; }
-  .letter-slot.space { width: 8px; }
+  .scramble-disp { font-size: 1.1rem; letter-spacing: 2px; padding: 10px; }
+  .em-clue { font-size: 1.6rem; padding: 8px; letter-spacing: 3px; }
+  .word-slots { gap: 2px; }
+  .letter-slot { width: 22px; height: 30px; font-size: 0.85rem; }
+  .letter-slot.space { width: 6px; }
   
-  .alpha-grid { gap: 3px; }
-  .alpha-key { width: 28px; height: 28px; font-size: 0.65rem; min-height: 28px; }
+  .alpha-grid { gap: 3px; padding: 0 4px; }
+  .alpha-key { width: 26px; height: 26px; font-size: 0.6rem; min-height: 26px; }
 
-  .option { padding: 8px 12px; font-size: 0.82rem; min-height: 40px; }
+  .option { padding: 8px 10px; font-size: 0.8rem; min-height: 38px; gap: 8px; }
+  .option-letter { width: 24px; height: 24px; font-size: 0.65rem; }
   
-  .final-score { font-size: 2.2rem; }
+  .final-score { font-size: 2rem; }
   
   /* Layout Helpers */
   .flex-responsive { flex-direction: column; }
   .grid-2-mobile-1 { grid-template-columns: 1fr !important; }
   .grid-3-mobile-1 { grid-template-columns: 1fr !important; }
   .hide-mobile { display: none !important; }
+
+  /* Level 5 Auction Grid Overrides */
+  .tool-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+  .tool-card { padding: 10px; }
+  .tool-price { font-size: 0.85rem; }
+  .eff-bar-label { font-size: 0.55rem; }
 }
 
 @media (max-width: 400px) {
-  .hud { padding: 4px 8px; }
-  .alpha-key { width: 24px; height: 24px; font-size: 0.6rem; min-height: 24px; }
-  .letter-slot { width: 20px; height: 28px; font-size: 0.8rem; }
-  .logo-icon { font-size: 2rem; }
+  .hud { padding: 4px 6px; flex-wrap: nowrap; overflow-x: auto; }
+  .alpha-key { width: 22px; height: 22px; font-size: 0.55rem; min-height: 22px; }
+  .letter-slot { width: 18px; height: 26px; font-size: 0.75rem; }
+  .logo-icon { font-size: 1.8rem; }
+  .btn-sm { padding: 6px 12px; font-size: 0.75rem; }
+  .tool-grid { grid-template-columns: 1fr; } /* Stack tools entirely on very small screens */
 }

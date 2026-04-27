@@ -8,12 +8,12 @@ export default function ClientShell({ children }: { children: ReactNode }) {
   const ambianceStarted = useRef(false);
   const wakeLockRef = useRef<any>(null);
   const focusLostRef = useRef(false);
-  const { phase } = useGameSyncStore();
+  const { phase, setFocusViolation } = useGameSyncStore();
 
   // Screen Wake Lock API & Visibility Tracking
   useEffect(() => {
     const requestWakeLock = async () => {
-      if (typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
+      if (typeof navigator !== 'undefined' && 'wakeLock' in navigator && document.visibilityState === 'visible') {
         try {
           if (wakeLockRef.current) return; // Already locked
           wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
@@ -21,7 +21,9 @@ export default function ClientShell({ children }: { children: ReactNode }) {
             wakeLockRef.current = null;
           });
         } catch (err) {
-          console.warn('Wake Lock error:', err);
+          if ((err as Error).name !== 'NotAllowedError') {
+            console.warn('Wake Lock error:', err);
+          }
         }
       }
     };
@@ -37,38 +39,41 @@ export default function ClientShell({ children }: { children: ReactNode }) {
       }
     };
 
-    if (phase === 'question_active' || phase === 'auction_active' || phase === 'disaster_active') {
+    const isStrictPhase = phase === 'question_active' || phase === 'auction_active' || phase === 'disaster_active';
+
+    if (isStrictPhase) {
       requestWakeLock();
+      // If phase becomes active and we aren't in fullscreen, flag violation immediately
+      if (!document.fullscreenElement) {
+        setFocusViolation(true);
+      }
     } else {
       releaseWakeLock();
-      focusLostRef.current = false; // Reset on phase change
     }
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        if (phase === 'question_active') {
-          focusLostRef.current = true;
-        }
-      } else if (document.visibilityState === 'visible') {
-        if (phase === 'question_active' || phase === 'auction_active' || phase === 'disaster_active') {
-          requestWakeLock();
-        }
-        
-        if (focusLostRef.current && phase === 'question_active') {
-          SFX.urgency();
-          toast('WARNING: Focus lost. Ensure you remain on this screen during active missions.', 'err');
-          focusLostRef.current = false;
-        }
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && isStrictPhase) {
+        setFocusViolation(true);
       }
     };
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && isStrictPhase) {
+        setFocusViolation(true);
+      } else if (document.visibilityState === 'visible' && isStrictPhase) {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       releaseWakeLock();
     };
-  }, [phase]);
+  }, [phase, setFocusViolation]);
 
   // Audio initialization
   useEffect(() => {

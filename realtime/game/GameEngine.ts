@@ -1126,6 +1126,16 @@ export class GameEngine {
     this.adminStatsDirty = true; // Still update admin view
   }
 
+  public applyPenalty(usn: string, amount: number) {
+    const ps = this.playerScores.get(usn);
+    if (ps) {
+      ps.totalScore = Math.max(0, ps.totalScore - amount);
+      this.io.to(usn).emit('penalty_applied', { penalty: amount, newTotalScore: ps.totalScore });
+      this.leaderboardDirty = true;
+      this.broadcastAdminStats();
+    }
+  }
+
   private updateFactionScores() {
     const totals: Record<string, number> = { team_sentinel: 0, team_landsat: 0, team_modis: 0 };
     const counts: Record<string, number> = { team_sentinel: 0, team_landsat: 0, team_modis: 0 };

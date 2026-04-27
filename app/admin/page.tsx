@@ -21,7 +21,7 @@ const LEVELS = [
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const { user, logout } = useGameStore();
+  const { user, logout, _hasHydrated, rehydrateFromCookie } = useGameStore();
   const {
     init, destroy, connected, phase, adminStats, leaderboard,
     adminStartLevel, adminPause, adminReset, adminBroadcast,
@@ -31,6 +31,7 @@ export default function AdminDashboard() {
   const [broadcastMsg, setBroadcastMsg] = useState('');
   const [localRemaining, setLocalRemaining] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   useEffect(() => {
     let frameId: number;
@@ -44,11 +45,19 @@ export default function AdminDashboard() {
     return () => cancelAnimationFrame(frameId);
   }, [timerEndTime]);
 
+  // Session recovery for admin (same pattern as dashboard)
   useEffect(() => {
+    if (!_hasHydrated) return;
+    if (user) { setSessionChecked(true); return; }
+    rehydrateFromCookie().finally(() => setSessionChecked(true));
+  }, [_hasHydrated, user, rehydrateFromCookie]);
+
+  useEffect(() => {
+    if (!sessionChecked) return;
     if (!user || (!user.isAdmin && user.usn !== 'SUPER_ADMIN')) { router.replace('/'); return; }
     init();
     return () => { destroy(); };
-  }, [user, router, init, destroy]);
+  }, [sessionChecked, user, router, init, destroy]);
 
   const handleLogout = async () => {
     SFX.click();
@@ -67,7 +76,26 @@ export default function AdminDashboard() {
   const canStartLevel = phase === 'idle' || phase === 'level_complete';
   const nextLevel = (adminStats?.currentLevel ?? 0) + (phase === 'level_complete' ? 1 : phase === 'idle' ? 1 : 0);
 
-  if (!user || (!user.isAdmin && user.usn !== 'SUPER_ADMIN')) return null;
+  if (!sessionChecked || !user || (!user.isAdmin && user.usn !== 'SUPER_ADMIN')) {
+    return (
+      <div style={{
+        position: 'relative', zIndex: 1, minHeight: '100dvh',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexDirection: 'column', gap: 16,
+      }}>
+        <motion.div
+          animate={{ opacity: [0.3, 1, 0.3], scale: [0.95, 1.05, 0.95] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ fontSize: '3rem' }}
+        >
+          🛰️
+        </motion.div>
+        <div className="font-orb" style={{ color: 'var(--accent)', fontSize: '0.85rem', letterSpacing: 2 }}>
+          RESTORING SESSION…
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>

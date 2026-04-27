@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV !== 'production';
+const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL ?? (isDev ? '' : 'wss://*.grss.io');
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -8,6 +11,32 @@ const nextConfig: NextConfig = {
   },
 
   async headers() {
+    // In development, allow all sources so cross-device testing over LAN works
+    // In production, lock down to known origins
+    const connectSrc = isDev
+      ? "connect-src *"
+      : `connect-src 'self' ${socketUrl}`;
+
+    const cspValue = isDev
+      ? [
+          "default-src 'self'",
+          "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+          "font-src 'self' https://fonts.gstatic.com",
+          "img-src 'self' data: https://upload.wikimedia.org blob:",
+          connectSrc,
+          "frame-ancestors 'none'",
+        ].join('; ')
+      : [
+          "default-src 'self'",
+          "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+          "font-src 'self' https://fonts.gstatic.com",
+          "img-src 'self' data: https://upload.wikimedia.org blob:",
+          connectSrc,
+          "frame-ancestors 'none'",
+        ].join('; ');
+
     return [
       {
         source: '/(.*)',
@@ -22,15 +51,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "font-src 'self' https://fonts.gstatic.com",
-              "img-src 'self' data: https://upload.wikimedia.org blob:",
-              `connect-src 'self' http://localhost:3000 ws://localhost:3000 http://localhost:4001 ws://localhost:4001 ${process.env.NEXT_PUBLIC_SOCKET_URL ?? 'wss://*.grss.io'}`,
-              "frame-ancestors 'none'",
-            ].join('; '),
+            value: cspValue,
           },
         ],
       },
@@ -39,4 +60,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-
