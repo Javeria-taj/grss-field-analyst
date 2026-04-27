@@ -32,7 +32,7 @@ export default function setupGameSockets(io: Server) {
   };
 
   // Step 5: Hydrate engine from DB on boot
-  engine.hydrateFromDb().catch(err => console.error('Failed to hydrate DB', err));
+  engine.hydrateFromDb().catch((err: any) => console.error('Failed to hydrate DB', err));
 
   // ── Auth Middleware ──
   io.use((socket: Socket, next) => {

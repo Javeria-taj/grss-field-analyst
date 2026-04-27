@@ -102,7 +102,7 @@ export default function LevelCompletePhase({ user }: { user: { usn: string } }) 
             <div className="card card-sm" style={{ marginTop: 15 }}>
               <div className="label t-gold" style={{ marginBottom: 12, fontSize: '0.6rem' }}>OPERATIVE MILESTONES</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {useGameSyncStore.getState().myScore?.achievements?.map(id => {
+                {useGameSyncStore.getState().myAchievements?.map(id => {
                   const a = ACHIEVEMENTS[id];
                   if (!a) return null;
                   return (
@@ -113,7 +113,7 @@ export default function LevelCompletePhase({ user }: { user: { usn: string } }) 
                     </div>
                   );
                 })}
-                {(!useGameSyncStore.getState().myScore?.achievements || useGameSyncStore.getState().myScore!.achievements.length === 0) && (
+                {(!useGameSyncStore.getState().myAchievements || useGameSyncStore.getState().myAchievements.length === 0) && (
                   <div style={{ color: 'var(--text3)', fontSize: '0.75rem', padding: '10px 0' }}>No milestones reached yet.</div>
                 )}
               </div>

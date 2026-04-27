@@ -1,5 +1,6 @@
 'use client';
 import { useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useGameStore } from '@/stores/useGameStore';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';

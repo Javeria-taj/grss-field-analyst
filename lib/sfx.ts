@@ -49,7 +49,9 @@ export const SFX = {
     tone(150, 0.3, 'sawtooth', 0.18, 0.22);
     Haptics.error();
   },
+  error: () => SFX.wrong(),
   levelUp: () => [523, 587, 659, 698, 784, 880, 988].forEach((f, i) => tone(f, 0.18, 'sine', 0.22, i * 0.07)),
+  levelComplete: () => SFX.levelUp(),
   tick: () => tone(1000, 0.03, 'square', 0.05),
   urgency: () => tone(440, 0.1, 'square', 0.12),
   buy: () => {

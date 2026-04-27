@@ -157,6 +157,7 @@ interface GameSyncState {
 
   factionScores: Record<string, number>;
   myStreak: number;
+  myAchievements: string[];
 
   bankQuestions: any[];
 
@@ -254,6 +255,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   preloadedAssets: [],
   factionScores: {},
   myStreak: 0,
+  myAchievements: [],
   queuedAnswer: null,
   anomalyData: null,
   anomalyResult: null,
@@ -344,6 +346,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         disasterInfo: data.disasterInfo,
         myTelemetry: data.myScore?.telemetry || [],
         myStreak: data.myScore?.streak ?? 0,
+        myAchievements: data.myScore?.achievements || [],
         factionScores: data.factionScores || {},
       });
     });
@@ -473,14 +476,11 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
     socket.on('achievement_earned', (id: string) => {
       const achievement = ACHIEVEMENTS[id];
       if (achievement) {
-        toast(`🏆 Achievement Unlocked: ${achievement.name}`, 'success');
+        toast(`🏆 Achievement Unlocked: ${achievement.name}`, 'ok');
         SFX.levelComplete(); // Use levelComplete sound for achievements
       }
       set(s => ({
-        myScore: s.myScore ? { 
-          ...s.myScore, 
-          achievements: [...(s.myScore.achievements || []), id] 
-        } : null
+        myAchievements: [...s.myAchievements, id]
       }));
     });
 
@@ -769,16 +769,6 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   adminKickPlayer: (usn) => {
     const { socket } = get();
     if (socket?.connected) socket.emit('admin_kick_player', { usn });
-  },
-
-  adminTriggerAnomaly: () => {
-    const { socket } = get();
-    if (socket?.connected) socket.emit('admin_trigger_anomaly');
-  },
-
-  adminTriggerScenario: (type) => {
-    const { socket } = get();
-    if (socket?.connected) socket.emit('admin_trigger_scenario', { type });
   },
 
   adminSabotagePlayer: (usn) => {
