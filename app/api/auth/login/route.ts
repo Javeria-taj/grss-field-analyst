@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     }
 
     // JWT contains identity only — keeps cookie small and prevents stale progress data in token
-    const jwtPayload = { name: dbUser?.name || name, usn: upperUsn, isAdmin };
+    const jwtPayload = { name: dbUser?.name || name, usn: upperUsn, isAdmin, faction: dbUser?.faction };
     const token = jwt.sign(jwtPayload, JWT_SECRET, { expiresIn: '12h' });
 
     // Full progress data returned in the response body for Zustand to hydrate from
@@ -67,6 +67,8 @@ export async function POST(req: NextRequest) {
       telemetry: dbUser?.telemetry || [],
       totalScore: dbUser?.score || 0,
       levelState: dbUser?.levelState || {},
+      faction: dbUser?.faction,
+      streak: dbUser?.streak || 0,
     };
 
     const response = NextResponse.json({ status: 'ok', user: responseUser });

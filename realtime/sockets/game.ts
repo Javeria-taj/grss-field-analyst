@@ -279,7 +279,7 @@ export default function setupGameSockets(io: Server) {
           leaderboard.map(entry => ({
             updateOne: {
               filter: { usn: entry.usn },
-              update: { $set: { score: entry.totalScore, lastActive: new Date() } },
+              update: { $set: { score: entry.totalScore, streak: entry.streak, lastActive: new Date() } },
               upsert: false,
             }
           }))
