@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useGameStore } from '@/stores/useGameStore';
@@ -21,30 +21,24 @@ import MissionLockout from '@/components/game/MissionLockout';
 export default function DashboardPage() {
   const router = useRouter();
   const { user, logout, _hasHydrated, rehydrateFromCookie } = useGameStore();
-  const { phase, init, destroy, connected, paused, lastAnnouncement, preloadedAssets } = useGameSyncStore();
+  const {
+    phase, init, destroy, connected, paused,
+    lastAnnouncement, preloadedAssets,
+    timerEndTime, serverTimeOffset,
+  } = useGameSyncStore();
   const [sessionChecked, setSessionChecked] = useState(false);
+  const [panicActive, setPanicActive] = useState(false);
+  const panicRafRef = useRef<number | null>(null);
+  const panicFiredRef = useRef(false);
 
   // ── Session Recovery ──
-  // Wait for Zustand persist to hydrate from localStorage.
-  // If localStorage has no user, attempt cookie-based recovery via /api/auth/me.
-  // Only redirect to login after BOTH checks fail.
   useEffect(() => {
-    if (!_hasHydrated) return; // Wait for localStorage hydration
-
-    if (user) {
-      // User already in store (localStorage had them)
-      setSessionChecked(true);
-      return;
-    }
-
-    // localStorage is empty — try to recover from the HTTP-only cookie
-    rehydrateFromCookie().finally(() => {
-      setSessionChecked(true);
-    });
+    if (!_hasHydrated) return;
+    if (user) { setSessionChecked(true); return; }
+    rehydrateFromCookie().finally(() => { setSessionChecked(true); });
   }, [_hasHydrated, user, rehydrateFromCookie]);
 
   // ── Routing Guard ──
-  // Only redirect after we've fully attempted session recovery.
   useEffect(() => {
     if (!sessionChecked) return;
     if (!user) { router.replace('/'); return; }
@@ -55,10 +49,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!user || user.isAdmin) return;
     init();
-    return () => { 
-      destroy(); 
-      SFX.stopMusic();
-    };
+    return () => { destroy(); SFX.stopMusic(); };
   }, [user, init, destroy]);
 
   useEffect(() => {
@@ -68,14 +59,63 @@ export default function DashboardPage() {
   }, [phase]);
 
   useEffect(() => {
-    if (lastAnnouncement) {
-      toast(`📢 ${lastAnnouncement}`, 'inf');
-    }
+    if (lastAnnouncement) toast(`📢 ${lastAnnouncement}`, 'inf');
   }, [lastAnnouncement]);
 
+  // ── PHASE 1: Panic State — 7-Second Rule ──
+  // A rAF loop reads the live epoch timer without triggering renders on every tick.
+  // The siren starts exactly at 7s remaining and is forcefully stopped the moment
+  // the phase changes or the clock hits zero — zero audio bleed into other screens.
+  useEffect(() => {
+    const stopPanic = () => {
+      if (panicFiredRef.current) {
+        SFX.stopPanic();
+        setPanicActive(false);
+        panicFiredRef.current = false;
+      }
+    };
+
+    if (phase !== 'question_active') {
+      stopPanic();
+      if (panicRafRef.current) cancelAnimationFrame(panicRafRef.current);
+      return;
+    }
+
+    // Hard-reset at start of every new question
+    stopPanic();
+    panicFiredRef.current = false;
+
+    const tick = () => {
+      const remaining = Math.max(0, (timerEndTime - (Date.now() - serverTimeOffset)) / 1000);
+
+      if (remaining <= 7 && remaining > 0) {
+        if (!panicFiredRef.current) {
+          panicFiredRef.current = true;
+          setPanicActive(true);
+          SFX.startPanic();
+        }
+      } else {
+        // remaining > 7 OR exactly 0 — ensure panic is off
+        if (panicFiredRef.current) stopPanic();
+      }
+
+      if (remaining > 0) {
+        panicRafRef.current = requestAnimationFrame(tick);
+      } else {
+        // Timer hit zero — guaranteed cleanup
+        stopPanic();
+      }
+    };
+
+    panicRafRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (panicRafRef.current) cancelAnimationFrame(panicRafRef.current);
+      stopPanic();
+    };
+  }, [phase, timerEndTime, serverTimeOffset]);
+
   // ── Loading State ──
-  // Show a branded loading indicator while we check the session,
-  // instead of returning null (which caused the blank screen).
   if (!sessionChecked || !user) {
     return (
       <div style={{
@@ -99,21 +139,24 @@ export default function DashboardPage() {
 
   const renderPhase = () => {
     switch (phase) {
-      case 'idle': return <IdlePhase />;
-      case 'level_intro': return <LevelIntroPhase />;
-      case 'question_active': return <QuestionPhase />;
-      case 'question_review': return <ReviewPhase />;
-      case 'level_complete': return <LevelCompletePhase user={user} />;
-      case 'auction_active': return <AuctionPhase />;
-      case 'disaster_active': return <DisasterPhase />;
-      case 'game_over': return <GameOverPhase />;
-      case 'anomaly_active': return <AnomalyPhase />;
-      default: return <IdlePhase />;
+      case 'idle':             return <IdlePhase />;
+      case 'level_intro':      return <LevelIntroPhase />;
+      case 'question_active':  return <QuestionPhase />;
+      case 'question_review':  return <ReviewPhase />;
+      case 'level_complete':   return <LevelCompletePhase user={user} />;
+      case 'auction_active':   return <AuctionPhase />;
+      case 'disaster_active':  return <DisasterPhase />;
+      case 'game_over':        return <GameOverPhase />;
+      case 'anomaly_active':   return <AnomalyPhase />;
+      default:                 return <IdlePhase />;
     }
   };
 
   return (
-    <div style={{ position: 'relative', zIndex: 1, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+    <div
+      className={panicActive ? 'panic-bg' : ''}
+      style={{ position: 'relative', zIndex: 1, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}
+    >
       <div className="earth-deco" />
       <Toast />
       <MissionLockout />
@@ -143,4 +186,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

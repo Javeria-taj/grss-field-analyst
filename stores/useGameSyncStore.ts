@@ -57,7 +57,8 @@ export interface AuctionToolInfo {
 
 export interface AnomalyPayload {
   type: 'patch' | 'identify';
-  targetId: string;
+  targetIds: string[];  // array of 3 distinct error node IDs
+  targetId: string;     // legacy fallback (first target)
   gridSize: number;
   timeLimit: number;
 }
@@ -170,7 +171,8 @@ interface GameSyncState {
   // Anomaly (Sabotage)
   anomalyData: AnomalyPayload | null;
   anomalyResult: AnomalyResultPayload | null;
-  hasFixedAnomaly: boolean;
+  hasFixedAnomaly: boolean;        // true once ALL 3 nodes are patched
+  anomalyPatchedIds: string[];     // node IDs already patched by this player
 
   // Mission Commander
   missionCommentary: MissionCommentaryPayload | null;
@@ -263,6 +265,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   anomalyData: null,
   anomalyResult: null,
   hasFixedAnomaly: false,
+  anomalyPatchedIds: [],
   missionCommentary: null,
   activeReactions: [],
   missionEvents: [],
@@ -272,7 +275,8 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   setFocusViolation: (v: boolean) => set((state) => {
     if (v && !state.focusViolation) {
       const newCount = state.breachCount + 1;
-      if (newCount > 1 && state.socket) {
+      // Subsequent offenses: deduct 75 pts and inform server
+      if (newCount >= 2 && state.socket) {
         state.socket.emit('focus_breach_penalty');
       }
       return { focusViolation: true, breachCount: newCount };
@@ -588,14 +592,21 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         phase: 'anomaly_active', 
         anomalyData: data, 
         anomalyResult: null,
-        hasFixedAnomaly: false 
+        hasFixedAnomaly: false,
+        anomalyPatchedIds: [],   // fresh slate for each anomaly
       });
-      SFX.glitch(); // We'll need to add this sound
+      SFX.glitch();
     });
 
     socket.on('anomaly_fix_success', (data: { targetId: string }) => {
-      set({ hasFixedAnomaly: true });
-      SFX.success();
+      // Track which nodes this player has patched locally
+      const { anomalyData, anomalyPatchedIds } = get();
+      const newPatched = [...anomalyPatchedIds, data.targetId];
+      const totalTargets = anomalyData?.targetIds?.length ?? 1;
+      const allPatched = newPatched.length >= totalTargets;
+      set({ anomalyPatchedIds: newPatched, hasFixedAnomaly: allPatched });
+      if (allPatched) SFX.success();
+      else SFX.correct(); // Partial patch confirmation
     });
 
     socket.on('anomaly_resolved', (data: AnomalyResultPayload) => {
@@ -811,8 +822,10 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   },
 
   submitAnomalyFix: (targetId) => {
-    const { socket, hasFixedAnomaly } = get();
+    const { socket, hasFixedAnomaly, anomalyPatchedIds } = get();
+    // Don't submit if fully resolved or this specific node is already patched
     if (!socket?.connected || hasFixedAnomaly) return;
+    if (anomalyPatchedIds.includes(targetId)) return;
     socket.emit('submit_anomaly_fix', { targetId });
   },
 }));

@@ -274,8 +274,8 @@ export default function setupGameSockets(io: Server) {
     socket.on('focus_breach_penalty', () => {
       if (isAdmin) return;
       if (!checkRateLimit(socket.id, 2000)) return; // prevent spamming penalties
-      engine.applyPenalty(usn, 100);
-      console.log(`⚠️ Security Breach: ${usn} penalized 100 pts for focus loss.`);
+      engine.applyPenalty(usn, 75);
+      console.log(`⚠️ Security Breach: ${usn} penalized 75 pts for focus loss.`);
     });
 
     // ════════════════════════════════════════════════════════════

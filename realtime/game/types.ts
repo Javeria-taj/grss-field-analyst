@@ -237,7 +237,9 @@ export interface AdminLiveStatsPayload {
 // ── Anomaly ──
 export interface AnomalyPayload {
   type: 'patch' | 'identify';
-  targetId: string;
+  targetIds: string[];  // array of 3 distinct error node IDs
+  /** @deprecated use targetIds — kept for legacy client compatibility */
+  targetId: string;     // first target, for display fallback
   gridSize: number;
   timeLimit: number;
 }

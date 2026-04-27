@@ -88,8 +88,8 @@ export class GameEngine {
   private factionScores: Record<string, number> = { team_sentinel: 0, team_landsat: 0, team_modis: 0 };
 
   // ── Anomaly State ──
-  private anomalyTarget: string = '';
-  private anomalyFixers = new Set<string>();
+  private anomalyTargets: Set<string> = new Set(); // 3 distinct error nodes
+  private anomalyFixers = new Set<string>();        // USNs who resolved ALL 3
 
   // ── Stats ──
   private levelCorrectCounts: number[] = [];
@@ -120,7 +120,7 @@ export class GameEngine {
     // Snapshot tick counter
     let snapshotTick = 0;
 
-    // Throttle broadcasts to once every 1.5 seconds to prevent "broadcast storms"
+    // Throttle broadcasts to once every 2.0 seconds to prevent "broadcast storms" on mobile/vercel
     this.broadcastInterval = setInterval(() => {
       if (this.leaderboardDirty) {
         this.io.emit('leaderboard_update', this.getLeaderboard());
@@ -135,7 +135,7 @@ export class GameEngine {
         this.bankDirty = false;
       }
 
-      // Save snapshot every ~15 seconds (10 ticks * 1.5s)
+      // Save snapshot every ~20 seconds (10 ticks * 2.0s)
       snapshotTick++;
       if (snapshotTick >= 10) {
         this.snapshotToDb();
@@ -965,14 +965,19 @@ export class GameEngine {
   // ═══════════════════════════════════════════════════════════════
 
   getLeaderboard(): LeaderboardEntry[] {
-    const entries = [...this.playerScores.values()]
-      .sort((a, b) => b.totalScore - a.totalScore)
-      .map((ps, i) => ({
-        rank: i + 1, name: ps.name, usn: ps.usn,
-        totalScore: ps.totalScore, currentLevelScore: ps.currentLevelScore,
-        streak: ps.streak, faction: ps.faction
-      }))
-      .slice(0, 50);
+    const sorted = [...this.playerScores.values()].sort((a, b) => b.totalScore - a.totalScore);
+    const entries = sorted
+      .map((ps, i) => {
+        // Track previous rank by looking up where they were before (if implemented)
+        // Here we just map the structure, prevRank will be handled server-side logic if needed,
+        // but for now, we just attach a static rank so the client has an absolute sorting key.
+        return {
+          rank: i + 1, name: ps.name, usn: ps.usn,
+          totalScore: ps.totalScore, currentLevelScore: ps.currentLevelScore,
+          streak: ps.streak, faction: ps.faction
+        };
+      })
+      .slice(0, 50); // limit to 50 to save bandwidth & client rendering
     return entries;
   }
 
@@ -1159,32 +1164,41 @@ export class GameEngine {
     if (this.phase === 'game_over') return;
     this.phase = 'anomaly_active';
     this.anomalyFixers.clear();
-    
-    // Create a 3x3 grid (9 nodes), pick one at random
-    const targetIdx = Math.floor(Math.random() * 9);
-    this.anomalyTarget = `node_${targetIdx}`;
+    this.anomalyTargets.clear();
+    (this as any)._anomalyPatchedBy = new Map<string, Set<string>>();
+
+    // Create a 3×3 grid (9 nodes). Pick exactly 3 distinct indices.
+    const allIndices = Array.from({ length: 9 }, (_, i) => i);
+    const picked: number[] = [];
+    while (picked.length < 3) {
+      const idx = allIndices.splice(Math.floor(Math.random() * allIndices.length), 1)[0];
+      picked.push(idx);
+    }
+    picked.forEach(i => this.anomalyTargets.add(`node_${i}`));
+    const targetIdsArr = [...this.anomalyTargets];
 
     const payload: AnomalyPayload = {
       type: 'patch',
-      targetId: this.anomalyTarget,
+      targetIds: targetIdsArr,
+      targetId: targetIdsArr[0], // legacy fallback
       gridSize: 9,
       timeLimit: 15
     };
 
     this.io.emit('anomaly_detected', payload);
     this.broadcastAdminStats();
-    
+
     // Trigger Urgent AI Commentary
     MissionCommander.generateCommentary(
-      "SECURITY BREACH",
-      this.anomalyTarget,
+      "TRIPLE SECURITY BREACH",
+      targetIdsArr.join(','),
       { distribution: {}, factionScores: {} },
       this.getPlayerCount(),
       this.phase
     ).then(commentary => {
       this.io.emit('mission_commander_comment', commentary);
     });
-    
+
     // Start 15-second countdown
     this.startCountdown(15, () => this.endAnomaly());
   }
@@ -1219,11 +1233,21 @@ export class GameEngine {
 
   public handleAnomalyFix(usn: string, targetId: string): boolean {
     if (this.phase !== 'anomaly_active') return false;
-    if (targetId === this.anomalyTarget) {
+    // Validate this is actually one of the 3 error nodes
+    if (!this.anomalyTargets.has(targetId)) return false;
+
+    // Track per-player patched nodes using a Map
+    if (!(this as any)._anomalyPatchedBy) (this as any)._anomalyPatchedBy = new Map<string, Set<string>>();
+    const patchedByMap: Map<string, Set<string>> = (this as any)._anomalyPatchedBy;
+    if (!patchedByMap.has(usn)) patchedByMap.set(usn, new Set());
+    patchedByMap.get(usn)!.add(targetId);
+
+    // Check if this player has patched ALL 3 targets
+    if (patchedByMap.get(usn)!.size >= this.anomalyTargets.size) {
       this.anomalyFixers.add(usn);
-      return true;
+      return true; // All 3 patched — signal success to client
     }
-    return false;
+    return false; // Still more nodes to patch
   }
 
   private endAnomaly() {

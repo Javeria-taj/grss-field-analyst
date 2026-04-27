@@ -111,6 +111,73 @@ export const SFX = {
       tone(440, 0.2, 'square', 0.15, i * 0.4 + 0.2);
     }
   },
+
+  // ── Panic Siren (looping, must be stopped explicitly) ──
+  _panicGain: null as GainNode | null,
+  _panicOscs: [] as OscillatorNode[],
+  _panicTimer: null as any,
+
+  startPanic: () => {
+    if (typeof window === 'undefined') return;
+    if (SFX._panicGain) return; // Already running
+    try {
+      const ctx = getACtx();
+      if (ctx.state === 'suspended') ctx.resume();
+
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, ctx.currentTime);
+      g.gain.linearRampToValueAtTime(0.14, ctx.currentTime + 0.2);
+      g.connect(ctx.destination);
+      SFX._panicGain = g;
+
+      // Two sweeping oscillators for siren feel
+      const osc1 = ctx.createOscillator();
+      osc1.type = 'square';
+      osc1.frequency.setValueAtTime(660, ctx.currentTime);
+      osc1.connect(g);
+      osc1.start();
+
+      const osc2 = ctx.createOscillator();
+      osc2.type = 'sawtooth';
+      osc2.frequency.setValueAtTime(880, ctx.currentTime);
+      osc2.connect(g);
+      osc2.start();
+
+      SFX._panicOscs = [osc1, osc2];
+
+      // Sweep the frequency up and down to create siren effect
+      let goingUp = true;
+      SFX._panicTimer = setInterval(() => {
+        if (!SFX._panicGain) return;
+        const now = ctx.currentTime;
+        const lo1 = 550, hi1 = 770, lo2 = 700, hi2 = 1000;
+        if (goingUp) {
+          osc1.frequency.linearRampToValueAtTime(hi1, now + 0.35);
+          osc2.frequency.linearRampToValueAtTime(hi2, now + 0.35);
+        } else {
+          osc1.frequency.linearRampToValueAtTime(lo1, now + 0.35);
+          osc2.frequency.linearRampToValueAtTime(lo2, now + 0.35);
+        }
+        goingUp = !goingUp;
+      }, 380);
+    } catch (e) { /* Silently fail if audio unavailable */ }
+  },
+
+  stopPanic: () => {
+    if (!SFX._panicGain) return;
+    try {
+      const ctx = getACtx();
+      SFX._panicGain.gain.setTargetAtTime(0, ctx.currentTime, 0.15);
+      setTimeout(() => {
+        SFX._panicOscs.forEach(o => { try { o.stop(); o.disconnect(); } catch {} });
+        SFX._panicOscs = [];
+        try { SFX._panicGain?.disconnect(); } catch {}
+        SFX._panicGain = null;
+      }, 300);
+      if (SFX._panicTimer) { clearInterval(SFX._panicTimer); SFX._panicTimer = null; }
+    } catch (e) { /* Silently fail */ }
+  },
+
   success: () => SFX.correct(),
   stopMusic: () => {
     Object.values(musicGains).forEach(g => g.gain.setTargetAtTime(0, getACtx().currentTime, 0.5));

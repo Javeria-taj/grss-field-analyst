@@ -277,73 +277,126 @@ export default function ProjectorPage() {
               )}
 
               {(phase === 'level_complete' || phase === 'game_over') && (
-                <motion.div 
+                <motion.div
                   key="complete"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   className="w-full h-full flex flex-col"
                 >
-                  <div className="flex justify-between items-end mb-16">
+                  {/* Header */}
+                  <div className="flex justify-between items-end mb-10">
                     <div>
-                      <h2 className="text-6xl font-black tracking-tighter text-blue-400 uppercase">
+                      <h2 className="text-5xl font-black tracking-tighter text-blue-400 uppercase">
                         {phase === 'game_over' ? 'Final Standings' : `Mission ${currentLevel} Results`}
                       </h2>
-                      <p className="text-xl text-white/40 tracking-[0.3em]">
+                      <p className="text-lg text-white/40 tracking-[0.3em] mt-1">
                         {phase === 'game_over' ? 'GLOBAL CAMPAIGN COMPLETE' : 'RECONNAISSANCE COMPLETE'}
                       </p>
                     </div>
                     {phase === 'level_complete' && (
                       <div className="text-right">
-                        <div className="text-sm tracking-[0.3em] text-white/40 uppercase mb-2">Global Accuracy</div>
-                        <div className="text-6xl font-black text-white">{levelCompleteData?.levelStats.avgAccuracy || 0}%</div>
+                        <div className="text-xs tracking-[0.3em] text-white/40 uppercase mb-1">Global Accuracy</div>
+                        <div className="text-5xl font-black text-white">{levelCompleteData?.levelStats.avgAccuracy || 0}%</div>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex-1 flex flex-col gap-4 overflow-hidden py-4">
-                    <AnimatePresence mode="popLayout">
-                      {leaderboard.slice(0, 5).map((entry, idx) => {
-                        const maxScore = leaderboard[0]?.totalScore || 1;
-                        const width = (entry.totalScore / maxScore) * 100;
-                        return (
-                          <motion.div
-                            key={entry.usn}
-                            layout
-                            initial={{ x: -100, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            className="relative h-24 flex items-center"
-                          >
-                            <div className="w-24 text-4xl font-black text-white/20 italic">#{idx + 1}</div>
-                            <div className="flex-1 h-full relative flex items-center px-8 group">
-                              <motion.div 
-                                className="absolute left-0 top-0 bottom-0 rounded-2xl bg-gradient-to-r from-blue-600/40 to-blue-400/10 border-2 border-blue-500/30"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${width}%` }}
-                                transition={{ duration: 2, type: 'spring', bounce: 0.3 }}
-                                style={{
-                                  borderColor: entry.faction === 'team_sentinel' ? '#3b82f6' : 
-                                               entry.faction === 'team_landsat' ? '#10b981' : 
-                                               entry.faction === 'team_modis' ? '#a855f7' : '#3b82f6'
-                                }}
-                              />
-                              <div className="relative z-10 flex justify-between w-full items-center">
-                                <div className="flex items-center gap-6">
-                                  <div className="text-3xl font-black text-white uppercase">{entry.name}</div>
-                                  {entry.streak >= 3 && <span className="text-3xl animate-bounce">🔥</span>}
-                                </div>
-                                <div className="text-4xl font-black text-blue-400 tabular-nums">
-                                  {entry.totalScore.toLocaleString()}
-                                </div>
+                  {/* PHASE 5: Biggest Riser Spotlight */}
+                  {(() => {
+                    // Compute biggest riser: player with biggest positive rank delta
+                    const prev = (leaderboard as any[]).map((e, idx) => ({
+                      ...e,
+                      prevRank: (e as any).prevRank ?? idx + 1,
+                    }));
+                    const riser = prev.reduce<any>((best, e) => {
+                      const delta = e.prevRank - e.rank;
+                      return delta > (best?.delta ?? 0) ? { ...e, delta } : best;
+                    }, null);
+                    if (!riser || riser.delta <= 0) return null;
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, x: -40 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.5, type: 'spring', bounce: 0.4 }}
+                        className="mb-6 flex items-center gap-6 bg-gradient-to-r from-yellow-900/40 to-transparent border-l-4 border-yellow-400 px-6 py-4 rounded-2xl"
+                      >
+                        <motion.span
+                          animate={{ scale: [1, 1.25, 1] }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                          className="text-4xl"
+                        >🚀</motion.span>
+                        <div>
+                          <div className="text-xs tracking-[0.4em] text-yellow-400 font-black uppercase mb-1">Biggest Riser</div>
+                          <div className="text-2xl font-black text-white uppercase">{riser.name}</div>
+                        </div>
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.8, type: 'spring' }}
+                          className="ml-auto text-4xl font-black text-yellow-400"
+                        >
+                          +{riser.delta} ↑
+                        </motion.div>
+                      </motion.div>
+                    );
+                  })()}
+
+                  {/* PHASE 5: Dynamic rank bars with fluid layout animation */}
+                  <div className="flex-1 flex flex-col gap-3 overflow-hidden py-2">
+                    {leaderboard.slice(0, 6).map((entry, idx) => {
+                      const maxScore = leaderboard[0]?.totalScore || 1;
+                      const width = Math.max(8, (entry.totalScore / maxScore) * 100);
+                      const factionBorder = entry.faction === 'team_sentinel' ? '#3b82f6'
+                        : entry.faction === 'team_landsat' ? '#10b981'
+                        : entry.faction === 'team_modis' ? '#a855f7' : '#3b82f6';
+                      const medalEmoji = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null;
+
+                      return (
+                        <motion.div
+                          key={entry.usn}
+                          layout
+                          layoutId={entry.usn}
+                          initial={{ x: -120, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ layout: { type: 'spring', stiffness: 120, damping: 20 }, delay: idx * 0.07 }}
+                          className="relative h-20 flex items-center"
+                        >
+                          <div className="w-20 text-3xl font-black text-white/25 italic flex-shrink-0">
+                            {medalEmoji ?? `#${idx + 1}`}
+                          </div>
+                          <div className="flex-1 h-full relative flex items-center px-6">
+                            {/* Score bar — width animates as scores change */}
+                            <motion.div
+                              className="absolute left-0 top-0 bottom-0 rounded-xl"
+                              initial={{ width: 0 }}
+                              animate={{ width: `${width}%` }}
+                              transition={{ duration: 1.6, type: 'spring', bounce: 0.25 }}
+                              style={{
+                                background: `linear-gradient(90deg, ${factionBorder}30, ${factionBorder}08)`,
+                                border: `2px solid ${factionBorder}60`,
+                                boxShadow: idx === 0 ? `0 0 30px ${factionBorder}40` : 'none',
+                              }}
+                            />
+                            <div className="relative z-10 flex justify-between w-full items-center">
+                              <div className="flex items-center gap-4">
+                                <div className="text-2xl font-black text-white uppercase truncate max-w-[280px]">{entry.name}</div>
+                                {entry.streak >= 3 && (
+                                  <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity }}>🔥</motion.span>
+                                )}
+                              </div>
+                              <div className="text-3xl font-black tabular-nums" style={{ color: factionBorder }}>
+                                {entry.totalScore.toLocaleString()}
                               </div>
                             </div>
-                          </motion.div>
-                        );
-                      })}
-                    </AnimatePresence>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 </motion.div>
               )}
+
 
               {phase === 'auction_active' && (
                 <motion.div 
