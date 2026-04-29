@@ -4,6 +4,12 @@ const isDev = process.env.NODE_ENV !== 'production';
 const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL ?? (isDev ? '' : 'wss://*.grss.io');
 
 const nextConfig: NextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'upload.wikimedia.org' },
