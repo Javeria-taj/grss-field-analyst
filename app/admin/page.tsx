@@ -162,26 +162,28 @@ export default function AdminDashboard() {
               })}
             </div>
 
-            <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-               <motion.button className="btn btn-primary" style={{ flex: 1, padding: '12px', fontSize: '0.9rem' }}
+            {/* Control Row 1: Core Operations */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16, alignItems: 'center' }}>
+               <motion.button className="btn btn-primary btn-sm" style={{ padding: '8px 16px', fontSize: '0.85rem' }}
                  onClick={() => { SFX.click(); setIsMenuOpen(true); }} whileHover={{ scale: 1.02 }}>
                  📋 OPEN QUESTION MENU
                </motion.button>
+               <div style={{ flex: 1, minWidth: 16 }} /> {/* Spacer */}
+               <motion.button className="btn btn-outline btn-sm" style={{ borderColor: 'var(--warning)', color: 'var(--warning)' }}
+                 onClick={() => { SFX.click(); adminTimerPauseResume(); }} whileHover={{ scale: 1.04 }}>
+                 {paused ? '▶ RESUME TIMER/GAME' : '⏸ PAUSE TIMER/GAME'}
+               </motion.button>
+               <motion.button className="btn btn-outline btn-sm" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}
+                 onClick={() => { if (!confirm('Reset entire game?')) return; SFX.click(); adminReset(); toast('Game reset', 'inf'); }}
+                 whileHover={{ scale: 1.04 }}>🔄 RESET GAME</motion.button>
             </div>
 
-            <div style={{ display: 'flex', gap: 10 }}>
-              <motion.button className="btn btn-outline btn-sm" style={{ borderColor: 'var(--warning)', color: 'var(--warning)' }}
-                onClick={() => { SFX.click(); adminTimerPauseResume(); }} whileHover={{ scale: 1.04 }}>
-                {paused ? '▶ RESUME TIMER/GAME' : '⏸ PAUSE TIMER/GAME'}
-              </motion.button>
-              <motion.button className="btn btn-outline btn-sm" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}
-                onClick={() => { if (!confirm('Reset entire game?')) return; SFX.click(); adminReset(); toast('Game reset', 'inf'); }}
-                whileHover={{ scale: 1.04 }}>🔄 RESET GAME</motion.button>
+            {/* Control Row 2: Advanced Actions & Scenarios */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)' }}>
               <motion.button className="btn btn-outline btn-sm" 
                 disabled={phase !== 'question_active'}
                 style={{ 
-                  borderColor: 'var(--danger)', 
-                  color: 'var(--danger)', 
+                  borderColor: 'var(--danger)', color: 'var(--danger)', 
                   background: phase === 'question_active' ? 'rgba(251,113,133,0.1)' : 'transparent',
                   opacity: phase === 'question_active' ? 1 : 0.5
                 }}
@@ -189,11 +191,11 @@ export default function AdminDashboard() {
                 whileHover={phase === 'question_active' ? { scale: 1.04 } : {}}>
                 ⚠️ FORCE END QUESTION
               </motion.button>
+              
               <motion.button className="btn btn-outline btn-sm" 
                 disabled={phase === 'anomaly_active' || phase === 'idle' || phase === 'game_over'}
                 style={{ 
-                  borderColor: '#ff0033', 
-                  color: '#ff0033', 
+                  borderColor: '#ff0033', color: '#ff0033', 
                   background: 'rgba(255,0,51,0.1)',
                   opacity: (phase === 'anomaly_active' || phase === 'idle' || phase === 'game_over') ? 0.5 : 1
                 }}
@@ -201,10 +203,10 @@ export default function AdminDashboard() {
                 whileHover={{ scale: 1.04 }}>
                 💀 TRIGGER ZERO-DAY
               </motion.button>
-            </div>
 
-            <div style={{ display: 'flex', gap: 10, marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-              <div style={{ fontSize: '0.65rem', color: 'var(--text3)', alignSelf: 'center', marginRight: 10 }}>SCENARIO DIRECTOR:</div>
+              <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.2)', margin: '0 8px' }} className="hidden sm:block" />
+
+              <div style={{ fontSize: '0.65rem', color: 'var(--text3)', letterSpacing: 1, fontWeight: 700 }}>SCENARIOS:</div>
               <button className="btn btn-outline btn-sm" 
                 style={{ borderColor: '#f97316', color: '#f97316', fontSize: '0.7rem' }}
                 onClick={() => adminTriggerScenario('solar_flare')}>🔥 SOLAR FLARE</button>

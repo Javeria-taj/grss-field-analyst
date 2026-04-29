@@ -4,6 +4,63 @@ import { motion } from 'framer-motion';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
 import { SFX } from '@/lib/sfx';
 
+function SlidingHint({ hint, disabled }: { hint: string; disabled: boolean }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  if (isOpen) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, width: 40 }}
+        animate={{ opacity: 1, width: 'auto' }}
+        style={{
+          background: 'rgba(245, 158, 11, 0.15)',
+          border: '1px solid var(--warning)',
+          borderRadius: 20,
+          padding: '8px 16px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+          marginBottom: 16,
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          overflow: 'hidden',
+          whiteSpace: 'nowrap'
+        }}
+      >
+        <span style={{ fontSize: '1.2rem' }}>💡</span>
+        <span style={{ fontSize: '0.85rem', color: 'var(--warning)', fontStyle: 'italic' }}>
+          {hint}
+        </span>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className="btn btn-outline btn-sm"
+      style={{
+        borderRadius: 20,
+        padding: '6px 14px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 16,
+        borderColor: 'var(--warning)',
+        color: 'var(--warning)',
+        opacity: disabled ? 0.5 : 1,
+        background: 'rgba(245, 158, 11, 0.05)'
+      }}
+      disabled={disabled}
+      onClick={() => { SFX.click(); setIsOpen(true); }}
+    >
+      <span style={{ fontSize: '1.1rem' }}>💡</span>
+      <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>DECRYPT (-50 PTS)</span>
+    </motion.button>
+  );
+}
+
 function ScrambleQ({ q, onSubmit, disabled }: { q: any; onSubmit: (a: string) => void; disabled: boolean }) {
   const [val, setVal] = useState('');
   const [hint2Shown, setHint2Shown] = useState(false);
@@ -17,28 +74,14 @@ function ScrambleQ({ q, onSubmit, disabled }: { q: any; onSubmit: (a: string) =>
       <div className="text-xs md:text-sm text-gray-400 mb-4 px-4">
         {q.hint}
       </div>
-      {q.hint2 && (
-        hint2Shown ? (
-          <div className="text-xs md:text-sm text-yellow-400 mb-4 italic">
-            🔓 DEEP DECRYPT: {q.hint2}
-          </div>
-        ) : (
-          <button
-            className="btn btn-outline btn-sm text-[10px] md:text-xs mb-4 opacity-70 border-accent3 text-accent3"
-            disabled={disabled}
-            onClick={() => { SFX.click(); setHint2Shown(true); }}
-          >
-            🔍 REQUEST DEEP DECRYPT (-50 PTS RISK)
-          </button>
-        )
-      )}
-      <div className="flex flex-col md:flex-row gap-3 w-full max-w-md mx-auto px-4">
-        <input className="input flex-1 uppercase text-center text-lg py-3"
+      {q.hint2 && <SlidingHint hint={q.hint2} disabled={disabled} />}
+      <div style={{ display: 'flex', width: '100%', maxWidth: 400, margin: '0 auto', padding: '0 16px' }}>
+        <input className="input" style={{ flex: 1, textTransform: 'uppercase', textAlign: 'center', fontSize: '1.1rem', borderRadius: '8px 0 0 8px', borderRight: 'none', padding: '12px' }}
           placeholder="Transmit answer..." value={val} disabled={disabled}
           onChange={e => setVal(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && val.trim()) onSubmit(val.trim()); }}
         />
-        <button className="btn btn-primary py-3 px-6" disabled={disabled || !val.trim()} onClick={() => onSubmit(val.trim())}>
+        <button className="btn btn-primary" style={{ borderRadius: '0 8px 8px 0', padding: '12px 24px' }} disabled={disabled || !val.trim()} onClick={() => onSubmit(val.trim())}>
           {disabled ? 'LOCKED' : '📤 TRANSMIT'}
         </button>
       </div>
@@ -59,29 +102,14 @@ function RiddleQ({ q, onSubmit, disabled }: { q: any; onSubmit: (a: string) => v
       <div style={{ fontSize: '0.85rem', color: 'var(--text2)', marginBottom: hint2Shown ? 4 : 16 }}>
         {q.hint}
       </div>
-      {q.hint2 && (
-        hint2Shown ? (
-          <div style={{ fontSize: '0.8rem', color: 'var(--warning)', marginBottom: 16, fontStyle: 'italic' }}>
-            🔓 DEEP DECRYPT: {q.hint2}
-          </div>
-        ) : (
-          <button
-            className="btn btn-outline btn-sm"
-            style={{ fontSize: '0.65rem', marginBottom: 16, opacity: 0.7, borderColor: 'var(--accent3)', color: 'var(--accent3)' }}
-            disabled={disabled}
-            onClick={() => { SFX.click(); setHint2Shown(true); }}
-          >
-            🔍 REQUEST DEEP DECRYPT
-          </button>
-        )
-      )}
-      <div style={{ display: 'flex', gap: 8, maxWidth: '100%', margin: '0 auto' }}>
-        <input className="input" style={{ flex: 1, textTransform: 'uppercase', textAlign: 'center', fontSize: '1.1rem' }}
+      {q.hint2 && <SlidingHint hint={q.hint2} disabled={disabled} />}
+      <div style={{ display: 'flex', width: '100%', maxWidth: 400, margin: '0 auto', padding: '0 16px' }}>
+        <input className="input" style={{ flex: 1, textTransform: 'uppercase', textAlign: 'center', fontSize: '1.1rem', borderRadius: '8px 0 0 8px', borderRight: 'none', padding: '12px' }}
           placeholder="Transmit answer..." value={val} disabled={disabled}
           onChange={e => setVal(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && val.trim()) onSubmit(val.trim()); }}
         />
-        <button className="btn btn-primary" disabled={disabled || !val.trim()} onClick={() => onSubmit(val.trim())}>
+        <button className="btn btn-primary" style={{ borderRadius: '0 8px 8px 0', padding: '12px 24px' }} disabled={disabled || !val.trim()} onClick={() => onSubmit(val.trim())}>
           {disabled ? 'LOCKED' : '📤 TRANSMIT'}
         </button>
       </div>

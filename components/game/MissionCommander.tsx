@@ -1,10 +1,12 @@
 'use client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
+import { useGameStore } from '@/stores/useGameStore';
 import { useEffect, useState } from 'react';
 
 export default function MissionCommander() {
   const missionCommentary = useGameSyncStore(s => s.missionCommentary);
+  const { user } = useGameStore();
   const [displayText, setDisplayText] = useState('');
 
   useEffect(() => {
@@ -24,7 +26,7 @@ export default function MissionCommander() {
     return () => clearInterval(interval);
   }, [missionCommentary]);
 
-  if (!missionCommentary) return null;
+  if (!missionCommentary || user?.isAdmin || user?.usn === 'SUPER_ADMIN') return null;
 
   const moodColors: Record<string, string> = {
     snarky: '#fb7185',
@@ -43,7 +45,7 @@ export default function MissionCommander() {
         exit={{ opacity: 0, y: 10, scale: 0.95 }}
         style={{
           position: 'fixed',
-          bottom: 20,
+          top: 80,
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 8000,
@@ -62,7 +64,7 @@ export default function MissionCommander() {
           boxShadow: `0 10px 40px rgba(0,0,0,0.5), 0 0 20px ${color}11`,
           display: 'flex',
           gap: 16,
-          alignItems: 'flex-start'
+          alignItems: 'center'
         }}>
           <div style={{
             width: 40, height: 40, borderRadius: 4,

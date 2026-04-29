@@ -2,6 +2,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
 import { SFX } from '@/lib/sfx';
+import { useGameStore } from '@/stores/useGameStore';
 
 // PHASE 1: Thematic power-up names aligned with geospatial/cyber-security narrative
 const TOOLKIT_ITEMS = [
@@ -25,8 +26,9 @@ const TOOLKIT_ITEMS = [
 
 export default function AnalystToolkit() {
   const { usePowerup, powerupResult, hasAnswered, phase } = useGameSyncStore();
+  const { user } = useGameStore();
 
-  if (phase !== 'question_active' || hasAnswered) return null;
+  if (phase !== 'question_active' || hasAnswered || user?.isAdmin || user?.usn === 'SUPER_ADMIN') return null;
 
   return (
     <div style={{

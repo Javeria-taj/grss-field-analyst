@@ -122,7 +122,16 @@ export default function MissionLockout() {
         <button
           className="btn btn-danger btn-lg"
           style={{
-            width: '100%', maxWidth: 320,
+            width: '100%', 
+            maxWidth: 320,
+            height: 'auto',
+            minHeight: 56,
+            padding: '16px 24px',
+            whiteSpace: 'normal',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            lineHeight: 1.2,
             boxShadow: isFirstOffense
               ? '0 0 30px rgba(250,204,21,0.3)'
               : '0 0 30px rgba(251,113,133,0.4)',
