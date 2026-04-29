@@ -1,8 +1,10 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import { useGameSyncStore } from '@/stores/useGameSyncStore';
 
 export default function StarfieldCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { currentLevel } = useGameSyncStore();
 
   useEffect(() => {
     const cv = canvasRef.current;
@@ -87,10 +89,30 @@ export default function StarfieldCanvas() {
     };
   }, []);
 
+  const moonPhases = ['🌑', '🌒', '🌓', '🌔', '🌕'];
+  const moonPhase = currentLevel >= 1 && currentLevel <= 5 ? moonPhases[currentLevel - 1] : null;
+
   return (
-    <canvas
-      ref={canvasRef}
-      style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0 }}
-    />
+    <>
+      <canvas
+        ref={canvasRef}
+        style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0 }}
+      />
+      {moonPhase && (
+        <div style={{
+          position: 'fixed',
+          top: '20%',
+          left: '10%',
+          fontSize: '8rem',
+          opacity: 0.8,
+          pointerEvents: 'none',
+          zIndex: 1,
+          textShadow: '0 0 40px rgba(255, 255, 255, 0.4)',
+          filter: 'grayscale(0.1) contrast(1.1)'
+        }}>
+          {moonPhase}
+        </div>
+      )}
+    </>
   );
 }

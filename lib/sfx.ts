@@ -12,6 +12,17 @@ export const getACtx = (): AudioContext => {
   return _actx;
 };
 
+// Auto-resume context on first user interaction
+if (typeof window !== 'undefined') {
+  const resume = () => {
+    const c = getACtx();
+    if (c.state === 'suspended') c.resume();
+  };
+  window.addEventListener('click', resume, { once: true });
+  window.addEventListener('touchstart', resume, { once: true });
+  window.addEventListener('keydown', resume, { once: true });
+}
+
 const tone = (freq: number, dur: number, type: OscillatorType = 'sine', vol = 0.22, delay = 0) => {
   if (typeof window === 'undefined') return;
   try {
@@ -70,7 +81,7 @@ export const SFX = {
     const g = ctx.createGain();
     g.connect(ctx.destination);
     g.gain.setValueAtTime(0, ctx.currentTime);
-    g.gain.linearRampToValueAtTime(0.04, ctx.currentTime + 2); // Slow fade in
+    g.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 2); // Slow fade in
 
     const freqs = [55, 110, 82.41]; // Low A, A, E
     freqs.forEach(f => {
@@ -126,40 +137,19 @@ export const SFX = {
 
       const g = ctx.createGain();
       g.gain.setValueAtTime(0, ctx.currentTime);
-      g.gain.linearRampToValueAtTime(0.14, ctx.currentTime + 0.2);
       g.connect(ctx.destination);
       SFX._panicGain = g;
 
-      // Two sweeping oscillators for siren feel
-      const osc1 = ctx.createOscillator();
-      osc1.type = 'square';
-      osc1.frequency.setValueAtTime(660, ctx.currentTime);
-      osc1.connect(g);
-      osc1.start();
+      SFX._panicOscs = [];
 
-      const osc2 = ctx.createOscillator();
-      osc2.type = 'sawtooth';
-      osc2.frequency.setValueAtTime(880, ctx.currentTime);
-      osc2.connect(g);
-      osc2.start();
-
-      SFX._panicOscs = [osc1, osc2];
-
-      // Sweep the frequency up and down to create siren effect
-      let goingUp = true;
+      // A quick alarming timer ticking effect instead of a siren
+      let tickCount = 0;
       SFX._panicTimer = setInterval(() => {
         if (!SFX._panicGain) return;
-        const now = ctx.currentTime;
-        const lo1 = 550, hi1 = 770, lo2 = 700, hi2 = 1000;
-        if (goingUp) {
-          osc1.frequency.linearRampToValueAtTime(hi1, now + 0.35);
-          osc2.frequency.linearRampToValueAtTime(hi2, now + 0.35);
-        } else {
-          osc1.frequency.linearRampToValueAtTime(lo1, now + 0.35);
-          osc2.frequency.linearRampToValueAtTime(lo2, now + 0.35);
-        }
-        goingUp = !goingUp;
-      }, 380);
+        const freq = (tickCount % 2 === 0) ? 900 : 800;
+        tone(freq, 0.05, 'square', 0.1);
+        tickCount++;
+      }, 250);
     } catch (e) { /* Silently fail if audio unavailable */ }
   },
 
@@ -213,7 +203,7 @@ export const SFX = {
     const g = ctx.createGain();
     g.connect(ctx.destination);
     g.gain.setValueAtTime(0, ctx.currentTime);
-    g.gain.linearRampToValueAtTime(type === 'ambient' ? 0.05 : 0.08, ctx.currentTime + 2);
+    g.gain.linearRampToValueAtTime(type === 'ambient' ? 0.15 : 0.2, ctx.currentTime + 2);
     musicGains[type] = g;
 
     const freqs = type === 'ambient' ? [55, 110, 82.41] : 
@@ -247,7 +237,7 @@ export const SFX = {
       const tick = () => {
         if (musicGains[type].gain.value > 0.01) {
           const pulseFreq = type === 'active' ? 110 : 60;
-          tone(pulseFreq, 0.1, 'square', 0.03 * SFX._intensity);
+          tone(pulseFreq, 0.1, 'square', 0.05 * SFX._intensity);
         }
         const nextInterval = (type === 'active' ? 500 : 250) / SFX._intensity;
         SFX._musicTimer = setTimeout(tick, nextInterval);

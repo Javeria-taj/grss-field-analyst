@@ -33,7 +33,7 @@ export default function AnalystToolkit() {
   return (
     <div style={{
       position: 'fixed',
-      bottom: 100, right: 16,
+      top: 80, right: 130,
       display: 'flex', flexDirection: 'column',
       gap: 10, zIndex: 5000,
     }}>

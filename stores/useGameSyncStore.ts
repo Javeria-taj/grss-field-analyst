@@ -474,7 +474,6 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
     // ── Mission Commentary (AI) ──
     socket.on('mission_commentary', (data: MissionCommentaryPayload) => {
       set({ missionCommentary: data });
-      VoiceEngine.speak(data.text, data.mood);
     });
 
     // ── Game reset ──

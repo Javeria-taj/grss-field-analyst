@@ -122,6 +122,7 @@ export default function MissionLockout() {
         <button
           className="btn btn-danger btn-lg"
           style={{
+            margin: '0 auto',
             width: '100%', 
             maxWidth: 320,
             height: 'auto',
