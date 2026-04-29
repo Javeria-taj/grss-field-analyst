@@ -14,9 +14,9 @@ export default function StarfieldCanvas() {
     resize();
     window.addEventListener('resize', resize);
 
-    const stars = Array.from({ length: 220 }, () => ({
-      x: Math.random() * window.innerWidth,
-      y: Math.random() * window.innerHeight,
+    const stars = Array.from({ length: 280 }, () => ({
+      x: Math.random() * cv.width,
+      y: Math.random() * cv.height,
       r: Math.random() * 1.5 + 0.2,
       spd: Math.random() * 0.35 + 0.04,
       tw: Math.random() * Math.PI * 2,

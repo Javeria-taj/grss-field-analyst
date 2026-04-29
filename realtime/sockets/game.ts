@@ -278,6 +278,13 @@ export default function setupGameSockets(io: Server) {
       console.log(`⚠️ Security Breach: ${usn} penalized 75 pts for focus loss.`);
     });
 
+    socket.on('use_hint', () => {
+      if (isAdmin) return;
+      if (!checkRateLimit(socket.id, 500)) return;
+      engine.applyPenalty(usn, 50);
+      console.log(`💡 Hint used: ${usn} penalized 50 pts.`);
+    });
+
     // ════════════════════════════════════════════════════════════
     // DISCONNECT
     // ════════════════════════════════════════════════════════════

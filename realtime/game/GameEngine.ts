@@ -519,8 +519,16 @@ export class GameEngine {
 
   public handlePowerup(usn: string, type: 'radar_pulse' | 'thermal_scan'): any {
     if (this.phase !== 'question_active') return { success: false, error: 'Mission not active' };
-    const ps = this.playerScores.get(usn);
-    if (!ps) return { success: false, error: 'Agent not found' };
+    let ps = this.playerScores.get(usn);
+    
+    // Auto-register player if they're connected but not yet in playerScores
+    if (!ps) {
+      this.playerScores.set(usn, {
+        usn, name: usn, totalScore: 0, levelScores: {}, currentLevelScore: 0,
+        telemetry: [], streak: 0, achievements: [], faction: 'team_sentinel'
+      });
+      ps = this.playerScores.get(usn)!;
+    }
 
     const q = this.questions[this.currentQIndex];
     if (!q) return { success: false, error: 'Mission data error' };
@@ -535,7 +543,10 @@ export class GameEngine {
       ps.totalScore -= cost;
       
       // Pick 2 wrong answers to remove
-      const correctIdx = q.answer as number;
+      const correctIdx = typeof q.answer === 'number' 
+        ? q.answer 
+        : q.clientQ.options.findIndex(o => normalise(o) === normalise(q.answer as string));
+      
       const wrongIndices = q.clientQ.options.map((_, i) => i).filter(i => i !== correctIdx);
       const toRemove = [];
       while (toRemove.length < 2 && wrongIndices.length > 0) {

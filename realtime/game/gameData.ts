@@ -13,13 +13,13 @@ export interface RiddleQ {
 export type Level1Q = ScrambleQ | RiddleQ;
 
 export interface ImageQ {
-  img: string; q: string; opts: string[]; ans: number; expl: string; pts: number; hint?: string; hint2?: string;
+  img: string; q: string; opts: string[]; ans: string; expl: string; pts: number; hint?: string; hint2?: string;
 }
 export interface HangmanChallenge {
   em: string; word: string; hint: string; hint2?: string; expl: string; pts: number;
 }
 export interface MCQQuestion {
-  q: string; opts: string[]; ans: number; expl: string; diff: 1 | 2 | 3; pts: number;
+  q: string; opts: string[]; ans: string; expl: string; diff: 1 | 2 | 3; pts: number;
 }
 export interface Tool {
   id: string; name: string; price: number; icon: string; desc: string;
@@ -47,7 +47,7 @@ const DATA: ServerGameData = {
       { word: 'PENGUIN', sc: 'GNIUNEP', hint: "A bird that can't fly.", hint2: "Looks like it's wearing a tuxedo.", cat: 'Fun', pts: 100, type: 'scramble' },
       { word: 'CHOCOLATE', sc: 'CCOAHTOEL', hint: 'A sweet treat.', hint2: 'Made from cocoa beans.', cat: 'Fun', pts: 100, type: 'scramble' },
       { word: 'CINEMA', sc: 'NMEACIN', hint: 'Get your popcorn ready.', hint2: 'A place to watch blockbuster movies.', cat: 'Fun', pts: 100, type: 'scramble' },
-      { word: 'VAMPIRE', sc: 'VIMRAEPL', hint: 'A mythical creature.', hint2: 'Hates garlic and sunlight.', cat: 'Fun', pts: 100, type: 'scramble' },
+      { word: 'VAMPIRE', sc: 'VIMRAEP', hint: 'A mythical creature.', hint2: 'Hates garlic and sunlight.', cat: 'Fun', pts: 100, type: 'scramble' },
       { word: 'BACKPACK', sc: 'KPABCACK', hint: 'Something you wear on your shoulders.', hint2: 'Students carry books in it.', cat: 'Fun', pts: 100, type: 'scramble' },
     ],
     riddles: [
@@ -60,11 +60,11 @@ const DATA: ServerGameData = {
   },
   level2: {
     qs: [
-      { img: '/images/level2/cyclone.jpeg', q: 'What are you looking at? (The Spinning Monster)', opts: ['Tornado', 'Cyclone', 'Whirlpool', 'Alien portal'], ans: 2, expl: 'Cyclones are massive rotating storm systems that form over warm tropical waters.', pts: 150, hint: 'Big, organized storm system', hint2: 'Born over warm seas' },
-      { img: '/images/level2/drought.jpeg', q: "What's happening? (The Thirsty Earth)", opts: ['Flood party', 'Forest growth', 'Drought', 'Snowfall'], ans: 3, expl: 'Droughts occur when a region receives significantly less rain than normal for a long period.', pts: 150, hint: 'Too much sun, not enough rain', hint2: 'Water = missing' },
-      { img: '/images/level2/vegetation_health.jpeg', q: 'What is being analyzed? (The Color Code Mystery)', opts: ['Volcano heat', 'Vegetation health', 'Ocean depth', 'Airplanes'], ans: 2, expl: 'Vegetation health is measured using NDVI, where healthy plants reflect more near-infrared light.', pts: 150, hint: 'Farmers love this data', hint2: 'NDVI is involved' },
-      { img: '/images/level2/landslide.jpeg', q: 'Identify the disaster: (The Mountain Collapse)', opts: ['Earthquake', 'Landslide', 'Avalanche', 'Tsunami'], ans: 2, expl: 'Landslides involve the downward movement of rock or earth from a mountain or cliff.', pts: 150, hint: 'Gravity is the villain', hint2: 'Things get buried' },
-      { img: '/images/level2/sar.jpeg', q: 'What tech is this? (The Night Vision Satellite)', opts: ['Normal camera', 'Thermal sensor', 'Synthetic Aperture Radar (SAR)', 'Drone footage'], ans: 3, expl: 'SAR uses microwave signals to see through clouds, rain, and darkness, providing clear imagery 24/7.', pts: 150, hint: 'Clouds? No problem', hint2: 'Sends its own signals' },
+      { img: '/images/level2/cyclone.jpeg', q: 'What are you looking at? (The Spinning Monster)', opts: ['Tornado', 'Cyclone', 'Whirlpool', 'Alien portal'], ans: 'Cyclone', expl: 'Cyclones are massive rotating storm systems that form over warm tropical waters.', pts: 150, hint: 'Big, organized storm system', hint2: 'Born over warm seas' },
+      { img: '/images/level2/drought.jpeg', q: "What's happening? (The Thirsty Earth)", opts: ['Flood party', 'Forest growth', 'Drought', 'Snowfall'], ans: 'Drought', expl: 'Droughts occur when a region receives significantly less rain than normal for a long period.', pts: 150, hint: 'Too much sun, not enough rain', hint2: 'Water = missing' },
+      { img: '/images/level2/vegetation_health.jpeg', q: 'What is being analyzed? (The Color Code Mystery)', opts: ['Volcano heat', 'Vegetation health', 'Ocean depth', 'Airplanes'], ans: 'Vegetation health', expl: 'Vegetation health is measured using NDVI, where healthy plants reflect more near-infrared light.', pts: 150, hint: 'Farmers love this data', hint2: 'NDVI is involved' },
+      { img: '/images/level2/landslide.jpeg', q: 'Identify the disaster: (The Mountain Collapse)', opts: ['Earthquake', 'Landslide', 'Avalanche', 'Tsunami'], ans: 'Landslide', expl: 'Landslides involve the downward movement of rock or earth from a mountain or cliff.', pts: 150, hint: 'Gravity is the villain', hint2: 'Things get buried' },
+      { img: '/images/level2/sar.jpeg', q: 'What tech is this? (The Night Vision Satellite)', opts: ['Normal camera', 'Thermal sensor', 'Synthetic Aperture Radar (SAR)', 'Drone footage'], ans: 'Synthetic Aperture Radar (SAR)', expl: 'SAR uses microwave signals to see through clouds, rain, and darkness, providing clear imagery 24/7.', pts: 150, hint: 'Clouds? No problem', hint2: 'Sends its own signals' },
     ],
   },
   level3: {
@@ -78,16 +78,16 @@ const DATA: ServerGameData = {
   },
   level4: {
     qs: [
-      { q: 'In what sport is the word "love" considered a score?', opts: ['Volleyball', 'Badminton', 'Tennis', 'Table Tennis'], ans: 2, expl: '[Tennis / Love]: "Love" comes from the French word for egg (l\'œuf), meaning zero!', diff: 1, pts: 100 },
-      { q: 'How many bones do sharks have in their bodies?', opts: ['0', '100', '206', '300'], ans: 0, expl: '[Sharks / Bones]: Zero bones! Their entire skeleton is made of flexible cartilage.', diff: 1, pts: 100 },
-      { q: 'Which iconic Bollywood movie features the legendary villain dialogue, "Kitne aadmi the?"', opts: ['Don', 'Sholay', 'Deewaar', 'Agneepath'], ans: 1, expl: '[Sholay / Dialogue]: The legendary Gabbar Singh says this in the 1975 classic, Sholay.', diff: 2, pts: 150 },
-      { q: 'Which planet in our solar system is known as the "Morning Star" or "Evening Star"?', opts: ['Mars', 'Jupiter', 'Venus', 'Mercury'], ans: 2, expl: "[Venus / Morning Star]: It's the brightest planet in our sky just before sunrise and after sunset.", diff: 2, pts: 150 },
-      { q: 'Which animal has fingerprints so similar to human beings that they have actually confused investigators at crime scenes?', opts: ['Chimpanzee', 'Koala', 'Sloth', 'Raccoon'], ans: 1, expl: "[Koalas / Fingerprints]: Their fingerprints are so human-like they've actually confused police at crime scenes!", diff: 2, pts: 150 },
-      { q: 'In the blockbuster movie 3 Idiots, what is Rancho’s actual real name revealed at the end of the film?', opts: ['Chatur Ramalingam', 'Viru Sahastrabuddhe', 'Phunsukh Wangdu', 'Farhan Qureshi'], ans: 2, expl: '[3 Idiots / Rancho]: The climax reveals Rancho is actually the genius inventor, Phunsukh Wangdu.', diff: 2, pts: 150 },
-      { q: 'What is the only food that is known to practically never spoil or go bad, even after thousands of years?', opts: ['White Rice', 'Honey', 'Dark Chocolate', 'Salted Butter'], ans: 1, expl: '[Honey / Spoiling]: Its unique chemistry makes it impossible for bacteria to survive inside it.', diff: 3, pts: 200 },
-      { q: 'Which country is credited with the original invention of Tea?', opts: ['India', 'United Kingdom', 'China', 'Japan'], ans: 2, expl: '[Tea / China]: Legend says a Chinese Emperor accidentally discovered it in 2737 BC!', diff: 3, pts: 200 },
-      { q: "Which layer of Earth's atmosphere protects us from harmful UV rays?", opts: ['Troposphere', 'Stratosphere', 'Mesosphere', 'Thermosphere'], ans: 1, expl: "[Stratosphere / UV Rays]: This layer contains the ozone, which acts as Earth's ultimate natural sunscreen.", diff: 3, pts: 200 },
-      { q: 'Synthetic Aperture Radar (SAR) is powerful because it can:', opts: ['Work only in bright sunlight', 'Measure Earth\'s core temperature', 'See through clouds, day and night', 'Stop hurricanes from forming'], ans: 2, expl: '[SAR / Clouds]: SAR uses microwaves that easily pierce right through thick clouds and rain.', diff: 3, pts: 200 },
+      { q: 'In what sport is the word "love" considered a score?', opts: ['Volleyball', 'Badminton', 'Tennis', 'Table Tennis'], ans: 'Tennis', expl: '[Tennis / Love]: "Love" comes from the French word for egg (l\'œuf), meaning zero!', diff: 1, pts: 100 },
+      { q: 'How many bones do sharks have in their bodies?', opts: ['0', '100', '206', '300'], ans: '0', expl: '[Sharks / Bones]: Zero bones! Their entire skeleton is made of flexible cartilage.', diff: 1, pts: 100 },
+      { q: 'Which iconic Bollywood movie features the legendary villain dialogue, "Kitne aadmi the?"', opts: ['Don', 'Sholay', 'Deewaar', 'Agneepath'], ans: 'Sholay', expl: '[Sholay / Dialogue]: The legendary Gabbar Singh says this in the 1975 classic, Sholay.', diff: 2, pts: 150 },
+      { q: 'Which planet in our solar system is known as the "Morning Star" or "Evening Star"?', opts: ['Mars', 'Jupiter', 'Venus', 'Mercury'], ans: 'Venus', expl: "[Venus / Morning Star]: It's the brightest planet in our sky just before sunrise and after sunset.", diff: 2, pts: 150 },
+      { q: 'Which animal has fingerprints so similar to human beings that they have actually confused investigators at crime scenes?', opts: ['Chimpanzee', 'Koala', 'Sloth', 'Raccoon'], ans: 'Koala', expl: "[Koalas / Fingerprints]: Their fingerprints are so human-like they've actually confused police at crime scenes!", diff: 2, pts: 150 },
+      { q: 'In the blockbuster movie 3 Idiots, what is Rancho’s actual real name revealed at the end of the film?', opts: ['Chatur Ramalingam', 'Viru Sahastrabuddhe', 'Phunsukh Wangdu', 'Farhan Qureshi'], ans: 'Phunsukh Wangdu', expl: '[3 Idiots / Rancho]: The climax reveals Rancho is actually the genius inventor, Phunsukh Wangdu.', diff: 2, pts: 150 },
+      { q: 'What is the only food that is known to practically never spoil or go bad, even after thousands of years?', opts: ['White Rice', 'Honey', 'Dark Chocolate', 'Salted Butter'], ans: 'Honey', expl: '[Honey / Spoiling]: Its unique chemistry makes it impossible for bacteria to survive inside it.', diff: 3, pts: 200 },
+      { q: 'Which country is credited with the original invention of Tea?', opts: ['India', 'United Kingdom', 'China', 'Japan'], ans: 'China', expl: '[Tea / China]: Legend says a Chinese Emperor accidentally discovered it in 2737 BC!', diff: 3, pts: 200 },
+      { q: "Which layer of Earth's atmosphere protects us from harmful UV rays?", opts: ['Troposphere', 'Stratosphere', 'Mesosphere', 'Thermosphere'], ans: 'Stratosphere', expl: "[Stratosphere / UV Rays]: This layer contains the ozone, which acts as Earth's ultimate natural sunscreen.", diff: 3, pts: 200 },
+      { q: 'Synthetic Aperture Radar (SAR) is powerful because it can:', opts: ['Work only in bright sunlight', 'Measure Earth\'s core temperature', 'See through clouds, day and night', 'Stop hurricanes from forming'], ans: 'See through clouds, day and night', expl: '[SAR / Clouds]: SAR uses microwaves that easily pierce right through thick clouds and rain.', diff: 3, pts: 200 },
     ],
   },
   level5: {

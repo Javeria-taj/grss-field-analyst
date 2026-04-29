@@ -193,6 +193,7 @@ interface GameSyncState {
   sellTool: (toolId: string) => void;
   deployTools: (toolIds: string[]) => void;
   usePowerup: (type: 'radar_pulse' | 'thermal_scan') => void;
+  useHint: () => void;
   // Admin actions
   adminStartLevel: (level: number) => void;
   adminPause: () => void;
@@ -730,6 +731,14 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
     const { socket } = get();
     if (!socket?.connected) return;
     socket.emit('use_powerup', { type });
+  },
+
+  useHint: () => {
+    const { socket } = get();
+    if (!socket?.connected) return;
+    socket.emit('use_hint');
+    // Optimistic local deduction so UI updates immediately
+    set(s => ({ myTotalScore: Math.max(0, s.myTotalScore - 50) }));
   },
 
   // ── Admin Actions ──

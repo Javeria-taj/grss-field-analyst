@@ -12,7 +12,7 @@ export default function ProjectorPage() {
     phase, currentLevel, currentQuestion, timerEndTime, timerTotal, 
     leaderboard, adminLiveStats, adminStats, factionScores,
     levelCompleteData, auctionTools, auctionPrices, auctionMultiplier,
-    disasterInfo, missionCommentary,
+    disasterInfo,
     init, destroy, connected
   } = useGameSyncStore();
 
@@ -570,72 +570,6 @@ export default function ProjectorPage() {
           </motion.div>
         </footer>
       </div>
-
-      {/* AI MISSION COMMANDER OVERLAY */}
-      <AnimatePresence>
-        {missionCommentary && (
-          <motion.div
-            initial={{ opacity: 0, y: 100, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
-            className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[100] w-[800px]"
-          >
-            <div className={`relative overflow-hidden rounded-3xl border-4 p-8 backdrop-blur-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)]
-              ${missionCommentary.mood === 'snarky' ? 'border-red-500/50 bg-red-950/40' : 
-                missionCommentary.mood === 'urgent' ? 'border-orange-500 bg-orange-950/60' : 
-                missionCommentary.mood === 'celebratory' ? 'border-green-500 bg-green-950/40' : 
-                'border-blue-500/50 bg-blue-950/40'}`}
-            >
-              {/* Scanline Effect */}
-              <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%]" />
-              
-              <div className="flex items-start gap-8 relative z-10">
-                <div className="flex-shrink-0">
-                  <div className={`w-20 h-20 rounded-2xl flex items-center justify-center text-4xl border-2
-                    ${missionCommentary.mood === 'snarky' ? 'border-red-400 bg-red-400/20' : 
-                      missionCommentary.mood === 'urgent' ? 'border-orange-400 bg-orange-400/20' : 
-                      missionCommentary.mood === 'celebratory' ? 'border-green-400 bg-green-400/20' : 
-                      'border-blue-400 bg-blue-400/20'}`}
-                  >
-                    {missionCommentary.mood === 'snarky' ? '🤖' : 
-                     missionCommentary.mood === 'urgent' ? '🚨' : 
-                     missionCommentary.mood === 'celebratory' ? '🏆' : '📡'}
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-4 mb-2">
-                    <span className={`text-xs font-black tracking-[0.4em] uppercase
-                      ${missionCommentary.mood === 'snarky' ? 'text-red-400' : 
-                        missionCommentary.mood === 'urgent' ? 'text-orange-400' : 
-                        missionCommentary.mood === 'celebratory' ? 'text-green-400' : 
-                        'text-blue-400'}`}
-                    >
-                      Mission Commander // AI Uplink
-                    </span>
-                    <motion.div 
-                      animate={{ opacity: [1, 0, 1] }} 
-                      transition={{ duration: 0.5, repeat: Infinity }}
-                      className="w-2 h-2 rounded-full bg-white shadow-[0_0_10px_#fff]" 
-                    />
-                  </div>
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-3xl font-bold leading-snug italic text-white drop-shadow-md"
-                  >
-                    "{missionCommentary.text}"
-                  </motion.div>
-                </div>
-              </div>
-
-              {/* Decorative Corner */}
-              <div className="absolute top-0 right-0 w-16 h-16 pointer-events-none">
-                <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-white/40" />
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
