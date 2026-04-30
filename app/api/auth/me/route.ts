@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    return NextResponse.json({ status: 'ok', user: decoded });
+    return NextResponse.json({ status: 'ok', user: { ...(decoded as object), token } });
   } catch (err) {
     console.error('Session validation error:', err);
     return NextResponse.json({ status: 'error', message: 'Invalid token' }, { status: 401 });

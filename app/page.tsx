@@ -50,10 +50,9 @@ export default function AuthPage() {
     try {
       const payload = { name: name.trim(), usn: usn.trim() };
       const endpoint = tab === 'login' ? '/api/auth/login' : '/api/auth/register';
-      const res = await apiClient.post<{ status: string, user: any }>(endpoint, payload);
-
-      const serverUser = res.user;
-      login(serverUser);
+      const res = await apiClient.post<{ status: string, user: any, token: string }>(endpoint, payload);
+      const { user: serverUser, token } = res;
+      login({ ...serverUser, token });
 
       if (serverUser.isAdmin) {
         toast(`Administrator recognized: ${serverUser.name}. Initializing Admin Center...`, 'ok');

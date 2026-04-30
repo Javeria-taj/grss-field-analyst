@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       streak: dbUser?.streak || 0,
     };
 
-    const response = NextResponse.json({ status: 'ok', user: responseUser });
+    const response = NextResponse.json({ status: 'ok', user: responseUser, token });
 
     response.cookies.set('auth_token', token, {
       httpOnly: true,

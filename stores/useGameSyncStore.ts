@@ -4,6 +4,7 @@ import { toast } from '@/components/ui/Toast';
 import { SFX } from '@/lib/sfx';
 import { VoiceEngine } from '@/lib/VoiceEngine';
 import { ACHIEVEMENTS } from '@/lib/achievements';
+import { useGameStore } from './useGameStore';
 
 // ── Types (mirrored from server protocol) ──
 export type GamePhase =
@@ -304,6 +305,9 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       reconnectionDelay: 3000,
       reconnectionDelayMax: 10000,
       withCredentials: true,
+      auth: {
+        token: useGameStore.getState().user?.token
+      },
       query: {
         role: typeof window !== 'undefined' && window.location.pathname === '/projector' ? 'spectator' : 'player'
       }

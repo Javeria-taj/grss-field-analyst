@@ -6,6 +6,7 @@ export interface User {
   usn: string;
   isAdmin?: boolean;
   faction?: string;
+  token?: string;
 }
 
 interface AuthState {
@@ -36,8 +37,8 @@ export const useGameStore = create<AuthState>()(
           if (res.ok) {
             const data = await res.json();
             if (data.status === 'ok' && data.user) {
-              const { name, usn, isAdmin, faction } = data.user;
-              set({ user: { name, usn, isAdmin, faction }, sessionStart: Date.now() });
+              const { name, usn, isAdmin, faction, token } = data.user;
+              set({ user: { name, usn, isAdmin, faction, token }, sessionStart: Date.now() });
             }
           }
         } catch {

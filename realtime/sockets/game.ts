@@ -41,12 +41,14 @@ export default function setupGameSockets(io: Server) {
       const cookieStr = socket.request.headers.cookie || '';
       const cookies = parseCookies(cookieStr);
       
-      if (!cookies.auth_token) {
+      const token = socket.handshake.auth?.token || cookies.auth_token;
+      
+      if (!token) {
         if (role === 'spectator') return next();
         return next(new Error('Authentication required'));
       }
       
-      const decoded = jwt.verify(cookies.auth_token, JWT_SECRET);
+      const decoded = jwt.verify(token, JWT_SECRET);
       (socket as AuthSocket).user = decoded as jwt.JwtPayload;
       next();
     } catch {
