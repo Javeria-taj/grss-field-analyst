@@ -1,6 +1,10 @@
 # ── Build Stage ──────────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
+# Increment for cache busting
+ARG CACHE_BUST=2
+RUN echo "Cache bust: $CACHE_BUST"
+
 WORKDIR /app
 
 # Copy only what's needed to build the realtime server
