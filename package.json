@@ -8,7 +8,7 @@
     "dev:frontend": "next dev",
     "dev:realtime": "nodemon -e ts,json --exec ts-node --project realtime/tsconfig.json realtime/server.ts",
     "build": "next build",
-    "build:realtime": "tsc --project realtime/tsconfig.json || true",
+    "build:realtime": "tsc --project realtime/tsconfig.json",
     "start": "next start",
     "start:realtime": "ts-node --project realtime/tsconfig.json realtime/server.ts",
     "start:realtime:prod": "node realtime/dist/realtime/server.js",

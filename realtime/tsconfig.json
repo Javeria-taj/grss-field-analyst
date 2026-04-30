@@ -9,9 +9,16 @@
     "outDir": "./dist",
     "baseUrl": ".",
     "paths": {
-      "../../lib/*": ["../lib/*"]
+      "../../lib/*": [
+        "../lib/*"
+      ]
     }
   },
-  "include": ["**/*.ts", "../lib/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "**/*.ts",
+    "../lib/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
