@@ -40,14 +40,15 @@ export default function setupGameSockets(io: Server) {
       const role = socket.handshake.query.role;
       const cookieStr = socket.request.headers.cookie || '';
       const cookies = parseCookies(cookieStr);
-      
+
+      // force rebuild - auth handshake fix
       const token = socket.handshake.auth?.token || cookies.auth_token;
-      
+
       if (!token) {
         if (role === 'spectator') return next();
         return next(new Error('Authentication required'));
       }
-      
+
       const decoded = jwt.verify(token, JWT_SECRET);
       (socket as AuthSocket).user = decoded as jwt.JwtPayload;
       next();
@@ -174,7 +175,7 @@ export default function setupGameSockets(io: Server) {
       if (!isAdmin) return;
       engine.deleteBankQuestion(data.id);
     });
-    
+
     socket.on('admin_update_level_limit', (data: { level: number; limit: number }) => {
       if (!isAdmin) return;
       engine.updateLevelLimit(data.level, data.limit);
@@ -222,11 +223,11 @@ export default function setupGameSockets(io: Server) {
         // If solved or dead, also send answer_result
         if (result.solved || result.livesLeft <= 0) {
           const pa = engine.getStateForClient(usn).myAnswer;
-          if (pa) socket.emit('answer_result', { 
-            correct: pa.correct, 
-            score: pa.score, 
-            totalScore: pa.totalScore, 
-            currentLevelScore: pa.currentLevelScore 
+          if (pa) socket.emit('answer_result', {
+            correct: pa.correct,
+            score: pa.score,
+            totalScore: pa.totalScore,
+            currentLevelScore: pa.currentLevelScore
           });
         }
       }
