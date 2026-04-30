@@ -150,7 +150,7 @@ interface GameSyncState {
     levelLimits: Record<number, number>;
   } | null;
 
-  adminLiveStats: { 
+  adminLiveStats: {
     distribution: Record<string, number>;
     reactions?: { id: string; emoji: string }[];
     factionScores?: Record<string, number>;
@@ -298,13 +298,13 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         : 'http://localhost:4001';
 
     const socket = io(socketUrl, {
-      transports: ['websocket', 'polling'],
-      secure: true,
+      transports: ['polling', 'websocket'],
       reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 5000,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 3000,
+      reconnectionDelayMax: 10000,
       withCredentials: true,
-      query: { 
+      query: {
         role: typeof window !== 'undefined' && window.location.pathname === '/projector' ? 'spectator' : 'player'
       }
     });
@@ -341,7 +341,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
             socket.emit('submit_answer', { answer });
             toast('Reconnected. Answer submitted!', 'ok');
           }
-        } catch (e) {}
+        } catch (e) { }
         localStorage.removeItem('grss_pending_answer');
       }
     });
@@ -430,15 +430,15 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
     });
 
     // ── Answer result (immediate personal feedback) ──
-    socket.on('answer_result', (data: { 
-      correct: boolean; 
-      score: number; 
-      totalScore?: number; 
+    socket.on('answer_result', (data: {
+      correct: boolean;
+      score: number;
+      totalScore?: number;
       currentLevelScore?: number;
       telemetry?: TelemetryData[];
     }) => {
-      set(state => ({ 
-        myAnswer: data, 
+      set(state => ({
+        myAnswer: data,
         hasAnswered: true,
         myTotalScore: data.totalScore ?? state.myTotalScore,
         myLevelScore: data.currentLevelScore ?? state.myLevelScore,
@@ -589,9 +589,9 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
 
     // ── Anomaly listeners ──
     socket.on('anomaly_detected', (data: AnomalyPayload) => {
-      set({ 
-        phase: 'anomaly_active', 
-        anomalyData: data, 
+      set({
+        phase: 'anomaly_active',
+        anomalyData: data,
         anomalyResult: null,
         hasFixedAnomaly: false,
         anomalyPatchedIds: [],   // fresh slate for each anomaly
@@ -686,9 +686,9 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
     if (!socket?.connected) {
       // Offline Grace: Store in state and localStorage (for persistence)
       set({ queuedAnswer: answer, hasAnswered: true });
-      localStorage.setItem('grss_pending_answer', JSON.stringify({ 
-        answer, 
-        endTime: timerEndTime 
+      localStorage.setItem('grss_pending_answer', JSON.stringify({
+        answer,
+        endTime: timerEndTime
       }));
       toast('Network unstable. Answer queued!', 'inf');
       return;
