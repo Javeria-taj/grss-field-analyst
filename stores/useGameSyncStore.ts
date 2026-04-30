@@ -323,6 +323,10 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       setTimeout(() => window.location.href = '/', 1500);
     });
 
+    socket.on('connect_error', (err) => {
+      console.error('🔴 Socket connect_error:', err.message);
+    });
+
     socket.on('connect', () => {
       set({ connected: true });
       // Emit full sync request in case of reconnect after server snapshot hydration
