@@ -298,6 +298,11 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         ? `${window.location.protocol}//${window.location.hostname}:4001`
         : 'http://localhost:4001';
 
+    // Debug logs to verify token retrieval
+    const currentUser = useGameStore.getState().user;
+    console.log('🔐 Init called with user:', currentUser);
+    console.log('🔐 Token value:', currentUser?.token);
+
     const socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
       reconnection: true,
@@ -306,7 +311,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       reconnectionDelayMax: 10000,
       withCredentials: true,
       auth: {
-        token: useGameStore.getState().user?.token
+        token: currentUser?.token
       },
       query: {
         role: typeof window !== 'undefined' && window.location.pathname === '/projector' ? 'spectator' : 'player'
