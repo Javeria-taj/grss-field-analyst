@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV !== 'production';
-const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL ?? (isDev ? '' : 'wss://*.grss.io');
+const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL ?? (isDev ? '' : 'https://grss-field-analyst.onrender.com');
+const socketWss = socketUrl.replace('https://', 'wss://');
 
 const nextConfig: NextConfig = {
   eslint: {
@@ -21,27 +22,27 @@ const nextConfig: NextConfig = {
     // In production, lock down to known origins
     const connectSrc = isDev
       ? "connect-src *"
-      : `connect-src 'self' ${socketUrl}`;
+      : `connect-src 'self' ${socketUrl} ${socketWss}`;
 
     const cspValue = isDev
       ? [
-          "default-src 'self'",
-          "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
-          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-          "font-src 'self' https://fonts.gstatic.com",
-          "img-src 'self' data: https://upload.wikimedia.org blob:",
-          connectSrc,
-          "frame-ancestors 'none'",
-        ].join('; ')
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com",
+        "img-src 'self' data: https://upload.wikimedia.org blob:",
+        connectSrc,
+        "frame-ancestors 'none'",
+      ].join('; ')
       : [
-          "default-src 'self'",
-          "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
-          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-          "font-src 'self' https://fonts.gstatic.com",
-          "img-src 'self' data: https://upload.wikimedia.org blob:",
-          connectSrc,
-          "frame-ancestors 'none'",
-        ].join('; ');
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com",
+        "img-src 'self' data: https://upload.wikimedia.org blob:",
+        connectSrc,
+        "frame-ancestors 'none'",
+      ].join('; ');
 
     return [
       {
