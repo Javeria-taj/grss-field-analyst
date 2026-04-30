@@ -36,4 +36,4 @@ ENV NODE_ENV=production
 EXPOSE 4001
 
 # Correct entry point based on tsc output structure
-CMD ["node", "realtime/dist/server.js"]
+CMD ["node", "realtime/dist/realtime/server.js"]
