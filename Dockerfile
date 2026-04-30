@@ -26,10 +26,10 @@ RUN npm ci --omit=dev
 
 # Copy compiled output from builder
 COPY --from=builder /app/realtime/dist ./realtime/dist
-COPY --from=builder /app/lib ./lib
 
 ENV NODE_ENV=production
 
 EXPOSE 4001
 
-CMD ["node", "realtime/dist/server.js"]
+# Correct entry point based on tsc output structure
+CMD ["node", "realtime/dist/realtime/server.js"]

@@ -14,6 +14,17 @@ const getACtx = () => {
     return _actx;
 };
 exports.getACtx = getACtx;
+// Auto-resume context on first user interaction
+if (typeof window !== 'undefined') {
+    const resume = () => {
+        const c = (0, exports.getACtx)();
+        if (c.state === 'suspended')
+            c.resume();
+    };
+    window.addEventListener('click', resume, { once: true });
+    window.addEventListener('touchstart', resume, { once: true });
+    window.addEventListener('keydown', resume, { once: true });
+}
 const tone = (freq, dur, type = 'sine', vol = 0.22, delay = 0) => {
     if (typeof window === 'undefined')
         return;
@@ -52,7 +63,9 @@ exports.SFX = {
         tone(150, 0.3, 'sawtooth', 0.18, 0.22);
         haptics_1.Haptics.error();
     },
+    error: () => exports.SFX.wrong(),
     levelUp: () => [523, 587, 659, 698, 784, 880, 988].forEach((f, i) => tone(f, 0.18, 'sine', 0.22, i * 0.07)),
+    levelComplete: () => exports.SFX.levelUp(),
     tick: () => tone(1000, 0.03, 'square', 0.05),
     urgency: () => tone(440, 0.1, 'square', 0.12),
     buy: () => {
@@ -71,7 +84,7 @@ exports.SFX = {
         const g = ctx.createGain();
         g.connect(ctx.destination);
         g.gain.setValueAtTime(0, ctx.currentTime);
-        g.gain.linearRampToValueAtTime(0.04, ctx.currentTime + 2); // Slow fade in
+        g.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 2); // Slow fade in
         const freqs = [55, 110, 82.41]; // Low A, A, E
         freqs.forEach(f => {
             const o = ctx.createOscillator();
@@ -111,9 +124,76 @@ exports.SFX = {
             tone(440, 0.2, 'square', 0.15, i * 0.4 + 0.2);
         }
     },
+    // ── Panic Siren (looping, must be stopped explicitly) ──
+    _panicGain: null,
+    _panicOscs: [],
+    _panicTimer: null,
+    startPanic: () => {
+        if (typeof window === 'undefined')
+            return;
+        if (exports.SFX._panicGain)
+            return; // Already running
+        try {
+            const ctx = (0, exports.getACtx)();
+            if (ctx.state === 'suspended')
+                ctx.resume();
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(0, ctx.currentTime);
+            g.connect(ctx.destination);
+            exports.SFX._panicGain = g;
+            exports.SFX._panicOscs = [];
+            // A quick alarming timer ticking effect instead of a siren
+            let tickCount = 0;
+            exports.SFX._panicTimer = setInterval(() => {
+                if (!exports.SFX._panicGain)
+                    return;
+                const freq = (tickCount % 2 === 0) ? 900 : 800;
+                tone(freq, 0.05, 'square', 0.1);
+                tickCount++;
+            }, 250);
+        }
+        catch (e) { /* Silently fail if audio unavailable */ }
+    },
+    stopPanic: () => {
+        if (!exports.SFX._panicGain)
+            return;
+        try {
+            const ctx = (0, exports.getACtx)();
+            exports.SFX._panicGain.gain.setTargetAtTime(0, ctx.currentTime, 0.15);
+            setTimeout(() => {
+                exports.SFX._panicOscs.forEach(o => { try {
+                    o.stop();
+                    o.disconnect();
+                }
+                catch { } });
+                exports.SFX._panicOscs = [];
+                try {
+                    exports.SFX._panicGain?.disconnect();
+                }
+                catch { }
+                exports.SFX._panicGain = null;
+            }, 300);
+            if (exports.SFX._panicTimer) {
+                clearInterval(exports.SFX._panicTimer);
+                exports.SFX._panicTimer = null;
+            }
+        }
+        catch (e) { /* Silently fail */ }
+    },
     success: () => exports.SFX.correct(),
     stopMusic: () => {
         Object.values(musicGains).forEach(g => g.gain.setTargetAtTime(0, (0, exports.getACtx)().currentTime, 0.5));
+    },
+    _musicTimer: null,
+    _intensity: 1.0,
+    setMusicIntensity: (intensity) => {
+        exports.SFX._intensity = intensity;
+        const ctx = (0, exports.getACtx)();
+        Object.values(musicGains).forEach(g => {
+            if (g.gain.value > 0.01) {
+                g.gain.setTargetAtTime(0.05 * intensity, ctx.currentTime, 1);
+            }
+        });
     },
     playMusic: (type) => {
         const ctx = (0, exports.getACtx)();
@@ -131,17 +211,16 @@ exports.SFX = {
         const g = ctx.createGain();
         g.connect(ctx.destination);
         g.gain.setValueAtTime(0, ctx.currentTime);
-        g.gain.linearRampToValueAtTime(type === 'ambient' ? 0.05 : 0.08, ctx.currentTime + 2);
+        g.gain.linearRampToValueAtTime(type === 'ambient' ? 0.15 : 0.2, ctx.currentTime + 2);
         musicGains[type] = g;
         const freqs = type === 'ambient' ? [55, 110, 82.41] :
             type === 'active' ? [110, 220, 164.81, 130.81] :
-                [40, 80, 60, 120]; // Tense/Heist: lower, more dissonance
+                [40, 80, 60, 120];
         musicOscs[type] = freqs.map((f, i) => {
             const o = ctx.createOscillator();
             const oG = ctx.createGain();
             o.type = type === 'tense' ? 'sawtooth' : 'sine';
             o.frequency.setValueAtTime(f, ctx.currentTime);
-            // Add subtle modulation
             const mod = ctx.createOscillator();
             const modG = ctx.createGain();
             mod.frequency.value = 0.5 + i * 0.1;
@@ -155,15 +234,18 @@ exports.SFX = {
             o.start();
             return o;
         });
-        // Add rhythmic "pulse" for active/tense
+        if (exports.SFX._musicTimer)
+            clearInterval(exports.SFX._musicTimer);
         if (type !== 'ambient') {
-            const pulseInterval = type === 'active' ? 0.5 : 0.25;
-            const pulseFreq = type === 'active' ? 110 : 60;
-            setInterval(() => {
+            const tick = () => {
                 if (musicGains[type].gain.value > 0.01) {
-                    tone(pulseFreq, 0.1, 'square', 0.03);
+                    const pulseFreq = type === 'active' ? 110 : 60;
+                    tone(pulseFreq, 0.1, 'square', 0.05 * exports.SFX._intensity);
                 }
-            }, pulseInterval * 1000);
+                const nextInterval = (type === 'active' ? 500 : 250) / exports.SFX._intensity;
+                exports.SFX._musicTimer = setTimeout(tick, nextInterval);
+            };
+            exports.SFX._musicTimer = setTimeout(tick, type === 'active' ? 500 : 250);
         }
     }
 };

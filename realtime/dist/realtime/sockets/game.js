@@ -30,7 +30,7 @@ function setupGameSockets(io) {
         return true;
     };
     // Step 5: Hydrate engine from DB on boot
-    engine.hydrateFromDb().catch(err => console.error('Failed to hydrate DB', err));
+    engine.hydrateFromDb().catch((err) => console.error('Failed to hydrate DB', err));
     // ── Auth Middleware ──
     io.use((socket, next) => {
         try {
@@ -139,6 +139,11 @@ function setupGameSockets(io) {
                 console.error('Kick deletion err', err);
             }
         });
+        socket.on('admin_sabotage_player', (data) => {
+            if (!isAdmin || !data.usn)
+                return;
+            engine.sabotagePlayer(data.usn.toUpperCase());
+        });
         socket.on('admin_add_bank_question', (data) => {
             if (!isAdmin)
                 return;
@@ -148,6 +153,11 @@ function setupGameSockets(io) {
             if (!isAdmin)
                 return;
             engine.triggerAnomaly();
+        });
+        socket.on('admin_trigger_scenario', (data) => {
+            if (!isAdmin)
+                return;
+            engine.triggerScenario(data.type);
         });
         socket.on('admin_update_bank_question', (data) => {
             if (!isAdmin)
@@ -251,12 +261,34 @@ function setupGameSockets(io) {
                 socket.emit('anomaly_fix_success', { targetId: data.targetId });
             }
         });
+        socket.on('use_powerup', (data) => {
+            if (isAdmin)
+                return;
+            const result = engine.handlePowerup(usn, data.type);
+            socket.emit('powerup_result', result);
+        });
         socket.on('reaction', (emoji) => {
             if (isAdmin)
                 return;
             if (typeof emoji !== 'string' || emoji.length > 5)
                 return; // Basic validation
             engine.handleReaction(emoji);
+        });
+        socket.on('focus_breach_penalty', () => {
+            if (isAdmin)
+                return;
+            if (!checkRateLimit(socket.id, 2000))
+                return; // prevent spamming penalties
+            engine.applyPenalty(usn, 75);
+            console.log(`⚠️ Security Breach: ${usn} penalized 75 pts for focus loss.`);
+        });
+        socket.on('use_hint', () => {
+            if (isAdmin)
+                return;
+            if (!checkRateLimit(socket.id, 500))
+                return;
+            engine.applyPenalty(usn, 50);
+            console.log(`💡 Hint used: ${usn} penalized 50 pts.`);
         });
         // ════════════════════════════════════════════════════════════
         // DISCONNECT
@@ -281,7 +313,7 @@ function setupGameSockets(io) {
                 await User_1.User.bulkWrite(leaderboard.map(entry => ({
                     updateOne: {
                         filter: { usn: entry.usn },
-                        update: { $set: { score: entry.totalScore, lastActive: new Date() } },
+                        update: { $set: { score: entry.totalScore, streak: entry.streak, lastActive: new Date() } },
                         upsert: false,
                     }
                 })));

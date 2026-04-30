@@ -53,13 +53,30 @@ function shuffle(arr) {
 function calcScore(correct, timeLeft, maxTime, base) {
     if (!correct)
         return 0;
-    return base + Math.round(base * 0.5 * (timeLeft / maxTime));
+    // Base points + speed bonus (0% to 100% of base points)
+    const speedBonus = Math.round(base * (timeLeft / maxTime));
+    return base + speedBonus;
 }
 // Strict normalisation: strips all non-alphanumeric chars before comparison
 function normalise(s) {
     return String(s).replace(/[^A-Z0-9]/gi, '').toUpperCase();
 }
 class GameEngine {
+    earnAchievement(usn, achievementId) {
+        const ps = this.playerScores.get(usn);
+        if (!ps)
+            return;
+        if (ps.achievements.includes(achievementId))
+            return;
+        ps.achievements.push(achievementId);
+        this.io.to(usn).emit('achievement_earned', achievementId);
+        // Global Feed Notification
+        this.io.emit('mission_event', {
+            type: 'achievement',
+            user: ps.name,
+            achievementId
+        });
+    }
     constructor(io) {
         this.leaderboardDirty = false;
         this.adminStatsDirty = false;
@@ -76,6 +93,7 @@ class GameEngine {
         this.endTime = 0; // epoch ms; clients count down locally
         this.timerInterval = null;
         this.priceTickInterval = null;
+        this.heatMultiplier = 1.0;
         // ── Question Bank (admin-managed, overrides gameData when populated) ──
         this.questionBank = [];
         this.levelLimits = { 1: 10, 2: 5, 3: 5, 4: 10 };
@@ -96,13 +114,17 @@ class GameEngine {
         this.recentReactions = [];
         this.factionScores = { team_sentinel: 0, team_landsat: 0, team_modis: 0 };
         // ── Anomaly State ──
-        this.anomalyTarget = '';
-        this.anomalyFixers = new Set();
+        this.anomalyTargets = new Set(); // 3 distinct error nodes
+        this.anomalyFixers = new Set(); // USNs who resolved ALL 3
         // ── Stats ──
         this.levelCorrectCounts = [];
         this.levelTotalAnswered = [];
         this.io = io;
-        // Throttle broadcasts to once every 1.5 seconds to prevent "broadcast storms"
+        // Hydrate state from last snapshot
+        this.hydrateFromDb();
+        // Snapshot tick counter
+        let snapshotTick = 0;
+        // Throttle broadcasts to once every 2.0 seconds to prevent "broadcast storms" on mobile/vercel
         this.broadcastInterval = setInterval(() => {
             if (this.leaderboardDirty) {
                 this.io.emit('leaderboard_update', this.getLeaderboard());
@@ -115,6 +137,12 @@ class GameEngine {
             if (this.bankDirty) {
                 this.io.emit('bank_questions', this.getBankQuestions());
                 this.bankDirty = false;
+            }
+            // Save snapshot every ~20 seconds (10 ticks * 2.0s)
+            snapshotTick++;
+            if (snapshotTick >= 10) {
+                this.snapshotToDb();
+                snapshotTick = 0;
             }
         }, 1500);
     }
@@ -166,7 +194,7 @@ class GameEngine {
         if (!this.playerScores.has(usn)) {
             this.playerScores.set(usn, {
                 usn, name, totalScore: 0, levelScores: {}, currentLevelScore: 0,
-                telemetry: [], streak: 0, faction: faction || 'team_sentinel'
+                telemetry: [], streak: 0, achievements: [], faction: faction || 'team_sentinel'
             });
         }
     }
@@ -277,7 +305,7 @@ class GameEngine {
                             clientQ: {
                                 index: i, total: all.length, type: 'scramble',
                                 timeLimit: gameData_1.TIME_LIMITS[1], points: sq.pts,
-                                scrambled: sq.sc, hint: sq.hint, category: sq.cat,
+                                scrambled: sq.sc, hint: sq.hint, hint2: sq.hint2, category: sq.cat,
                             },
                             answer: normalise(sq.word),
                             explanation: `The answer is ${sq.word}.`,
@@ -289,7 +317,7 @@ class GameEngine {
                             clientQ: {
                                 index: i, total: all.length, type: 'riddle',
                                 timeLimit: gameData_1.TIME_LIMITS[1], points: rq.pts,
-                                question: rq.q, hint: rq.hint, category: rq.cat,
+                                question: rq.q, hint: rq.hint, hint2: rq.hint2, category: rq.cat,
                             },
                             answer: normalise(rq.ans),
                             explanation: `The answer is ${rq.ans}.`,
@@ -305,6 +333,7 @@ class GameEngine {
                         index: i, total: qs.length, type: 'image_mcq',
                         timeLimit: gameData_1.TIME_LIMITS[2], points: q.pts,
                         imageUrl: q.img, question: q.q, options: q.opts,
+                        hint: q.hint, hint2: q.hint2,
                     },
                     answer: q.ans,
                     explanation: q.expl,
@@ -317,7 +346,7 @@ class GameEngine {
                     clientQ: {
                         index: i, total: chs.length, type: 'hangman',
                         timeLimit: gameData_1.TIME_LIMITS[3], points: c.pts,
-                        emoji: c.em, hint: c.hint, wordLength: c.word.length,
+                        emoji: c.em, hint: c.hint, hint2: c.hint2, wordLength: c.word.length,
                     },
                     answer: normalise(c.word),
                     explanation: c.expl,
@@ -361,14 +390,17 @@ class GameEngine {
                 });
             }
         }
-        this.io.emit('question_start', q.clientQ);
+        this.io.emit('question_start', {
+            ...q.clientQ,
+            timeLimit: Math.round(q.clientQ.timeLimit * this.heatMultiplier)
+        });
         this.broadcastAdminStats();
         // Preload next question's image silently so clients cache it before it appears
         const nextQ = this.questions[this.currentQIndex + 1];
         if (nextQ?.clientQ.imageUrl) {
             this.io.emit('preload_asset', { url: nextQ.clientQ.imageUrl });
         }
-        this.startCountdown(q.clientQ.timeLimit, () => this.endQuestion());
+        this.startCountdown(Math.round(q.clientQ.timeLimit * this.heatMultiplier), () => this.endQuestion());
     }
     handleAnswer(usn, answer) {
         if (this.phase !== 'question_active')
@@ -386,41 +418,46 @@ class GameEngine {
         else if (typeof q.answer === 'number' && typeof answer === 'number') {
             correct = answer === q.answer;
         }
-        const score = calcScore(correct, this.timerRemaining, this.timerTotal, q.clientQ.points);
+        const preciseTimeLeft = Math.max(0, (this.endTime - Date.now()) / 1000);
+        const score = calcScore(correct, preciseTimeLeft, this.timerTotal, q.clientQ.points);
+        let finalScore = score;
         // Update player scores
         const ps = this.playerScores.get(usn);
         if (ps) {
-            ps.totalScore += score;
-            ps.currentLevelScore += score;
+            if (correct) {
+                ps.streak++;
+                // Achievements: Speed Demon (< 2.2s)
+                const timeTaken = this.timerTotal - this.timerRemaining;
+                if (timeTaken < 2.2) {
+                    this.earnAchievement(usn, 'SPEED_DEMON');
+                }
+                // Achievements: Streak 5
+                if (ps.streak === 5) {
+                    this.earnAchievement(usn, 'STREAK_5');
+                }
+            }
+            else {
+                ps.streak = 0;
+            }
+            // Apply multiplier if streak >= 3
+            finalScore = (ps.streak >= 3) ? Math.round(score * 1.2) : score;
+            ps.totalScore += finalScore;
+            ps.currentLevelScore += finalScore;
             // Log Telemetry
             ps.telemetry.push({
                 qIndex: this.currentQIndex,
                 timeTaken: this.timerTotal - this.timerRemaining,
                 correct,
-                points: score
+                points: finalScore
             });
-            // Streak & Multiplier Logic
-            if (correct) {
-                ps.streak++;
-            }
-            else {
-                ps.streak = 0;
-            }
+            const pa = {
+                usn, answer, timeRemaining: this.timerRemaining, correct, score: finalScore,
+                totalScore: ps.totalScore,
+                currentLevelScore: ps.currentLevelScore,
+                telemetry: ps.telemetry
+            };
+            this.currentAnswers.set(usn, pa);
         }
-        // Apply multiplier if streak >= 3
-        const finalScore = (ps && ps.streak >= 3) ? Math.round(score * 1.2) : score;
-        if (ps && finalScore !== score) {
-            // Adjust totalScore if multiplier applied
-            ps.totalScore += (finalScore - score);
-            ps.currentLevelScore += (finalScore - score);
-        }
-        const pa = {
-            usn, answer, timeRemaining: this.timerRemaining, correct, score: finalScore,
-            totalScore: ps?.totalScore ?? 0,
-            currentLevelScore: ps?.currentLevelScore ?? 0,
-            telemetry: ps?.telemetry || []
-        };
-        this.currentAnswers.set(usn, pa);
         // Flag for throttled broadcast
         this.leaderboardDirty = true;
         this.adminStatsDirty = true;
@@ -429,8 +466,7 @@ class GameEngine {
         const allAnswered = activeUSNs.every(u => this.currentAnswers.has(u));
         if (allAnswered && activeUSNs.length > 0) {
             this.clearTimer();
-            // Small delay so last answerer sees their result
-            setTimeout(() => this.endQuestion(), 1000);
+            this.endQuestion();
         }
         // For Admin: Calculate live stats distribution
         this.io.to('admins').emit('admin_live_stats', this.getLiveAnswerStats());
@@ -439,11 +475,55 @@ class GameEngine {
             answer,
             timeRemaining: this.timerRemaining,
             correct,
-            score,
+            score: finalScore,
             totalScore: ps?.totalScore ?? 0,
             currentLevelScore: ps?.currentLevelScore ?? 0,
             telemetry: ps?.telemetry || []
         };
+    }
+    handlePowerup(usn, type) {
+        if (this.phase !== 'question_active')
+            return { success: false, error: 'Mission not active' };
+        let ps = this.playerScores.get(usn);
+        // Auto-register player if they're connected but not yet in playerScores
+        if (!ps) {
+            this.playerScores.set(usn, {
+                usn, name: usn, totalScore: 0, levelScores: {}, currentLevelScore: 0,
+                telemetry: [], streak: 0, achievements: [], faction: 'team_sentinel'
+            });
+            ps = this.playerScores.get(usn);
+        }
+        const q = this.questions[this.currentQIndex];
+        if (!q)
+            return { success: false, error: 'Mission data error' };
+        if (type === 'radar_pulse') {
+            const cost = 200;
+            if (ps.totalScore < cost)
+                return { success: false, error: 'Insufficient credits (200 req)' };
+            // Only works for ImageMCQ (level 2) or Rapid Fire (level 4) if it has options
+            if (!q.clientQ.options)
+                return { success: false, error: 'Radar not compatible with this mission' };
+            ps.totalScore -= cost;
+            // Pick 2 wrong answers to remove
+            const correctIdx = typeof q.answer === 'number'
+                ? q.answer
+                : q.clientQ.options.findIndex(o => normalise(o) === normalise(q.answer));
+            const wrongIndices = q.clientQ.options.map((_, i) => i).filter(i => i !== correctIdx);
+            const toRemove = [];
+            while (toRemove.length < 2 && wrongIndices.length > 0) {
+                const rand = Math.floor(Math.random() * wrongIndices.length);
+                toRemove.push(wrongIndices.splice(rand, 1)[0]);
+            }
+            return { success: true, type: 'radar_pulse', removed: toRemove };
+        }
+        if (type === 'thermal_scan') {
+            const cost = 300;
+            if (ps.totalScore < cost)
+                return { success: false, error: 'Insufficient credits (300 req)' };
+            ps.totalScore -= cost;
+            return { success: true, type: 'thermal_scan', distribution: this.getLiveAnswerStats().distribution };
+        }
+        return { success: false, error: 'Unknown toolkit' };
     }
     forceEndQuestion() {
         this.endQuestion();
@@ -465,6 +545,14 @@ class GameEngine {
         this.levelCorrectCounts.push(correctCount);
         this.levelTotalAnswered.push(answeredCount);
         const totalPlayers = this.getActiveUSNs().length;
+        const accuracy = totalPlayers > 0 ? (correctCount / totalPlayers) : 0;
+        // Dynamic Difficulty Scaling (Heat)
+        if (accuracy > 0.8) {
+            this.heatMultiplier = Math.max(0.6, this.heatMultiplier - 0.05);
+        }
+        else if (accuracy < 0.4) {
+            this.heatMultiplier = Math.min(1.0, this.heatMultiplier + 0.05);
+        }
         const payload = {
             correctAnswer: String(q.answer),
             explanation: q.explanation,
@@ -478,22 +566,32 @@ class GameEngine {
         this.updateFactionScores();
         this.io.emit('question_end', payload);
         this.broadcastAdminStats();
-        // Trigger AI Mission Commander Commentary
-        MissionCommander_1.MissionCommander.generateCommentary(q.clientQ.question || q.clientQ.scrambled || 'Current Question', String(q.answer), this.getLiveAnswerStats(), totalPlayers, this.phase).then(commentary => {
-            this.io.emit('mission_commander_comment', commentary);
+        // Generate AI Commentary
+        MissionCommander_1.MissionCommander.generateCommentary(String(q.clientQ.question || q.clientQ.scrambled || 'Mission task'), String(q.answer), this.getLiveAnswerStats(), totalPlayers, this.phase).then(commentary => {
+            this.io.emit('mission_commentary', commentary);
         });
         // Auto-advance after review period
         this.startCountdown(gameData_1.REVIEW_TIME, () => {
             this.currentQIndex++;
-            this.startQuestion();
+            if (this.currentQIndex >= this.questions.length) {
+                this.endLevel();
+            }
+            else {
+                this.startQuestion();
+            }
         });
     }
     endLevel() {
         this.clearTimer();
         this.phase = 'level_complete';
-        // Persist level scores
-        for (const [, ps] of this.playerScores) {
+        // Persist level scores and check for Perfect Level achievement
+        for (const [usn, ps] of this.playerScores) {
             ps.levelScores[this.currentLevel] = ps.currentLevelScore;
+            const levelTelemetry = ps.telemetry.slice(-this.levelCorrectCounts.length);
+            const isPerfect = levelTelemetry.length > 0 && levelTelemetry.every(t => t.correct);
+            if (isPerfect) {
+                this.earnAchievement(usn, 'PERFECT_LEVEL');
+            }
         }
         const leaderboard = this.getLeaderboard();
         const totalQ = this.levelCorrectCounts.length;
@@ -556,6 +654,10 @@ class GameEngine {
         if (allRevealed) {
             hs.solved = true;
             hs.submitted = true;
+            // Achievements: Survivor (solve with 1 life)
+            if (hs.lives === 1) {
+                this.earnAchievement(usn, 'SURVIVOR');
+            }
             // Auto-submit correct answer
             this.handleAnswer(usn, word);
         }
@@ -564,7 +666,8 @@ class GameEngine {
             // Auto-submit wrong answer
             this.handleAnswer(usn, '');
         }
-        return { hit, positions, livesLeft: hs.lives, solved: hs.solved };
+        const maskedWord = word.split('').map((char, idx) => (hs.revealedPositions.includes(idx) || char === ' ') ? char : '_').join('');
+        return { hit, positions, livesLeft: hs.lives, solved: hs.solved, maskedWord };
     }
     // ═══════════════════════════════════════════════════════════════
     // LEVEL 5 — AUCTION
@@ -603,6 +706,12 @@ class GameEngine {
             if (this.priceTickInterval)
                 clearInterval(this.priceTickInterval);
             this.priceTickInterval = null;
+            // Achievements: Auction Master (spend exactly 10000)
+            for (const [usn, as] of this.auctionStates) {
+                if (as.budget === 0 && as.ownedTools.length > 0) {
+                    this.earnAchievement(usn, 'AUCTION_MASTER');
+                }
+            }
             this.startDisaster();
         });
     }
@@ -771,13 +880,19 @@ class GameEngine {
     // LEADERBOARD
     // ═══════════════════════════════════════════════════════════════
     getLeaderboard() {
-        const entries = [...this.playerScores.values()]
-            .sort((a, b) => b.totalScore - a.totalScore)
-            .map((ps, i) => ({
-            rank: i + 1, name: ps.name, usn: ps.usn,
-            totalScore: ps.totalScore, currentLevelScore: ps.currentLevelScore,
-            streak: ps.streak, faction: ps.faction
-        }));
+        const sorted = [...this.playerScores.values()].sort((a, b) => b.totalScore - a.totalScore);
+        const entries = sorted
+            .map((ps, i) => {
+            // Track previous rank by looking up where they were before (if implemented)
+            // Here we just map the structure, prevRank will be handled server-side logic if needed,
+            // but for now, we just attach a static rank so the client has an absolute sorting key.
+            return {
+                rank: i + 1, name: ps.name, usn: ps.usn,
+                totalScore: ps.totalScore, currentLevelScore: ps.currentLevelScore,
+                streak: ps.streak, faction: ps.faction
+            };
+        })
+            .slice(0, 50); // limit to 50 to save bandwidth & client rendering
         return entries;
     }
     // ═══════════════════════════════════════════════════════════════
@@ -791,9 +906,11 @@ class GameEngine {
             const hs = this.hangmanStates.get(usn);
             const q = this.questions[this.currentQIndex];
             if (hs && q?.word) {
+                const masked = q.word.split('').map((char, idx) => (hs.revealedPositions.includes(idx) || char === ' ') ? char : '_').join('');
                 hangmanState = {
                     guessedLetters: hs.guessedLetters, lives: hs.lives,
                     revealedPositions: hs.revealedPositions, wordLength: q.word.length,
+                    maskedWord: masked,
                 };
             }
         }
@@ -901,10 +1018,22 @@ class GameEngine {
         return { distribution, reactions, factionScores: this.factionScores };
     }
     handleReaction(emoji) {
-        this.recentReactions.push({ id: (0, crypto_1.randomUUID)(), emoji });
+        const payload = { id: (0, crypto_1.randomUUID)(), emoji };
+        this.recentReactions.push(payload);
         if (this.recentReactions.length > 50)
             this.recentReactions.shift();
-        this.adminStatsDirty = true; // Trigger broadcast
+        // Broadcast to EVERYONE for the floating overlay
+        this.io.emit('reaction_broadcast', payload);
+        this.adminStatsDirty = true; // Still update admin view
+    }
+    applyPenalty(usn, amount) {
+        const ps = this.playerScores.get(usn);
+        if (ps) {
+            ps.totalScore = Math.max(0, ps.totalScore - amount);
+            this.io.to(usn).emit('penalty_applied', { penalty: amount, newTotalScore: ps.totalScore });
+            this.leaderboardDirty = true;
+            this.broadcastAdminStats();
+        }
     }
     updateFactionScores() {
         const totals = { team_sentinel: 0, team_landsat: 0, team_modis: 0 };
@@ -926,32 +1055,77 @@ class GameEngine {
             return;
         this.phase = 'anomaly_active';
         this.anomalyFixers.clear();
-        // Create a 3x3 grid (9 nodes), pick one at random
-        const targetIdx = Math.floor(Math.random() * 9);
-        this.anomalyTarget = `node_${targetIdx}`;
+        this.anomalyTargets.clear();
+        this._anomalyPatchedBy = new Map();
+        // Create a 3×3 grid (9 nodes). Pick exactly 3 distinct indices.
+        const allIndices = Array.from({ length: 9 }, (_, i) => i);
+        const picked = [];
+        while (picked.length < 3) {
+            const idx = allIndices.splice(Math.floor(Math.random() * allIndices.length), 1)[0];
+            picked.push(idx);
+        }
+        picked.forEach(i => this.anomalyTargets.add(`node_${i}`));
+        const targetIdsArr = [...this.anomalyTargets];
         const payload = {
             type: 'patch',
-            targetId: this.anomalyTarget,
+            targetIds: targetIdsArr,
+            targetId: targetIdsArr[0], // legacy fallback
             gridSize: 9,
             timeLimit: 15
         };
         this.io.emit('anomaly_detected', payload);
         this.broadcastAdminStats();
         // Trigger Urgent AI Commentary
-        MissionCommander_1.MissionCommander.generateCommentary("SECURITY BREACH", this.anomalyTarget, { distribution: {}, factionScores: {} }, this.getPlayerCount(), this.phase).then(commentary => {
+        MissionCommander_1.MissionCommander.generateCommentary("TRIPLE SECURITY BREACH", targetIdsArr.join(','), { distribution: {}, factionScores: {} }, this.getPlayerCount(), this.phase).then(commentary => {
             this.io.emit('mission_commander_comment', commentary);
         });
         // Start 15-second countdown
         this.startCountdown(15, () => this.endAnomaly());
     }
+    triggerScenario(type) {
+        if (this.phase === 'game_over' || this.phase === 'idle')
+            return;
+        if (type === 'solar_flare') {
+            // Speed up timer for everyone
+            if (this.timerRemaining > 10) {
+                this.timerRemaining = Math.floor(this.timerRemaining / 2);
+                this.endTime = Date.now() + this.timerRemaining * 1000;
+                this.io.emit('timer_start', {
+                    endTime: this.endTime,
+                    total: this.timerTotal,
+                    serverTime: Date.now(),
+                    flare: true
+                });
+            }
+            this.io.emit('mission_event', { type: 'scenario', text: 'SOLAR FLARE: TIMERS COMPRESSED', user: 'SYSTEM' });
+        }
+        if (type === 'data_corruption') {
+            this.io.emit('targeted_sabotage', { type: 'glitch' });
+            this.io.emit('mission_event', { type: 'scenario', text: 'DATA CORRUPTION: DISTORTION ACTIVE', user: 'SYSTEM' });
+        }
+    }
+    sabotagePlayer(targetUsn) {
+        this.io.to(targetUsn).emit('targeted_sabotage', { type: 'glitch' });
+    }
     handleAnomalyFix(usn, targetId) {
         if (this.phase !== 'anomaly_active')
             return false;
-        if (targetId === this.anomalyTarget) {
+        // Validate this is actually one of the 3 error nodes
+        if (!this.anomalyTargets.has(targetId))
+            return false;
+        // Track per-player patched nodes using a Map
+        if (!this._anomalyPatchedBy)
+            this._anomalyPatchedBy = new Map();
+        const patchedByMap = this._anomalyPatchedBy;
+        if (!patchedByMap.has(usn))
+            patchedByMap.set(usn, new Set());
+        patchedByMap.get(usn).add(targetId);
+        // Check if this player has patched ALL 3 targets
+        if (patchedByMap.get(usn).size >= this.anomalyTargets.size) {
             this.anomalyFixers.add(usn);
-            return true;
+            return true; // All 3 patched — signal success to client
         }
-        return false;
+        return false; // Still more nodes to patch
     }
     endAnomaly() {
         if (this.phase !== 'anomaly_active')
@@ -1038,7 +1212,8 @@ class GameEngine {
                     this.playerScores.set(ps.usn, {
                         ...ps,
                         telemetry: ps.telemetry || [],
-                        streak: ps.streak || 0
+                        streak: ps.streak || 0,
+                        achievements: ps.achievements || []
                     });
                 }
             }
