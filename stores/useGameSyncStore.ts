@@ -298,10 +298,11 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         : 'http://localhost:4001';
 
     const socket = io(socketUrl, {
+      transports: ['websocket', 'polling'],
+      secure: true,
+      reconnection: true,
       reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 4000,
-      randomizationFactor: 0.5,
+      reconnectionDelay: 5000,
       withCredentials: true,
       query: { 
         role: typeof window !== 'undefined' && window.location.pathname === '/projector' ? 'spectator' : 'player'
