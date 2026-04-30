@@ -298,7 +298,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         : 'http://localhost:4001';
 
     const socket = io(socketUrl, {
-      transports: ['polling', 'websocket'],
+      transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 3000,
