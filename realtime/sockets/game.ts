@@ -288,6 +288,17 @@ export default function setupGameSockets(io: Server) {
       console.log(`💡 Hint used: ${usn} penalized 50 pts.`);
     });
 
+    // ── Level 5 Finale: client submits locally-computed score ──
+    socket.on('submit_level5_results', (data: { l5Score: number }) => {
+      if (isAdmin) return;
+      if (!checkRateLimit(socket.id, 2000)) return;
+      if (typeof data.l5Score !== 'number' || data.l5Score < 0) return;
+      // Cap at a reasonable max to prevent exploit
+      const capped = Math.min(Math.round(data.l5Score), 9000);
+      engine.applyLevel5Score(usn, capped);
+      console.log(`🌍 L5 results from ${usn}: +${capped} pts`);
+    });
+
     // ════════════════════════════════════════════════════════════
     // DISCONNECT
     // ════════════════════════════════════════════════════════════

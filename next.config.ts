@@ -5,9 +5,6 @@ const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL ?? (isDev ? '' : 'https://g
 const socketWss = socketUrl.replace('https://', 'wss://');
 
 const nextConfig: NextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },

@@ -30,6 +30,7 @@
   --warning: #facc15;   /* amber     */
   --success: #34d399;   /* teal      */
   --gold:    #fde047;   /* yellow    */
+  --purple:  #7c3aed;   /* violet    */
 
   /* ── Text ─────────────────────────────── */
   --text:  #f1f5f9;
@@ -225,6 +226,24 @@ html, body {
   animation: panicPulse 0.85s ease-in-out infinite !important;
   transition: none !important;
 }
+
+/* ─── Level 5 Price-Hike flash ───────────────────────────── */
+@keyframes flashWarning {
+  0%, 100% { color: var(--danger); }
+  50%       { color: #ff8fa3; }
+}
+@keyframes tickPulse {
+  0%   { transform: scale(1); }
+  20%  { transform: scale(1.4); filter: brightness(2.2) saturate(1.8); }
+  55%  { transform: scale(0.96); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+@keyframes priceHike {
+  0%   { background: rgba(255,45,85,.25); color: var(--danger); transform: scale(1.08); }
+  40%  { background: rgba(255,170,0,.15); color: var(--warning); }
+  100% { background: transparent; color: var(--warning); transform: scale(1); }
+}
+.l5-hike-flash { animation: flashWarning 0.9s infinite; }
 
 /* ─────────────────────────────────────────
    TYPOGRAPHY

@@ -92,17 +92,9 @@ export default function GameOverPhase() {
                   whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={() => alert('Summary card saved to simulation storage. Screenshot to share!')}
                   className="btn" 
-                  style={{ flex: 1, background: '#fff', color: '#000', borderRadius: 16, fontSize: '0.85rem', fontWeight: 'bold' }}
+                  style={{ width: '100%', background: '#fff', color: '#000', borderRadius: 16, fontSize: '0.85rem', fontWeight: 'bold' }}
                 >
                   📥 SAVE CARD
-                </motion.button>
-                <motion.button 
-                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  onClick={() => setShowCard(false)}
-                  className="btn btn-outline" 
-                  style={{ flex: 1, borderRadius: 16, fontSize: '0.85rem' }}
-                >
-                  🏆 LEADERBOARD
                 </motion.button>
               </div>
 

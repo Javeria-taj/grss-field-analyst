@@ -917,6 +917,24 @@ export class GameEngine {
     this.endLevel();
   }
 
+  // Accepts the client-computed Level 5 score (capped server-side in socket handler)
+  public applyLevel5Score(usn: string, score: number) {
+    const ps = this.playerScores.get(usn);
+    if (!ps) return;
+    // Prevent double-apply
+    if ((ps as any).__l5Applied) return;
+    (ps as any).__l5Applied = true;
+    ps.totalScore += score;
+    ps.currentLevelScore += score;
+    ps.levelScores[5] = score;
+    this.leaderboardDirty = true;
+    this.adminStatsDirty = true;
+    this.io.emit('leaderboard_update', this.getLeaderboard());
+    // Trigger level complete / game over for this player's view
+    // The whole-game endLevel is called after auction timer expires server-side
+    // but we emit a personalized score-update so the leaderboard reflects immediately
+  }
+
   // ═══════════════════════════════════════════════════════════════
   // TIMER
   // ═══════════════════════════════════════════════════════════════
