@@ -670,8 +670,8 @@ export class GameEngine {
     this.io.emit('level_complete', payload);
     this.broadcastAdminStats();
 
-    // Zero-Day Anomaly (Sabotage Event) triggered 8 seconds after Level 3 completion
-    if (this.currentLevel === 3) {
+    // Zero-Day Anomaly (Sabotage Event) triggered 8 seconds after Level completion
+    if (this.currentLevel < 5) {
       setTimeout(() => this.triggerAnomaly(), 8000);
     }
 

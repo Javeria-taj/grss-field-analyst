@@ -5,7 +5,7 @@ import { getTitle } from '@/lib/gameData';
 import { useState } from 'react';
 
 export default function GameOverPhase() {
-  const { finalLeaderboard, myTelemetry, auctionOwned, auctionBudget, myTotalScore } = useGameSyncStore();
+  const { leaderboard, myTelemetry, auctionOwned, auctionBudget, myTotalScore } = useGameSyncStore();
   const [showCard, setShowCard] = useState(true);
 
   const calculateArchetype = () => {
@@ -27,7 +27,7 @@ export default function GameOverPhase() {
     { label: 'ACCURACY', value: `${Math.round((myTelemetry.filter(t => t.correct).length / Math.max(1, myTelemetry.length)) * 100)}%` },
     { label: 'AVG SPEED', value: `${(myTelemetry.reduce((s, t) => s + t.timeTaken, 0) / Math.max(1, myTelemetry.length)).toFixed(1)}s` },
     { label: 'SCORE', value: myTotalScore.toLocaleString() },
-    { label: 'RANK', value: `#${finalLeaderboard.find(e => e.totalScore === myTotalScore)?.rank || '?'}` }
+    { label: 'RANK', value: `#${leaderboard.find(e => e.totalScore === myTotalScore)?.rank || '?'}` }
   ];
 
   return (
@@ -121,7 +121,7 @@ export default function GameOverPhase() {
               <div className="label t-gold">🏅 FINAL LEADERBOARD</div>
               <button onClick={() => setShowCard(true)} className="t-accent" style={{ fontSize: '0.75rem', fontWeight: 'bold', letterSpacing: 1 }}>BACK TO DEBRIEF</button>
             </div>
-            {finalLeaderboard.map((e, i) => (
+            {leaderboard.map((e, i) => (
               <motion.div key={e.usn}
                 initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
                 style={{
