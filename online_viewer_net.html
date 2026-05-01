@@ -1,0 +1,914 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Level 5: The Final Segregation | GRSS Field Analyst</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#03070f;--bg2:#070d1c;--bg3:#0a1428;
+  --card:rgba(8,18,42,0.96);--card2:rgba(12,24,54,0.92);
+  --accent:#00c8ff;--accent2:#00ff9d;--danger:#ff2d55;
+  --warning:#ffaa00;--gold:#ffd700;--purple:#7c3aed;
+  --text:#ccdeff;--text2:#4a6699;--text3:#7a99cc;
+  --border:rgba(0,180,255,0.15);--border2:rgba(0,255,150,0.15);
+  --glow:0 0 30px rgba(0,200,255,0.1);
+}
+html{font-size:16px}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Exo 2',sans-serif;min-height:100vh;overflow-x:hidden;
+  background-image:
+    radial-gradient(ellipse at 15% 60%,rgba(0,100,200,0.07) 0%,transparent 55%),
+    radial-gradient(ellipse at 85% 15%,rgba(0,200,100,0.05) 0%,transparent 50%);
+}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--accent);border-radius:2px}
+.font-orb{font-family:'Orbitron',monospace}
+.t-accent{color:var(--accent)}.t-accent2{color:var(--accent2)}
+.t-gold{color:var(--gold)}.t-danger{color:var(--danger)}.t-muted{color:var(--text2)}
+
+/* ── SCREENS ── */
+.screen{display:none;min-height:100vh;flex-direction:column}
+.screen.active{display:flex;animation:fadeUp .35s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;backdrop-filter:blur(12px)}
+.card-glow{box-shadow:var(--glow)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 22px;border-radius:10px;border:none;cursor:pointer;font-family:'Exo 2',sans-serif;font-size:.88rem;font-weight:700;letter-spacing:.5px;transition:all .2s;text-transform:uppercase;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.12)}
+.btn:active{transform:translateY(0)}
+.btn-primary{background:linear-gradient(135deg,#006ba6,#00c8ff);color:#fff;box-shadow:0 4px 20px rgba(0,200,255,.3)}
+.btn-success{background:linear-gradient(135deg,#008a5c,#00ff9d);color:#000;box-shadow:0 4px 20px rgba(0,255,136,.3)}
+.btn-danger{background:linear-gradient(135deg,#990022,#ff2d55);color:#fff;box-shadow:0 4px 20px rgba(255,45,85,.3)}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--accent)}
+.btn-lg{padding:14px 32px;font-size:1rem}
+.btn-full{width:100%}
+.btn:disabled{opacity:.3;cursor:not-allowed;transform:none!important}
+
+/* ── KINETIC ANIMATIONS ── */
+@keyframes tickPulse{
+  0%{transform:scale(1)}
+  20%{transform:scale(1.4);filter:brightness(2.2) saturate(1.8)}
+  55%{transform:scale(.96)}
+  100%{transform:scale(1);filter:brightness(1)}
+}
+@keyframes budgetDrop{
+  0%{transform:scale(1);color:var(--accent2)}
+  25%{transform:scale(1.35);color:var(--danger);text-shadow:0 0 25px rgba(255,45,85,.9)}
+  65%{transform:scale(.97)}
+  100%{transform:scale(1);text-shadow:none}
+}
+@keyframes budgetRefund{
+  0%{transform:scale(1)}
+  25%{transform:scale(1.3);color:var(--accent2);text-shadow:0 0 20px rgba(0,255,136,.8)}
+  65%{transform:scale(.97)}
+  100%{transform:scale(1);text-shadow:none}
+}
+@keyframes priceHike{
+  0%{background:rgba(255,45,85,.25);color:var(--danger);transform:scale(1.08)}
+  40%{background:rgba(255,170,0,.15);color:var(--warning)}
+  100%{background:transparent;color:var(--warning);transform:scale(1)}
+}
+@keyframes timerUrgency{
+  0%{transform:scale(1)}
+  30%{transform:scale(1.25);text-shadow:0 0 15px rgba(255,45,85,.8)}
+  100%{transform:scale(1);text-shadow:none}
+}
+@keyframes hikeWarning{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,45,85,0)}
+  50%{box-shadow:0 0 0 6px rgba(255,45,85,.35)}
+}
+@keyframes selectedGlow{
+  0%,100%{box-shadow:0 0 0 2px var(--accent),0 0 12px rgba(0,200,255,.3)}
+  50%{box-shadow:0 0 0 3px var(--accent),0 0 28px rgba(0,200,255,.65),0 0 55px rgba(0,200,255,.2)}
+}
+@keyframes slotHighlight{
+  0%,100%{border-color:rgba(0,200,255,.5);background:rgba(0,200,255,.06)}
+  50%{border-color:var(--accent);background:rgba(0,200,255,.13)}
+}
+@keyframes flashDanger{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes flashWarning{0%,100%{color:var(--danger)}50%{color:#ff8fa3}}
+@keyframes slideIn{from{transform:translateX(-8px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes popIn{from{transform:scale(.88);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes confettiDrop{from{transform:translateY(-10px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+.anim-tick{animation:tickPulse .42s ease forwards}
+.anim-drop{animation:budgetDrop .52s ease forwards}
+.anim-refund{animation:budgetRefund .45s ease forwards}
+.anim-hike{animation:priceHike .65s ease forwards}
+.anim-urgency{animation:timerUrgency .32s ease forwards}
+.anim-pop{animation:popIn .3s cubic-bezier(.175,.885,.32,1.275) forwards}
+
+/* ════════════════════════════════════════════
+   SCREEN 1 — THREAT ANALYSIS
+   ════════════════════════════════════════════ */
+.s-header{padding:16px 20px;border-bottom:1px solid var(--border);background:rgba(3,7,15,.94);backdrop-filter:blur(10px)}
+.s-footer{padding:16px 20px;border-top:1px solid var(--border);background:rgba(3,7,15,.94);text-align:center}
+.s-content{flex:1;padding:18px 20px;overflow-y:auto}
+
+.cs-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:860px;margin:0 auto}
+@media(max-width:680px){.cs-grid{grid-template-columns:1fr}}
+
+.cs-card{
+  background:var(--card);border:2px solid var(--border);border-radius:16px;padding:18px;
+  transition:border-color .3s,box-shadow .3s;position:relative;overflow:hidden
+}
+.cs-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  opacity:0;transition:opacity .3s
+}
+.cs-card.answered{border-color:rgba(0,200,255,.45);box-shadow:0 0 20px rgba(0,200,255,.1)}
+.cs-card.answered::before{opacity:1}
+.cs-num{font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:6px}
+.cs-title{font-family:'Orbitron',monospace;font-size:.85rem;color:var(--accent);margin-bottom:10px;line-height:1.3}
+.cs-desc{font-size:.83rem;color:var(--text3);line-height:1.7;margin-bottom:14px}
+.cs-select{
+  width:100%;padding:10px 36px 10px 13px;
+  background:rgba(0,200,255,.04);border:1px solid var(--border);
+  border-radius:9px;color:var(--text);font-family:'Exo 2',sans-serif;
+  font-size:.88rem;outline:none;cursor:pointer;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%2300c8ff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 13px center;
+  transition:border-color .2s,box-shadow .2s
+}
+.cs-select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,200,255,.2)}
+.cs-select option{background:#0a1428;color:var(--text)}
+.s1-warn{color:var(--warning);font-size:.82rem;margin-bottom:10px;display:none;animation:flashWarning .5s infinite}
+
+/* ════════════════════════════════════════════
+   SCREEN 2 — LIVE AUCTION
+   ════════════════════════════════════════════ */
+#s2-topbar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 18px;background:rgba(3,7,15,.97);
+  border-bottom:1px solid var(--border);backdrop-filter:blur(12px);
+  position:sticky;top:0;z-index:60;flex-wrap:wrap;gap:8px
+}
+.tb-group{display:flex;flex-direction:column;align-items:flex-start}
+.tb-group.center{align-items:center}
+.tb-group.right{align-items:flex-end}
+.tb-label{font-size:.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:2px}
+.budget-num{
+  font-family:'Orbitron',monospace;font-size:1.35rem;font-weight:900;
+  color:var(--accent2);display:inline-block;transition:color .3s
+}
+.hike-num{
+  font-family:'Orbitron',monospace;font-size:1rem;font-weight:700;
+  color:var(--danger);display:inline-block;animation:flashWarning .9s infinite
+}
+.price-num{font-family:'Orbitron',monospace;font-size:1rem;color:var(--warning);display:inline-block}
+
+/* Selected tool sticky banner */
+#sel-banner{
+  display:none;position:sticky;top:58px;z-index:55;
+  background:linear-gradient(135deg,rgba(0,40,100,.98),rgba(0,80,160,.98));
+  border-bottom:2px solid var(--accent);padding:9px 18px;
+  align-items:center;gap:12px;animation:slideIn .25s ease
+}
+#sel-banner.show{display:flex}
+#sel-banner-txt{color:var(--accent);font-weight:700;font-size:.88rem;flex:1}
+#sel-cancel{
+  padding:4px 11px;background:rgba(255,45,85,.2);border:1px solid rgba(255,45,85,.4);
+  color:var(--danger);border-radius:6px;cursor:pointer;font-size:.75rem;
+  font-family:'Exo 2',sans-serif;font-weight:700;transition:all .2s;flex-shrink:0
+}
+#sel-cancel:hover{background:rgba(255,45,85,.35)}
+
+.sec-label{font-family:'Orbitron',monospace;font-size:.68rem;letter-spacing:2px;color:var(--text2);text-transform:uppercase;margin-bottom:11px}
+
+/* Tool grid */
+.tool-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:22px}
+@media(max-width:680px){.tool-grid{grid-template-columns:repeat(2,1fr)}}
+
+.tool-card{
+  background:var(--card);border:1.5px solid var(--border);border-radius:12px;
+  padding:11px 9px;cursor:pointer;text-align:center;
+  transition:border-color .2s,background .2s;
+  user-select:none;-webkit-tap-highlight-color:transparent;position:relative;
+  min-height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center
+}
+.tool-card:active{transform:scale(.96)}
+.tool-card.sel{
+  border-color:var(--accent);background:rgba(0,200,255,.1);
+  animation:selectedGlow 1.2s infinite
+}
+.tool-card.placed{opacity:.22;cursor:not-allowed;pointer-events:none}
+.tool-icon{font-size:1.4rem;margin-bottom:4px;line-height:1}
+.tool-name{font-size:.69rem;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:5px}
+.tool-price-tag{font-family:'Orbitron',monospace;font-size:.76rem;color:var(--warning);display:inline-block;font-weight:700}
+
+/* Drop zones */
+.drop-zones{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(max-width:680px){.drop-zones{grid-template-columns:1fr}}
+
+.drop-zone{background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:14px}
+.dz-head{margin-bottom:11px}
+.dz-cs{font-size:.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--text2)}
+.dz-disaster{font-family:'Orbitron',monospace;font-size:.8rem;color:var(--accent);margin-top:3px;line-height:1.3}
+
+.slot{
+  display:flex;align-items:center;gap:9px;padding:8px 11px;
+  border-radius:9px;border:1.5px dashed rgba(255,255,255,.09);
+  margin-bottom:6px;min-height:42px;cursor:pointer;
+  transition:all .2s;background:rgba(0,0,0,.18);
+  user-select:none;-webkit-tap-highlight-color:transparent
+}
+.slot:last-child{margin-bottom:0}
+.slot.hoverable:hover{border-color:rgba(0,200,255,.4);background:rgba(0,200,255,.06)}
+.slot.empty-active{border-style:solid;animation:slotHighlight 1s infinite}
+.slot.full{border-style:solid;border-color:rgba(0,255,136,.35);background:rgba(0,255,136,.05)}
+.slot.full:hover{border-color:rgba(255,45,85,.5);background:rgba(255,45,85,.06)}
+.slot-medal{font-size:.88rem;flex-shrink:0;width:20px}
+.slot-tier-txt{font-size:.62rem;font-weight:700;color:var(--text2);flex-shrink:0;width:62px;text-transform:uppercase;letter-spacing:.5px}
+.slot-body{flex:1;font-size:.76rem;font-weight:600}
+.slot-empty-txt{color:var(--text2);font-size:.7rem;font-style:italic}
+.slot-tool-txt{color:var(--accent2)}
+.slot-price-lbl{font-family:'Orbitron',monospace;font-size:.62rem;color:var(--text2);flex-shrink:0}
+.slot-rm{font-size:.68rem;color:var(--danger);flex-shrink:0;font-weight:700}
+
+/* ════════════════════════════════════════════
+   SCREEN 3 — EVALUATION
+   ════════════════════════════════════════════ */
+.phase-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+@media(max-width:600px){.phase-grid{grid-template-columns:1fr}}
+
+.res-card{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;
+  animation:popIn .35s ease forwards
+}
+.res-card.ok{border-color:rgba(0,230,118,.4);background:rgba(0,230,118,.04)}
+.res-card.bad{border-color:rgba(255,45,85,.4);background:rgba(255,45,85,.04)}
+.res-verdict{font-size:1rem;margin-bottom:5px}
+.res-cs{font-size:.7rem;color:var(--text2);margin-bottom:4px}
+.res-your{font-size:.84rem;font-weight:600}
+.res-right{font-size:.78rem;color:var(--accent2);margin-top:3px}
+
+.tool-rows{display:grid;gap:7px;margin-bottom:14px}
+.tool-row{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+  font-size:.82rem;animation:slideIn .3s ease forwards
+}
+.tool-row.perfect{border-color:rgba(255,215,0,.4);background:rgba(255,215,0,.04)}
+.tool-row.partial{border-color:rgba(0,200,255,.3);background:rgba(0,200,255,.04)}
+.tool-row.miss{border-color:rgba(255,45,85,.22);background:rgba(255,45,85,.03)}
+.tool-row.decoy{border-color:rgba(100,100,100,.25);opacity:.55}
+
+.breakdown{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:18px}
+.brow{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.87rem}
+.brow:last-child{border:none}
+.bval{font-family:'Orbitron',monospace;font-size:.9rem}
+
+.final-box{
+  text-align:center;padding:28px 20px;
+  background:linear-gradient(135deg,rgba(0,50,22,.92),rgba(0,25,70,.92));
+  border:2px solid var(--accent2);border-radius:18px;margin-bottom:20px;
+  box-shadow:0 0 50px rgba(0,255,136,.15),inset 0 0 30px rgba(0,255,136,.04)
+}
+.final-num{
+  font-family:'Orbitron',monospace;font-size:clamp(2.2rem,7vw,3.8rem);
+  color:var(--accent2);text-shadow:0 0 35px rgba(0,255,136,.55);
+  display:block;margin:8px 0
+}
+.rank-badge{
+  font-size:1.1rem;padding:11px 26px;border-radius:999px;
+  background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(0,200,255,.2));
+  border:2px solid var(--purple);color:#e8f4ff;display:inline-block;
+  font-family:'Orbitron',monospace;letter-spacing:1px
+}
+.level-pills{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+.lpill{text-align:center;padding:8px 12px;background:rgba(0,200,255,.05);border:1px solid var(--border);border-radius:9px;min-width:52px}
+.lpill.l5{background:rgba(0,255,136,.08);border-color:rgba(0,255,136,.3)}
+.lpill-lbl{font-size:.6rem;color:var(--text2);display:block}
+.lpill-val{font-family:'Orbitron',monospace;font-size:.78rem;color:var(--accent);display:block;margin-top:2px}
+.lpill.l5 .lpill-val{color:var(--accent2)}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════
+     SCREEN 1 — THREAT ANALYSIS
+     ══════════════════════════════════════════════════════════════ -->
+<div id="screen1" class="screen active">
+  <div class="s-header">
+    <div style="display:flex;justify-content:space-between;align-items:center;max-width:860px;margin:0 auto;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--text2)">Level 5 · Phase A</div>
+        <h1 class="font-orb t-accent" style="font-size:clamp(.95rem,2.5vw,1.3rem)">THREAT ANALYSIS</h1>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--text2)">Mission Budget</div>
+        <div class="font-orb" style="font-size:1.25rem;color:var(--accent2)" id="s1-budget">— pts</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="s-content">
+    <div style="max-width:860px;margin:0 auto">
+      <p style="font-size:.85rem;color:var(--text2);text-align:center;line-height:1.7;margin-bottom:18px">
+        Analyse each field report and classify the geoscience threat. Your diagnosis determines which tools are relevant in Phase B.
+        <br><span style="color:var(--warning);font-size:.8rem">⚠ Answers are not revealed here — your assessment will be evaluated in Phase C.</span>
+      </p>
+      <div class="cs-grid" id="cs-grid"></div>
+    </div>
+  </div>
+
+  <div class="s-footer">
+    <div style="max-width:860px;margin:0 auto">
+      <div class="s1-warn" id="s1-warn">⚠ Classify all 4 threats before initiating market protocol.</div>
+      <button class="btn btn-primary btn-lg" onclick="goToScreen2()">⚡ INITIATE MARKET PROTOCOL</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     SCREEN 2 — LIVE AUCTION & SEGREGATION
+     ══════════════════════════════════════════════════════════════ -->
+<div id="screen2" class="screen">
+  <div id="s2-topbar">
+    <div class="tb-group">
+      <div class="tb-label">Live Budget</div>
+      <div class="budget-num" id="live-budget">0 pts</div>
+    </div>
+    <div class="tb-group center">
+      <div class="tb-label">Price Hike In</div>
+      <div class="hike-num" id="hike-timer">10s</div>
+    </div>
+    <div class="tb-group right">
+      <div class="tb-label">Current Price</div>
+      <div class="price-num" id="price-display">200 pts</div>
+    </div>
+  </div>
+
+  <div id="sel-banner">
+    <span style="font-size:1rem">🎯</span>
+    <span id="sel-banner-txt">No tool selected</span>
+    <span style="color:var(--text2);font-size:.76rem">— Tap an empty slot to deploy</span>
+    <button id="sel-cancel" onclick="clearSelection()">✕ Cancel</button>
+  </div>
+
+  <div class="s-content">
+    <div style="max-width:980px;margin:0 auto">
+      <div class="sec-label">🛒 Tool Market — Tap to select · Tap again to deselect</div>
+      <div class="tool-grid" id="tool-grid"></div>
+
+      <div class="sec-label">🎯 Deployment Zones — Select a tool, then tap an empty slot</div>
+      <div class="drop-zones" id="drop-zones"></div>
+    </div>
+  </div>
+
+  <div class="s-footer">
+    <div style="max-width:980px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap">
+      <div style="font-size:.8rem;color:var(--text2)">Deploy your tools, then lock in your strategy.</div>
+      <button class="btn btn-danger btn-lg" onclick="goToScreen3()">📡 FINALIZE DEPLOYMENT</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     SCREEN 3 — FINAL EVALUATION
+     ══════════════════════════════════════════════════════════════ -->
+<div id="screen3" class="screen">
+  <div class="s-header">
+    <div style="max-width:860px;margin:0 auto">
+      <div style="font-size:.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--text2)">Level 5 · Phase C</div>
+      <h2 class="font-orb t-accent" style="font-size:clamp(.95rem,2.5vw,1.3rem)">MISSION DEBRIEF</h2>
+    </div>
+  </div>
+  <div class="s-content">
+    <div style="max-width:860px;margin:0 auto">
+      <div style="margin-bottom:22px">
+        <div class="sec-label">📋 Phase 5A — Threat Identification Results</div>
+        <div class="phase-grid" id="s3-phaseA"></div>
+      </div>
+      <div style="margin-bottom:22px">
+        <div class="sec-label">🛠 Phase 5B — Tool Deployment Audit</div>
+        <div class="tool-rows" id="s3-phaseB"></div>
+      </div>
+      <div style="margin-bottom:22px">
+        <div class="sec-label">📊 Score Breakdown</div>
+        <div class="breakdown" id="s3-breakdown"></div>
+      </div>
+      <div class="final-box" id="s3-final"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════
+   MOCK PREVIOUS SCORES
+   Change these values to reflect actual level scores.
+   ══════════════════════════════════════ */
+const PREV = { l1:487, l2:523, l3:412, l4:578 };
+const PREV_TOTAL = Object.values(PREV).reduce((a,b)=>a+b,0);
+const START_BUDGET = PREV_TOTAL + 100; // 2100
+
+/* ══════════════════════════════════════
+   GAME DATA
+   ══════════════════════════════════════ */
+const CS = [
+  {
+    id:'cs1', label:'Case Study 1',
+    title:'Alpine River Basin Anomaly',
+    desc:'A low-lying river basin is experiencing sudden, violent overflow. Local meteorological data shows zero rainfall for the past 72 hours. The river originates from a glaciated mountain range 300 km upstream. Downstream communities report walls of debris-laden water arriving with absolutely no warning.',
+    opts:['GLOF (Glacial Lake Outburst Flood)','Tsunami','Normal River Flooding','Dam Release'],
+    correct:0, correctName:'GLOF'
+  },
+  {
+    id:'cs2', label:'Case Study 2',
+    title:'Urban Air Stratification Event',
+    desc:'A major metropolitan area reports severe low-altitude signal disruptions. Ground-level sensors register dangerously high particulate matter while aircraft above 800 m confirm clean air. Conditions worsen sharply overnight and during early morning cold spells, then partially clear by early afternoon.',
+    opts:['Temperature Inversion','Urban Smog','Fog','Gas Leakage'],
+    correct:0, correctName:'Temperature Inversion'
+  },
+  {
+    id:'cs3', label:'Case Study 3',
+    title:'Pacific Atoll Health Crisis',
+    desc:'A remote Pacific island community reports unusual skin lesions and eye irritation despite clear skies and no obvious pollution source. Synthetic materials — plastic containers, rubber seals — are becoming brittle at an accelerated rate. UV-sensitive marine wildlife populations are in sharp decline. Air quality sensors show entirely normal readings.',
+    opts:['Ozone Layer Depletion','Factory Contamination','Radioactive Air','AQI 500'],
+    correct:0, correctName:'Ozone Layer Depletion'
+  },
+  {
+    id:'cs4', label:'Case Study 4',
+    title:'Coastal Industrial Zone Incident',
+    desc:'A coastal town adjacent to a heavy-industry port reports sudden onset of respiratory distress among the population. Fish and marine life within 5 km of the coast are dying in large numbers. A distinctive yellowish-brown haze hovers at low altitude over the port area. The incident began overnight, correlating with offshore wind patterns.',
+    opts:['Industrial Gas Leak','Volcanic Activity','Radioactive Disaster','Air Pollution'],
+    correct:0, correctName:'Industrial Gas Leak'
+  }
+];
+
+/* Tool catalogue: cs = correct case study (1-4), tier = 0/1/2, null = decoy */
+const TOOLS = [
+  {id:'sar',   name:'Synthetic Aperture Radar (SAR)',      icon:'📡', cs:1, tier:0},
+  {id:'rgm',   name:'River Gauge Monitoring',               icon:'🌊', cs:1, tier:1},
+  {id:'sas',   name:'Seismic Activity Systems',             icon:'📊', cs:1, tier:2},
+  {id:'lap',   name:'LIDAR Atmospheric Profiling',          icon:'💡', cs:2, tier:0},
+  {id:'gaqs',  name:'Ground-Based Air Quality Sensors',     icon:'🌬️', cs:2, tier:1},
+  {id:'soi',   name:'Satellite Optical Imaging',            icon:'🔭', cs:2, tier:2},
+  {id:'guvs',  name:'Ground-Based UV Spectroradiometer',    icon:'☀️', cs:3, tier:0},
+  {id:'aura',  name:'Aura (OMI Instrument)',                icon:'🛸', cs:3, tier:1},
+  {id:'uvifs', name:'UV Index Forecasting System',          icon:'🌡️', cs:3, tier:2},
+  {id:'doas',  name:'DOAS Air Monitoring',                  icon:'🔬', cs:4, tier:0},
+  {id:'s5p',   name:'Sentinel-5P (TROPOMI)',                icon:'🛰️', cs:4, tier:1},
+  {id:'aloha', name:'ALOHA Dispersion Software',            icon:'💻', cs:4, tier:2},
+  // Decoys
+  {id:'bwb',   name:'Basic Weather Balloon',                icon:'🎈', cs:null, tier:null},
+  {id:'sgc',   name:'Standard Geiger Counter',              icon:'☢️', cs:null, tier:null},
+  {id:'nrn',   name:'Nexus Relay Node',                     icon:'📶', cs:null, tier:null},
+  {id:'sp',    name:'Signal Proxy',                         icon:'📟', cs:null, tier:null}
+];
+
+const TIERS = ['🥇','🥈','🥉'];
+const TIER_LABELS = ['Primary','Secondary','Tertiary'];
+const HIKE_INTERVAL = 10;
+const HIKE_AMT = 10;
+
+/* ══════════════════════════════════════
+   STATE
+   ══════════════════════════════════════ */
+let S = {
+  budget: START_BUDGET,
+  answers: {cs1:null, cs2:null, cs3:null, cs4:null},
+  price: 200,
+  hikeCountdown: HIKE_INTERVAL,
+  interval: null,
+  selTool: null,        // currently selected tool id
+  placed: {},           // toolId -> { csId, tierIdx, price }
+  slots: {              // csId -> [slot0, slot1, slot2], each null | { toolId, price }
+    cs1:[null,null,null],
+    cs2:[null,null,null],
+    cs3:[null,null,null],
+    cs4:[null,null,null]
+  },
+  shuffled: []
+};
+
+/* ══════════════════════════════════════
+   INIT
+   ══════════════════════════════════════ */
+function init(){
+  S.shuffled = shuffle([...TOOLS]);
+  document.getElementById('s1-budget').textContent = START_BUDGET.toLocaleString()+' pts';
+  buildScreen1();
+}
+
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+/* ══════════════════════════════════════
+   SCREEN 1
+   ══════════════════════════════════════ */
+function buildScreen1(){
+  document.getElementById('cs-grid').innerHTML = CS.map(cs=>`
+    <div class="cs-card ${S.answers[cs.id]!==null?'answered':''}" id="card-${cs.id}">
+      <div class="cs-num">${cs.label}</div>
+      <div class="cs-title">${cs.title}</div>
+      <div class="cs-desc">${cs.desc}</div>
+      <select class="cs-select" onchange="pickAnswer('${cs.id}',this.value)">
+        <option value="" disabled ${S.answers[cs.id]===null?'selected':''}>— CLASSIFY THREAT —</option>
+        ${cs.opts.map((o,i)=>`<option value="${i}" ${S.answers[cs.id]===i?'selected':''}>${o}</option>`).join('')}
+      </select>
+    </div>`).join('');
+}
+
+function pickAnswer(csId, val){
+  S.answers[csId] = parseInt(val);
+  const card = document.getElementById('card-'+csId);
+  card.classList.add('answered');
+  document.getElementById('s1-warn').style.display='none';
+}
+
+function goToScreen2(){
+  if(Object.values(S.answers).some(v=>v===null)){
+    const w=document.getElementById('s1-warn');
+    w.style.display='block';
+    trigAnim(w,'anim-tick');
+    return;
+  }
+  showScreen('screen2');
+  buildScreen2();
+  startTimer();
+}
+
+/* ══════════════════════════════════════
+   SCREEN 2 — BUILD
+   ══════════════════════════════════════ */
+function buildScreen2(){
+  updateBudgetEl(false,false);
+  buildToolGrid();
+  buildDropZones();
+}
+
+function buildToolGrid(){
+  document.getElementById('tool-grid').innerHTML = S.shuffled.map(t=>{
+    const isPlaced = t.id in S.placed;
+    const isSel = S.selTool === t.id;
+    return `
+      <div class="tool-card ${isPlaced?'placed':''} ${isSel?'sel':''}"
+           id="tc-${t.id}" onclick="tapTool('${t.id}')">
+        <div class="tool-icon">${t.icon}</div>
+        <div class="tool-name">${t.name}</div>
+        <div class="tool-price-tag" id="tp-${t.id}">${S.price} pts</div>
+      </div>`;
+  }).join('');
+}
+
+function buildDropZones(){
+  document.getElementById('drop-zones').innerHTML = CS.map(cs=>{
+    const ans = S.answers[cs.id];
+    const label = ans!==null ? cs.opts[ans] : 'Unclassified';
+    return `
+      <div class="drop-zone" id="dz-${cs.id}">
+        <div class="dz-head">
+          <div class="dz-cs">${cs.label}</div>
+          <div class="dz-disaster">${label}</div>
+        </div>
+        ${S.slots[cs.id].map((sl,ti)=>buildSlot(cs.id,ti,sl)).join('')}
+      </div>`;
+  }).join('');
+}
+
+function buildSlot(csId, tierIdx, slotData){
+  const medal = TIERS[tierIdx];
+  const lbl = TIER_LABELS[tierIdx];
+  const hasSel = S.selTool !== null;
+
+  if(!slotData){
+    return `
+      <div class="slot ${hasSel?'empty-active hoverable':''}"
+           id="sl-${csId}-${tierIdx}" onclick="tapSlot('${csId}',${tierIdx})">
+        <span class="slot-medal">${medal}</span>
+        <span class="slot-tier-txt">${lbl}</span>
+        <span class="slot-body slot-empty-txt">Tap to deploy</span>
+      </div>`;
+  }
+  const t = TOOLS.find(x=>x.id===slotData.toolId);
+  return `
+    <div class="slot full" id="sl-${csId}-${tierIdx}"
+         onclick="tapFilledSlot('${csId}',${tierIdx})"
+         title="Tap to remove &amp; refund ${slotData.price} pts">
+      <span class="slot-medal">${medal}</span>
+      <span class="slot-tier-txt">${lbl}</span>
+      <span class="slot-body slot-tool-txt">${t?t.icon:''} ${t?t.name:'?'}</span>
+      <span class="slot-price-lbl">${slotData.price}p</span>
+      <span class="slot-rm">✕</span>
+    </div>`;
+}
+
+/* ══════════════════════════════════════
+   TAP-TO-PLACE LOGIC
+   ══════════════════════════════════════ */
+function tapTool(id){
+  if(id in S.placed) return; // already deployed
+
+  if(S.selTool === id){
+    clearSelection(); return;
+  }
+  S.selTool = id;
+  const t = TOOLS.find(x=>x.id===id);
+
+  // Show banner
+  const b = document.getElementById('sel-banner');
+  b.classList.add('show');
+  document.getElementById('sel-banner-txt').textContent =
+    `${t.icon} ${t.name}  ·  ${S.price} pts`;
+
+  // Re-render to reflect selection + slot highlights
+  buildToolGrid();
+  buildDropZones();
+}
+
+function clearSelection(){
+  S.selTool = null;
+  document.getElementById('sel-banner').classList.remove('show');
+  buildToolGrid();
+  buildDropZones();
+}
+
+function tapSlot(csId, tierIdx){
+  if(!S.selTool){
+    // Flash slot to indicate no tool selected
+    const el = document.getElementById(`sl-${csId}-${tierIdx}`);
+    if(el){ el.style.borderColor='var(--warning)'; setTimeout(()=>el.style.borderColor='',700); }
+    return;
+  }
+  // Check budget
+  if(S.budget < S.price){
+    const el = document.getElementById('live-budget');
+    trigAnim(el,'anim-drop');
+    showToast('⚠ Insufficient budget!','var(--danger)');
+    return;
+  }
+  // Place tool
+  const toolId = S.selTool;
+  const price = S.price;
+  S.slots[csId][tierIdx] = { toolId, price };
+  S.placed[toolId] = { csId, tierIdx, price };
+  S.budget -= price;
+  updateBudgetEl(true,false);
+  clearSelection();
+}
+
+function tapFilledSlot(csId, tierIdx){
+  const slot = S.slots[csId][tierIdx];
+  if(!slot) return;
+  // Refund
+  S.budget += slot.price;
+  updateBudgetEl(true,true);
+  delete S.placed[slot.toolId];
+  S.slots[csId][tierIdx] = null;
+  buildToolGrid();
+  buildDropZones();
+}
+
+/* ══════════════════════════════════════
+   DYNAMIC PRICING TIMER
+   ══════════════════════════════════════ */
+function startTimer(){
+  S.hikeCountdown = HIKE_INTERVAL;
+  if(S.interval) clearInterval(S.interval);
+  S.interval = setInterval(()=>{
+    S.hikeCountdown--;
+    const timerEl = document.getElementById('hike-timer');
+    if(timerEl){
+      timerEl.textContent = S.hikeCountdown+'s';
+      if(S.hikeCountdown<=3) trigAnim(timerEl,'anim-urgency');
+    }
+    if(S.hikeCountdown<=0){
+      applyPriceHike();
+      S.hikeCountdown = HIKE_INTERVAL;
+    }
+  },1000);
+}
+
+function applyPriceHike(){
+  S.price += HIKE_AMT;
+
+  // Update price display
+  const pd = document.getElementById('price-display');
+  if(pd){ pd.textContent = S.price+' pts'; trigAnim(pd,'anim-tick'); }
+
+  // Update all unplaced tool price tags with hike animation
+  S.shuffled.forEach(t=>{
+    if(!(t.id in S.placed)){
+      const el = document.getElementById('tp-'+t.id);
+      if(el){ el.textContent = S.price+' pts'; trigAnim(el,'anim-hike'); }
+    }
+  });
+
+  // Update banner if tool selected
+  if(S.selTool){
+    const t = TOOLS.find(x=>x.id===S.selTool);
+    const bt = document.getElementById('sel-banner-txt');
+    if(bt&&t) bt.textContent = `${t.icon} ${t.name}  ·  ${S.price} pts`;
+  }
+
+  showToast('📈 Price increased to '+S.price+' pts!','var(--warning)');
+}
+
+function stopTimer(){
+  if(S.interval){ clearInterval(S.interval); S.interval=null; }
+}
+
+/* ══════════════════════════════════════
+   BUDGET DISPLAY
+   ══════════════════════════════════════ */
+function updateBudgetEl(animate, isRefund){
+  const el = document.getElementById('live-budget');
+  if(!el) return;
+  el.textContent = S.budget.toLocaleString()+' pts';
+  if(animate) trigAnim(el, isRefund?'anim-refund':'anim-drop');
+  // Warning colors
+  if(S.budget < 300) el.style.color='var(--danger)';
+  else if(S.budget < 700) el.style.color='var(--warning)';
+  else el.style.color='';
+}
+
+/* ══════════════════════════════════════
+   SCREEN 3 — EVALUATION
+   ══════════════════════════════════════ */
+function goToScreen3(){
+  stopTimer();
+  showScreen('screen3');
+  evaluate();
+}
+
+function evaluate(){
+  let l5Score = 0;
+  let phaseAScore = 0;
+  let phaseBScore = 0;
+
+  /* — Phase A — */
+  document.getElementById('s3-phaseA').innerHTML = CS.map(cs=>{
+    const ans = S.answers[cs.id];
+    const ok = ans === cs.correct;
+    const pts = ok ? 500 : 0;
+    phaseAScore += pts;
+    const ansLabel = ans!==null ? cs.opts[ans] : 'No answer';
+    return `
+      <div class="res-card ${ok?'ok':'bad'}">
+        <div class="res-verdict">${ok?'✅':  '❌'} &nbsp;${ok?'+500 pts':'0 pts'}</div>
+        <div class="res-cs">${cs.label} — ${cs.title}</div>
+        <div class="res-your">Your answer: ${ansLabel}</div>
+        ${!ok?`<div class="res-right">✓ Correct: ${cs.opts[cs.correct]}</div>`:''}
+      </div>`;
+  }).join('');
+
+  /* — Phase B — */
+  let phaseBHTML = '';
+  for(const [ci,cs] of CS.entries()){
+    const csNum = ci+1;
+    for(let ti=0;ti<3;ti++){
+      const slot = S.slots[cs.id][ti];
+      if(!slot) continue;
+      const t = TOOLS.find(x=>x.id===slot.toolId);
+      if(!t) continue;
+
+      let pts=0, rowClass='', verdict='';
+      if(t.cs===null){
+        // Decoy
+        pts=0; rowClass='decoy'; verdict='🗑 Decoy tool — 0 pts';
+      } else if(t.cs===csNum && t.tier===ti){
+        pts=1000; rowClass='perfect'; verdict='🥇 Perfect match — +1000 pts';
+      } else if(t.cs===csNum && t.tier!==ti){
+        pts=400; rowClass='partial'; verdict='🔄 Right disaster, wrong tier — +400 pts';
+      } else {
+        pts=0; rowClass='miss'; verdict='❌ Wrong disaster — 0 pts';
+      }
+      phaseBScore += pts;
+
+      const ptColor = pts===1000?'var(--gold)':pts===400?'var(--accent)':pts===0&&rowClass==='decoy'?'var(--text2)':'var(--danger)';
+      phaseBHTML += `
+        <div class="tool-row ${rowClass}">
+          <span style="font-size:1rem;flex-shrink:0">${t.icon}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.name}</div>
+            <div style="font-size:.7rem;color:var(--text2)">${cs.label} · ${TIERS[ti]} ${TIER_LABELS[ti]}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:.7rem;color:var(--text2);margin-bottom:2px">${verdict}</div>
+            <div class="font-orb" style="font-size:.82rem;color:${ptColor}">${pts>0?'+'+pts:'0'} pts</div>
+          </div>
+        </div>`;
+    }
+  }
+  document.getElementById('s3-phaseB').innerHTML = phaseBHTML ||
+    '<div style="color:var(--text2);font-size:.85rem;text-align:center;padding:14px">No tools deployed in Phase B.</div>';
+
+  /* — Score Breakdown — */
+  l5Score = phaseAScore + phaseBScore + S.budget;
+  const grandTotal = PREV_TOTAL + l5Score;
+
+  document.getElementById('s3-breakdown').innerHTML = `
+    <div class="brow">
+      <span>Phase 5A — Threat Identification (4 × 500)</span>
+      <span class="bval" style="color:var(--accent2)">+${phaseAScore.toLocaleString()} pts</span>
+    </div>
+    <div class="brow">
+      <span>Phase 5B — Tool Deployment</span>
+      <span class="bval" style="color:var(--gold)">+${phaseBScore.toLocaleString()} pts</span>
+    </div>
+    <div class="brow">
+      <span>Unspent Mission Budget</span>
+      <span class="bval" style="color:var(--accent)">+${S.budget.toLocaleString()} pts</span>
+    </div>
+    <div class="brow" style="border-top:2px solid var(--border);margin-top:8px;padding-top:12px;font-weight:700">
+      <span class="font-orb" style="font-size:.9rem">Level 5 Total</span>
+      <span class="bval font-orb" style="font-size:.95rem;color:var(--accent2)">+${l5Score.toLocaleString()} pts</span>
+    </div>`;
+
+  /* — Final Display — */
+  const rank = getTitle(grandTotal);
+  const pillsHTML = ['l1','l2','l3','l4'].map((k,i)=>`
+    <div class="lpill">
+      <span class="lpill-lbl">L${i+1}</span>
+      <span class="lpill-val">${PREV[k]}</span>
+    </div>`).join('') + `
+    <div class="lpill l5">
+      <span class="lpill-lbl">L5</span>
+      <span class="lpill-val">${l5Score}</span>
+    </div>`;
+
+  document.getElementById('s3-final').innerHTML = `
+    <div style="font-size:.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:4px">All 5 Levels Complete</div>
+    <div style="font-size:.85rem;color:var(--text2)">Grand Mission Score</div>
+    <span class="final-num">${grandTotal.toLocaleString()}</span>
+    <div style="font-size:.8rem;color:var(--text2);margin-bottom:14px">total points</div>
+    <div class="rank-badge">${rank}</div>
+    <div class="level-pills">${pillsHTML}</div>
+    <div style="margin-top:22px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button class="btn btn-outline" onclick="location.reload()">↩ Play Again</button>
+    </div>`;
+}
+
+function getTitle(s){
+  if(s>=8000) return '🌍 Disaster Strategist';
+  if(s>=6000) return '🌿 Climate Guardian';
+  if(s>=4000) return '⚙️ Resource Optimizer';
+  if(s>=2500) return '🔭 Earth Observer';
+  if(s>=1000) return '🛰️ Field Analyst';
+  return '📡 GRSS Trainee';
+}
+
+/* ══════════════════════════════════════
+   UTILITIES
+   ══════════════════════════════════════ */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=document.getElementById(id);
+  if(el) el.classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function trigAnim(el, cls){
+  if(!el) return;
+  el.classList.remove(cls);
+  void el.offsetWidth; // force reflow
+  el.classList.add(cls);
+  el.addEventListener('animationend',()=>el.classList.remove(cls),{once:true});
+}
+
+let toastTimeout;
+function showToast(msg, color){
+  let existing = document.getElementById('toast');
+  if(existing) existing.remove();
+  const t = document.createElement('div');
+  t.id='toast';
+  t.textContent=msg;
+  Object.assign(t.style,{
+    position:'fixed',bottom:'22px',left:'50%',transform:'translateX(-50%)',
+    padding:'10px 20px',borderRadius:'10px',fontWeight:'700',fontSize:'.85rem',
+    fontFamily:"'Exo 2',sans-serif",zIndex:'9999',
+    background: color==='var(--danger)'?'rgba(220,30,60,.95)':
+                color==='var(--warning)'?'rgba(200,130,0,.95)':'rgba(0,160,220,.95)',
+    color: color==='var(--warning)'?'#000':'#fff',
+    boxShadow:'0 4px 24px rgba(0,0,0,.5)',
+    animation:'slideIn .25s ease',
+    whiteSpace:'nowrap'
+  });
+  document.body.appendChild(t);
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(()=>{ if(t.parentNode) t.remove(); },2200);
+}
+
+/* ══════════════════════════════════════
+   BOOT
+   ══════════════════════════════════════ */
+init();
+</script>
+</body>
+</html>

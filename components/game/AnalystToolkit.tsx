@@ -31,51 +31,96 @@ export default function AnalystToolkit() {
   if (phase !== 'question_active' || hasAnswered || user?.isAdmin || user?.usn === 'SUPER_ADMIN') return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 80, right: 130,
-      display: 'flex', flexDirection: 'column',
-      gap: 10, zIndex: 5000,
-    }}>
-      <div style={{ fontSize: '0.58rem', color: 'var(--text3)', textAlign: 'right', fontWeight: 900, letterSpacing: 1.5, textTransform: 'uppercase' }}>
-        ⚡ ANALYST TOOLKIT
+    <>
+      <div 
+        className="analyst-toolkit-container"
+        style={{
+          position: 'fixed',
+          display: 'flex', flexDirection: 'column',
+          gap: 10, zIndex: 5000,
+        }}
+      >
+        <div style={{ fontSize: '0.58rem', color: 'var(--text3)', textAlign: 'right', fontWeight: 900, letterSpacing: 1.5, textTransform: 'uppercase' }}>
+          ⚡ ANALYST TOOLKIT
+        </div>
+        {TOOLKIT_ITEMS.map(t => {
+          const isUsed = powerupResult?.type === t.id;
+          return (
+            <motion.button
+              key={t.id}
+              whileHover={{ scale: 1.05, x: -4 }}
+              whileTap={{ scale: 0.95 }}
+              title={t.tooltip}
+              onClick={() => { SFX.click(); usePowerup(t.id as any); }}
+              disabled={isUsed}
+              style={{
+                background: isUsed ? 'rgba(74,222,128,0.08)' : 'rgba(0,0,0,0.5)',
+                backdropFilter: 'blur(12px)',
+                border: `1px solid ${isUsed ? 'var(--accent2)' : 'rgba(255,255,255,0.12)'}`,
+                borderRadius: 12,
+                padding: '10px 14px',
+                display: 'flex', alignItems: 'center', gap: 10,
+                textAlign: 'left',
+                cursor: isUsed ? 'default' : 'pointer',
+                boxShadow: isUsed ? '0 0 15px rgba(74,222,128,0.3)' : 'none',
+                opacity: isUsed ? 0.65 : 1,
+                minWidth: 180,
+              }}
+            >
+              <div style={{ fontSize: '1.2rem', flexShrink: 0 }}>{isUsed ? '✅' : t.icon}</div>
+              <div>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: isUsed ? 'var(--accent2)' : 'var(--text)', letterSpacing: 0.5 }}>
+                  {isUsed ? 'DEPLOYED' : t.name}
+                </div>
+                <div style={{ fontSize: '0.55rem', color: 'var(--text2)', marginTop: 1 }}>
+                  {t.cost} PTS • {t.desc}
+                </div>
+              </div>
+            </motion.button>
+          );
+        })}
       </div>
-      {TOOLKIT_ITEMS.map(t => {
-        const isUsed = powerupResult?.type === t.id;
-        return (
-          <motion.button
-            key={t.id}
-            whileHover={{ scale: 1.05, x: -4 }}
-            whileTap={{ scale: 0.95 }}
-            title={t.tooltip}
-            onClick={() => { SFX.click(); usePowerup(t.id as any); }}
-            disabled={isUsed}
-            style={{
-              background: isUsed ? 'rgba(74,222,128,0.08)' : 'rgba(0,0,0,0.5)',
-              backdropFilter: 'blur(12px)',
-              border: `1px solid ${isUsed ? 'var(--accent2)' : 'rgba(255,255,255,0.12)'}`,
-              borderRadius: 12,
-              padding: '10px 14px',
-              display: 'flex', alignItems: 'center', gap: 10,
-              textAlign: 'left',
-              cursor: isUsed ? 'default' : 'pointer',
-              boxShadow: isUsed ? '0 0 15px rgba(74,222,128,0.3)' : 'none',
-              opacity: isUsed ? 0.65 : 1,
-              minWidth: 180,
-            }}
-          >
-            <div style={{ fontSize: '1.2rem', flexShrink: 0 }}>{isUsed ? '✅' : t.icon}</div>
-            <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: isUsed ? 'var(--accent2)' : 'var(--text)', letterSpacing: 0.5 }}>
-                {isUsed ? 'DEPLOYED' : t.name}
-              </div>
-              <div style={{ fontSize: '0.55rem', color: 'var(--text2)', marginTop: 1 }}>
-                {t.cost} PTS • {t.desc}
-              </div>
-            </div>
-          </motion.button>
-        );
-      })}
-    </div>
+      <style jsx>{`
+        .analyst-toolkit-container {
+          top: 80px;
+          right: 130px;
+        }
+        @media (max-width: 1024px) {
+          .analyst-toolkit-container {
+            right: 20px;
+          }
+        }
+        @media (max-width: 768px) {
+          .analyst-toolkit-container {
+            top: auto;
+            bottom: 20px;
+            right: 20px;
+            flex-direction: row;
+            width: auto;
+            max-width: 100vw;
+            padding: 0 10px;
+            pointer-events: none;
+          }
+          .analyst-toolkit-container :global(button) {
+            pointer-events: auto;
+            min-width: 150px;
+          }
+          .analyst-toolkit-container > div:first-child {
+            display: none;
+          }
+        }
+        @media (max-width: 480px) {
+          .analyst-toolkit-container {
+            flex-direction: column;
+            bottom: 15px;
+            right: 15px;
+          }
+          .analyst-toolkit-container :global(button) {
+             min-width: 160px;
+             padding: 8px 12px;
+          }
+        }
+      `}</style>
+    </>
   );
 }
