@@ -2,24 +2,34 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
 import { getTitle } from '@/lib/gameData';
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useConfetti } from '@/components/ui/ConfettiCanvas';
 
 export default function GameOverPhase() {
   const { leaderboard, myTelemetry, auctionOwned, auctionBudget, myTotalScore } = useGameSyncStore();
   const [showCard, setShowCard] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const { fire: fireConfetti } = useConfetti();
+
+  // Fire confetti once on mount
+  useEffect(() => {
+    const t = setTimeout(() => {
+      fireConfetti(['#00ff9d', '#00c8ff', '#7c3aed', '#ffd700', '#ff6b35']);
+    }, 400);
+    return () => clearTimeout(t);
+  }, []);
 
   const calculateArchetype = () => {
     const correctAnswers = myTelemetry.filter(t => t.correct);
-    const avgTime = myTelemetry.length > 0 ? myTelemetry.reduce((sum, t) => sum + t.timeTaken, 0) / myTelemetry.length : 0;
     const accuracy = myTelemetry.length > 0 ? (correctAnswers.length / myTelemetry.length) * 100 : 0;
-    const level4Fast = myTelemetry.filter(t => t.qIndex >= 30 && t.qIndex < 40 && t.timeTaken < 3).length; // Rapid Fire
+    const level4Fast = myTelemetry.filter(t => t.qIndex >= 30 && t.qIndex < 40 && t.timeTaken < 3).length;
 
-    if (level4Fast >= 5) return { title: "Speed Demon", icon: "⚡", color: "#f59e0b", desc: "Reflexes of a supercomputer. You answer before the data even arrives." };
-    if (auctionOwned.length >= 3 && auctionBudget > 2000) return { title: "Auction Sniper", icon: "🎯", color: "#10b981", desc: "Master of efficiency. You secured the best tools with credits to spare." };
-    if (accuracy >= 95) return { title: "Sentinel Veteran", icon: "🛡️", color: "#3b82f6", desc: "Zero margin for error. Your telemetry is a gold standard for the agency." };
-    if (myTotalScore > 10000 && accuracy < 60) return { title: "Chaos Agent", icon: "🌀", color: "#a855f7", desc: "You generate more noise than signal, yet somehow you dominate the field." };
-    
-    return { title: "Field Analyst", icon: "📡", color: "#60a5fa", desc: "Reliable, consistent, and mission-ready. A true asset to the GRSS." };
+    if (level4Fast >= 5) return { title: 'Speed Demon', icon: '⚡', color: '#f59e0b', desc: 'Reflexes of a supercomputer. You answer before the data even arrives.' };
+    if (auctionOwned.length >= 3 && auctionBudget > 2000) return { title: 'Auction Sniper', icon: '🎯', color: '#10b981', desc: 'Master of efficiency. You secured the best tools with credits to spare.' };
+    if (accuracy >= 95) return { title: 'Sentinel Veteran', icon: '🛡️', color: '#3b82f6', desc: 'Zero margin for error. Your telemetry is a gold standard for the agency.' };
+    if (myTotalScore > 10000 && accuracy < 60) return { title: 'Chaos Agent', icon: '🌀', color: '#a855f7', desc: 'You generate more noise than signal, yet somehow you dominate the field.' };
+    return { title: 'Field Analyst', icon: '📡', color: '#60a5fa', desc: 'Reliable, consistent, and mission-ready. A true asset to the GRSS.' };
   };
 
   const archetype = calculateArchetype();
@@ -27,19 +37,45 @@ export default function GameOverPhase() {
     { label: 'ACCURACY', value: `${Math.round((myTelemetry.filter(t => t.correct).length / Math.max(1, myTelemetry.length)) * 100)}%` },
     { label: 'AVG SPEED', value: `${(myTelemetry.reduce((s, t) => s + t.timeTaken, 0) / Math.max(1, myTelemetry.length)).toFixed(1)}s` },
     { label: 'SCORE', value: myTotalScore.toLocaleString() },
-    { label: 'RANK', value: `#${leaderboard.find(e => e.totalScore === myTotalScore)?.rank || '?'}` }
+    { label: 'RANK', value: `#${leaderboard.find(e => e.totalScore === myTotalScore)?.rank || '?'}` },
   ];
+
+  const handleSaveCard = useCallback(async () => {
+    if (!cardRef.current || saving) return;
+    setSaving(true);
+    try {
+      // Dynamically import html2canvas to avoid SSR issues
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(cardRef.current, {
+        backgroundColor: '#030712',
+        scale: 2, // hi-DPI
+        useCORS: true,
+        logging: false,
+      });
+      const link = document.createElement('a');
+      link.download = `grss-debrief-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch {
+      // Fallback: fire confetti and show message
+      fireConfetti();
+      alert('Screenshot to share your Mission Debrief card!');
+    } finally {
+      setSaving(false);
+    }
+  }, [saving, fireConfetti]);
 
   return (
     <div className="page-content" style={{ justifyContent: 'center', gap: 24, minHeight: '70vh', padding: '40px 20px' }}>
       <AnimatePresence mode="wait">
         {showCard ? (
-          <motion.div 
+          <motion.div
             key="card"
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 1.1, filter: 'blur(10px)' }}
             className="player-twin-card"
+            ref={cardRef}
             style={{
               width: '100%', maxWidth: 420,
               background: '#030712',
@@ -47,8 +83,7 @@ export default function GameOverPhase() {
               padding: 'clamp(20px, 8vw, 40px)',
               border: `2px solid ${archetype.color}44`,
               boxShadow: `0 0 40px ${archetype.color}22, inset 0 0 20px ${archetype.color}11`,
-              position: 'relative',
-              overflow: 'hidden'
+              position: 'relative', overflow: 'hidden',
             }}
           >
             {/* Background Accents */}
@@ -57,29 +92,30 @@ export default function GameOverPhase() {
             <div style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 4px)', pointerEvents: 'none' }} />
 
             <div style={{ position: 'relative', zIndex: 10 }}>
-              <div className="label font-orb" style={{ color: archetype.color, letterSpacing: 4, textAlign: 'center', marginBottom: 24 }}>MISSION DEBRIEF // 2026</div>
-              
+              <div className="label font-orb" style={{ color: archetype.color, letterSpacing: 4, textAlign: 'center', marginBottom: 24 }}>
+                MISSION DEBRIEF // 2026
+              </div>
+
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 32 }}>
-                <motion.div 
+                <motion.div
                   className="arch-icon"
                   initial={{ rotate: -10, scale: 0.8 }}
                   animate={{ rotate: 0, scale: 1 }}
                   transition={{ type: 'spring', damping: 10 }}
-                  style={{ 
-                    fontSize: '5rem', marginBottom: 16,
-                    filter: `drop-shadow(0 0 20px ${archetype.color}aa)`
-                  }}
+                  style={{ fontSize: '5rem', marginBottom: 16, filter: `drop-shadow(0 0 20px ${archetype.color}aa)` }}
                 >
                   {archetype.icon}
                 </motion.div>
-                <div className="font-orb arch-title" style={{ fontSize: '2.5rem', fontWeight: 900, color: '#fff', textAlign: 'center', lineHeight: 1 }}>{archetype.title.toUpperCase()}</div>
+                <div className="font-orb arch-title" style={{ fontSize: '2.5rem', fontWeight: 900, color: '#fff', textAlign: 'center', lineHeight: 1 }}>
+                  {archetype.title.toUpperCase()}
+                </div>
                 <div style={{ color: 'var(--text2)', fontSize: '0.85rem', textAlign: 'center', marginTop: 12, maxWidth: '90%', fontStyle: 'italic', opacity: 0.8 }}>
-                  "{archetype.desc}"
+                  &ldquo;{archetype.desc}&rdquo;
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'clamp(10px, 4vw, 20px)', marginBottom: 32 }}>
-                {stats.map((s, i) => (
+                {stats.map(s => (
                   <div key={s.label} style={{ background: 'rgba(255,255,255,0.03)', padding: 'clamp(10px, 3vw, 16px)', borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
                     <div style={{ fontSize: '0.65rem', color: 'var(--text2)', letterSpacing: 2, marginBottom: 4 }}>{s.label}</div>
                     <div className="font-orb" style={{ fontSize: '1.2rem', color: '#fff', fontWeight: 'bold' }}>{s.value}</div>
@@ -87,18 +123,18 @@ export default function GameOverPhase() {
                 ))}
               </div>
 
-              <div style={{ display: 'flex', gap: 12 }} className="flex-responsive">
-                <motion.button 
-                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  onClick={() => alert('Summary card saved to simulation storage. Screenshot to share!')}
-                  className="btn" 
-                  style={{ width: '100%', background: '#fff', color: '#000', borderRadius: 16, fontSize: '0.85rem', fontWeight: 'bold' }}
-                >
-                  📥 SAVE CARD
-                </motion.button>
-              </div>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={handleSaveCard}
+                disabled={saving}
+                className="btn"
+                style={{ width: '100%', background: saving ? 'rgba(255,255,255,0.1)' : '#fff', color: '#000', borderRadius: 16, fontSize: '0.85rem', fontWeight: 'bold', opacity: saving ? 0.7 : 1 }}
+              >
+                {saving ? '⏳ RENDERING…' : '📥 SAVE CARD'}
+              </motion.button>
 
-              <style jsx>{`
+              <style>{`
                 @media (max-width: 600px) {
                   .arch-icon { font-size: 3.5rem !important; }
                   .arch-title { font-size: 1.8rem !important; }
@@ -111,7 +147,7 @@ export default function GameOverPhase() {
             </div>
           </motion.div>
         ) : (
-          <motion.div 
+          <motion.div
             key="leaderboard"
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}

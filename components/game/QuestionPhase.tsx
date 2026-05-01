@@ -330,6 +330,54 @@ function ImageMCQ({ q, onSubmit, disabled }: { q: any; onSubmit: (a: string) => 
   );
 }
 
+/* ── Matrix letter slot — cycles random chars until revealed ── */
+function MatrixLetterSlot({ char, isSpace, isRevealed }: { char: string; isSpace: boolean; isRevealed: boolean }) {
+  const [display, setDisplay] = useState(isRevealed ? char : '?');
+  const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#@$%';
+
+  useEffect(() => {
+    if (isSpace || isRevealed) { setDisplay(char); return; }
+    // Scramble while unrevealed
+    const id = setInterval(() => {
+      setDisplay(CHARS[Math.floor(Math.random() * CHARS.length)]);
+    }, 90);
+    return () => clearInterval(id);
+  }, [isRevealed, char, isSpace]);
+
+  // Lock-in spring when revealed
+  useEffect(() => {
+    if (isRevealed) setDisplay(char);
+  }, [isRevealed, char]);
+
+  if (isSpace) return <div style={{ width: 16 }} />;
+
+  return (
+    <motion.div
+      animate={isRevealed
+        ? { scale: [1.25, 1], color: '#00ff9d' }
+        : { scale: 1, color: 'rgba(0,200,80,0.35)' }
+      }
+      transition={{ type: 'spring', stiffness: 350, damping: 12 }}
+      style={{
+        width: 'clamp(28px, 6vw, 42px)',
+        height: 'clamp(36px, 7vw, 52px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'var(--font-orbitron, monospace)',
+        fontSize: 'clamp(0.95rem, 3vw, 1.4rem)',
+        fontWeight: 900,
+        borderBottom: isRevealed ? '2px solid #00ff9d' : '2px solid rgba(0,200,80,0.3)',
+        background: isRevealed ? 'rgba(0,255,100,0.06)' : 'rgba(0,100,40,0.04)',
+        borderRadius: 4,
+        letterSpacing: 1,
+        textShadow: isRevealed ? '0 0 12px rgba(0,255,136,0.8)' : 'none',
+        transition: 'border-color 0.2s',
+      }}
+    >
+      {display}
+    </motion.div>
+  );
+}
+
 /* ── HANGMAN ────────────────────────────────────────────────── */
 function HangmanQ({ disabled }: { disabled: boolean }) {
   const {
@@ -348,6 +396,7 @@ function HangmanQ({ disabled }: { disabled: boolean }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, alignItems: 'center', width: '100%', opacity: disabled ? 0.6 : 1 }}>
+
       {/* Emoji clue */}
       <div style={{ textAlign: 'center' }}>
         <SectionLabel>🔐 Emoji Clue</SectionLabel>
@@ -366,9 +415,9 @@ function HangmanQ({ disabled }: { disabled: boolean }) {
         </div>
       )}
 
-      {/* Word blanks */}
+      {/* Word blanks — Matrix Decryption Effect */}
       <div style={{ textAlign: 'center', width: '100%' }}>
-        <SectionLabel>Word</SectionLabel>
+        <SectionLabel>🔐 Decrypting Signal</SectionLabel>
         <div style={{
           display: 'flex', flexWrap: 'wrap', justifyContent: 'center',
           gap: 6, marginTop: 12,
@@ -377,9 +426,12 @@ function HangmanQ({ disabled }: { disabled: boolean }) {
             const isSpace = char === ' ';
             const isRevealed = char !== '_' && !isSpace;
             return (
-              <div key={i} className={`letter-slot ${isSpace ? 'space' : ''} ${isRevealed ? 'shown pop' : ''}`}>
-                {isSpace || char === '_' ? '' : char}
-              </div>
+              <MatrixLetterSlot
+                key={i}
+                char={isRevealed ? char : '_'}
+                isSpace={isSpace}
+                isRevealed={isRevealed}
+              />
             );
           })}
         </div>

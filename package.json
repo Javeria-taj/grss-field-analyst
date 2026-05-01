@@ -20,6 +20,7 @@
     "@vercel/blob": "^2.3.3",
     "dotenv": "^17.4.2",
     "framer-motion": "^12.38.0",
+    "html2canvas": "^1.4.1",
     "jose": "^5.9.6",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.4.1",

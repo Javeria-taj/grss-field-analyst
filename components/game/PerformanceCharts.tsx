@@ -17,7 +17,7 @@ export default function PerformanceCharts({ telemetry }: { telemetry: any[] }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="card card-sm" 
-      style={{ width: '100%', height: 300, marginTop: 20 }}
+      style={{ width: '100%', height: 300, marginTop: 20, minWidth: 0 }}
     >
       <div className="font-orb" style={{ fontSize: '0.7rem', marginBottom: 15, color: 'var(--text2)' }}>
         MISSION TELEMETRY: POINTS PER QUESTION

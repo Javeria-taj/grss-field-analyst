@@ -16,6 +16,10 @@ import Toast, { toast } from '@/components/ui/Toast';
 import { SFX } from '@/lib/sfx';
 import AnomalyPhase from '@/components/game/AnomalyPhase';
 import MissionLockout from '@/components/game/MissionLockout';
+import PanicVignette from '@/components/ui/PanicVignette';
+import ConfettiCanvas from '@/components/ui/ConfettiCanvas';
+import MissionFeed from '@/components/game/MissionFeed';
+import PowerupVFX from '@/components/game/PowerupVFX';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -153,11 +157,14 @@ export default function DashboardPage() {
 
   return (
     <div
-      className={panicActive ? 'panic-bg' : ''}
       style={{ position: 'relative', zIndex: 1, minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}
     >
+      <ConfettiCanvas />
+      <PanicVignette active={panicActive} />
+      <PowerupVFX />
       <div className="earth-deco" />
       <Toast />
+      <MissionFeed />
       <MissionLockout />
       <GameHUD user={user} connected={connected} paused={paused} onLogout={async () => {
         try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch {}
