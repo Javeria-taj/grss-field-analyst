@@ -22,9 +22,10 @@ export default function StarfieldCanvas() {
     window.addEventListener('mousemove', onMouseMove);
 
     // Three-layer parallax star layers
+    const isMobile = window.innerWidth < 768;
     const layers = [
       // far layer — barely moves, dim, tiny
-      Array.from({ length: 450 }, () => ({
+      Array.from({ length: isMobile ? 150 : 450 }, () => ({
         x: Math.random(), y: Math.random(),
         r: Math.random() * 0.9 + 0.2,
         spd: Math.random() * 0.06 + 0.01,
@@ -34,7 +35,7 @@ export default function StarfieldCanvas() {
         depth: 0.2,
       })),
       // mid layer
-      Array.from({ length: 250 }, () => ({
+      Array.from({ length: isMobile ? 100 : 250 }, () => ({
         x: Math.random(), y: Math.random(),
         r: Math.random() * 1.3 + 0.3,
         spd: Math.random() * 0.12 + 0.03,
@@ -44,7 +45,7 @@ export default function StarfieldCanvas() {
         depth: 0.5,
       })),
       // near layer — most parallax, bigger, brighter
-      Array.from({ length: 80 }, () => ({
+      Array.from({ length: isMobile ? 40 : 80 }, () => ({
         x: Math.random(), y: Math.random(),
         r: Math.random() * 2.0 + 0.5,
         spd: Math.random() * 0.22 + 0.06,
