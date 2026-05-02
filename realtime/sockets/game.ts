@@ -76,6 +76,8 @@ export default function setupGameSockets(io: Server) {
 
     if (usn) socket.join(usn);
     if (isAdmin) socket.join('admins');
+    if (isSpectator) socket.join('spectators');
+    if (!isAdmin && !isSpectator) socket.join('players');
 
     console.log(`👤 Connected: ${socket.id} | ${usn} | Admin: ${isAdmin} (Total: ${engine.getConnectedCount()})`);
     engine.broadcastAdminStats();

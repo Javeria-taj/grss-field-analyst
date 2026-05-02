@@ -28,10 +28,8 @@ export default function AdminLiveView() {
       </thead>
       <tbody>
         {leaderboard.map((e, i) => (
-          <motion.tr
+          <tr
             key={e.usn}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
             style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}
           >
             <td style={{ padding: '10px 4px' }} className="font-orb t-accent">#{i + 1}</td>
@@ -72,7 +70,7 @@ export default function AdminLiveView() {
                 </button>
               </div>
             </td>
-          </motion.tr>
+          </tr>
         ))}
       </tbody>
     </table>

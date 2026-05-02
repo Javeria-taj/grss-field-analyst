@@ -120,24 +120,30 @@ export class GameEngine {
     // Snapshot tick counter
     let snapshotTick = 0;
 
-    // Throttle broadcasts to once every 2.0 seconds to prevent "broadcast storms" on mobile/vercel
+    // Throttle broadcasts to once every 1.5 seconds to prevent "broadcast storms"
     this.broadcastInterval = setInterval(() => {
       if (this.leaderboardDirty) {
-        this.io.emit('leaderboard_update', this.getLeaderboard());
+        const fullLeaderboard = this.getLeaderboard();
+        // Projectors and Admins get the FULL list for deep analysis
+        this.io.to('admins').to('spectators').emit('leaderboard_update', fullLeaderboard);
+        // Players get only the Top 20 + their personal entry (handled via individual sync if needed)
+        // For now, slicing at 20 drastically reduces bandwidth for the bulk room.
+        this.io.to('players').emit('leaderboard_update', fullLeaderboard.slice(0, 20));
+        
         this.leaderboardDirty = false;
       }
       if (this.adminStatsDirty) {
-        this.io.emit('admin_stats', this.getAdminStats());
+        this.io.to('admins').emit('admin_stats', this.getAdminStats());
         this.adminStatsDirty = false;
       }
       if (this.bankDirty) {
-        this.io.emit('bank_questions', this.getBankQuestions());
+        this.io.to('admins').emit('bank_questions', this.getBankQuestions());
         this.bankDirty = false;
       }
 
-      // Save snapshot every ~20 seconds (10 ticks * 2.0s)
+      // Save snapshot every ~20 seconds (15 ticks * 1.5s)
       snapshotTick++;
-      if (snapshotTick >= 10) {
+      if (snapshotTick >= 15) {
         this.snapshotToDb();
         snapshotTick = 0;
       }
@@ -672,7 +678,9 @@ export class GameEngine {
 
     // Zero-Day Anomaly (Sabotage Event) triggered 8 seconds after Level completion
     if (this.currentLevel < 5) {
-      setTimeout(() => this.triggerAnomaly(), 8000);
+      setTimeout(() => {
+        if (this.phase === 'level_complete') this.triggerAnomaly();
+      }, 8000);
     }
 
     // If level 5 just completed, game over
@@ -879,7 +887,9 @@ export class GameEngine {
   }
 
   private scoreLevel5() {
-    if (!this.currentDisaster) { this.endLevel(); return; }
+    if (this.phase !== 'disaster_active' || !this.currentDisaster) return;
+    this.clearTimer(); // Ensure timer doesn't fire again if this was triggered early
+    this.phase = 'level_complete'; // Change phase immediately to lock this method
 
     const disasterId = this.currentDisaster.id as 'flood' | 'wildfire' | 'earthquake';
 
@@ -1309,7 +1319,13 @@ export class GameEngine {
       }
     }
 
-    this.phase = 'idle'; // Or return to where it was
+    // Return to previous state (usually level_complete)
+    if (this.currentLevel > 0 && this.currentLevel < 5) {
+      this.phase = 'level_complete';
+    } else {
+      this.phase = 'idle';
+    }
+    
     this.io.emit('anomaly_cleared', {});
     this.leaderboardDirty = true;
     this.broadcastAdminStats();

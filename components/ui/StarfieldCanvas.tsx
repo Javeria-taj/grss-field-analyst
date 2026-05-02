@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
 
-export default function StarfieldCanvas() {
+export default function StarfieldCanvas({ isProjector = false }: { isProjector?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { currentLevel, phase } = useGameSyncStore();
   const mouseRef = useRef({ x: 0.5, y: 0.5 }); // normalized 0-1
@@ -22,35 +22,35 @@ export default function StarfieldCanvas() {
     window.addEventListener('mousemove', onMouseMove);
 
     // Three-layer parallax star layers
-    const isMobile = window.innerWidth < 768;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
     const layers = [
       // far layer — barely moves, dim, tiny
-      Array.from({ length: isMobile ? 150 : 450 }, () => ({
+      Array.from({ length: isProjector ? 900 : (isMobile ? 150 : 450) }, () => ({
         x: Math.random(), y: Math.random(),
-        r: Math.random() * 0.9 + 0.2,
+        r: Math.random() * (isProjector ? 1.4 : 0.9) + 0.2,
         spd: Math.random() * 0.06 + 0.01,
         tw: Math.random() * Math.PI * 2,
-        tws: Math.random() * 0.015 + 0.003,
+        tws: Math.random() * (isProjector ? 0.03 : 0.015) + 0.003,
         col: Math.random() > 0.94 ? '#00c8ff' : '#b8d8ff',
         depth: 0.2,
       })),
       // mid layer
-      Array.from({ length: isMobile ? 100 : 250 }, () => ({
+      Array.from({ length: isProjector ? 450 : (isMobile ? 100 : 250) }, () => ({
         x: Math.random(), y: Math.random(),
-        r: Math.random() * 1.3 + 0.3,
+        r: Math.random() * (isProjector ? 1.8 : 1.3) + 0.3,
         spd: Math.random() * 0.12 + 0.03,
         tw: Math.random() * Math.PI * 2,
-        tws: Math.random() * 0.025 + 0.005,
+        tws: Math.random() * (isProjector ? 0.05 : 0.025) + 0.005,
         col: Math.random() > 0.92 ? '#00ff9d' : '#cce8ff',
         depth: 0.5,
       })),
       // near layer — most parallax, bigger, brighter
-      Array.from({ length: isMobile ? 40 : 80 }, () => ({
+      Array.from({ length: isProjector ? 150 : (isMobile ? 40 : 80) }, () => ({
         x: Math.random(), y: Math.random(),
-        r: Math.random() * 2.0 + 0.5,
+        r: Math.random() * (isProjector ? 2.5 : 2.0) + 0.5,
         spd: Math.random() * 0.22 + 0.06,
         tw: Math.random() * Math.PI * 2,
-        tws: Math.random() * 0.04 + 0.008,
+        tws: Math.random() * (isProjector ? 0.08 : 0.04) + 0.008,
         col: Math.random() > 0.9 ? '#7c3aed' : '#e0f0ff',
         depth: 1.0,
       })),
@@ -104,7 +104,7 @@ export default function StarfieldCanvas() {
           if (isAnomaly) col = '#ff3355';
           else if (isDisaster) col = '#ff8833';
 
-          cx.globalAlpha = twinkle * (isAnomaly ? 0.9 : 0.7);
+          cx.globalAlpha = twinkle * (isAnomaly ? 0.9 : (isProjector ? 1.0 : 0.7));
           cx.fillStyle = col;
           cx.beginPath();
           const px = (s.x * cv.width + ox + cv.width) % cv.width;
@@ -161,9 +161,9 @@ export default function StarfieldCanvas() {
       {moonPhase && (
         <div style={{
           position: 'fixed', top: '20%', left: '10%',
-          fontSize: '8rem', opacity: 0.7,
+          fontSize: '8rem', opacity: isProjector ? 0.9 : 0.7,
           pointerEvents: 'none', zIndex: 1,
-          textShadow: '0 0 40px rgba(255,255,255,0.4)',
+          textShadow: isProjector ? '0 0 60px rgba(255,255,255,0.8)' : '0 0 40px rgba(255,255,255,0.4)',
           filter: 'grayscale(0.1) contrast(1.1)',
           transition: 'opacity 1s ease',
         }}>

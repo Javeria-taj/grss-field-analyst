@@ -362,7 +362,7 @@ export default function ProjectorPage() {
         .reveal-btn-temp:hover { transform: scale(1.05); }
       `}</style>
 
-      <StarfieldCanvas />
+      <StarfieldCanvas isProjector={true} />
 
 
       {emojis.map(e => (
