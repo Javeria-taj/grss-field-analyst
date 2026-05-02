@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, Fragment } from 'react';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
 import { SFX } from '@/lib/sfx';
 import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
+import RadarCanvas from '@/components/ui/RadarCanvas';
 
 const TICKER_DATA = [
   ['ORBITAL ALT', '694 km'], ['INCLINATION', '98.7°'], ['SWATH WIDTH', '290 km'],
@@ -25,6 +26,28 @@ const FACTIONS = [
   { id: 'team_modis', name: 'MODIS · THERMAL', color: 'var(--modis)' },
 ];
 
+const AnimatedNumber = ({ value }: { value: number }) => {
+  const [display, setDisplay] = useState(0);
+  const startVal = useRef(0);
+  useEffect(() => {
+    const start = startVal.current;
+    const startTime = performance.now();
+    let animId: number;
+    const animate = (time: number) => {
+      const elapsed = time - startTime;
+      const progress = Math.min(elapsed / 1500, 1);
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(start + (value - start) * easeOut);
+      setDisplay(current);
+      startVal.current = current;
+      if (progress < 1) animId = requestAnimationFrame(animate);
+    };
+    animId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animId);
+  }, [value]);
+  return <>{display}</>;
+};
+
 export default function ProjectorPage() {
   const {
     phase, currentLevel, currentQuestion, timerEndTime, timerTotal,
@@ -38,6 +61,8 @@ export default function ProjectorPage() {
   const [orbitPass, setOrbitPass] = useState('ORBIT 14 / PASS 3');
   const [isLeaderboardExpanded, setIsLeaderboardExpanded] = useState(false);
   const [showFinalResults, setShowFinalResults] = useState(false);
+  const [dataIntegrity, setDataIntegrity] = useState(98);
+  const [xFreq, setXFreq] = useState(8.4);
 
   const LEVEL_TITLES: Record<number, string> = {
     1: 'RIDDLES AND WORD SCRAMBLE',
@@ -47,7 +72,6 @@ export default function ProjectorPage() {
     5: 'DISASTER DASH'
   };
 
-  const radarRef = useRef<HTMLCanvasElement>(null);
   const orbitRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -87,6 +111,9 @@ export default function ProjectorPage() {
     if (phase === 'level_intro') return 'level_intro';
     if (phase === 'question_active') return 'question';
     if (phase === 'question_review') return 'results';
+    if (phase === 'auction_active') return 'auction';
+    if (phase === 'disaster_active') return 'disaster';
+    if (phase === 'anomaly_active') return 'anomaly';
     if (phase === 'level_complete' || phase === 'game_over') return 'levelend';
     return 'idle';
   }, [phase]);
@@ -96,6 +123,9 @@ export default function ProjectorPage() {
     level_intro: 'MISSION START',
     question: 'ACTIVE ACQUISITION',
     results: 'TELEMETRY REVIEW',
+    auction: 'CONSTELLATION PROCUREMENT',
+    disaster: 'ANOMALY RECONNAISSANCE',
+    anomaly: 'SYSTEM COMPROMISED',
     levelend: 'RECON COMPLETE'
   }[uiPhase];
 
@@ -119,59 +149,7 @@ export default function ProjectorPage() {
     return pattern;
   }, []);
 
-  // Canvases initialization
-  useEffect(() => {
-    if (!radarRef.current) return;
-    const cv = radarRef.current;
-    const cx = cv.getContext('2d')!;
-    let W, H, angle = 0, animId: number;
-    const resize = () => { W = cv.width = window.innerWidth; H = cv.height = window.innerHeight; };
-    resize(); window.addEventListener('resize', resize);
 
-    const drawRadar = () => {
-      W = cv.width; H = cv.height;
-      const cx_ = Math.round(W * 0.36), cy_ = Math.round(H * 0.5), maxR = Math.min(W, H) * 0.42;
-      cx.clearRect(0, 0, W, H);
-      cx.strokeStyle = 'rgba(0,240,255,0.04)'; cx.lineWidth = 1;
-      for (let i = -4; i <= 4; i++) {
-        const y = cy_ + (i / 4) * maxR; cx.beginPath(); cx.moveTo(cx_ - maxR, y); cx.lineTo(cx_ + maxR, y); cx.stroke();
-        const x = cx_ + (i / 4) * maxR; cx.beginPath(); cx.moveTo(x, cy_ - maxR); cx.lineTo(x, cy_ + maxR); cx.stroke();
-      }
-      for (let r = 1; r <= 5; r++) {
-        cx.strokeStyle = r === 3 ? 'rgba(0,240,255,0.10)' : 'rgba(0,240,255,0.05)'; cx.lineWidth = r === 3 ? 1.5 : 1;
-        cx.beginPath(); cx.arc(cx_, cy_, (r / 5) * maxR, 0, Math.PI * 2); cx.stroke();
-      }
-      cx.strokeStyle = 'rgba(0,240,255,0.06)'; cx.lineWidth = 1;
-      cx.beginPath(); cx.moveTo(cx_, cy_ - maxR); cx.lineTo(cx_, cy_ + maxR); cx.stroke();
-      cx.beginPath(); cx.moveTo(cx_ - maxR, cy_); cx.lineTo(cx_ + maxR, cy_); cx.stroke();
-
-      for (let t = 0; t < 80; t++) {
-        const trailAngle = angle - (t / 80) * (Math.PI * 0.75);
-        cx.save(); cx.beginPath(); cx.moveTo(cx_, cy_); cx.arc(cx_, cy_, maxR, trailAngle, trailAngle + 0.05); cx.closePath();
-        cx.fillStyle = `rgba(0,240,255,${((80 - t) / 80) * 0.15})`; cx.fill(); cx.restore();
-      }
-      const sweepGrad = cx.createLinearGradient(cx_, cy_, cx_ + Math.cos(angle) * maxR, cy_ + Math.sin(angle) * maxR);
-      sweepGrad.addColorStop(0, 'rgba(0,240,255,0.7)'); sweepGrad.addColorStop(1, 'rgba(0,240,255,0)');
-      cx.beginPath(); cx.moveTo(cx_, cy_); cx.lineTo(cx_ + Math.cos(angle) * maxR, cy_ + Math.sin(angle) * maxR);
-      cx.strokeStyle = sweepGrad; cx.lineWidth = 2.5; cx.stroke();
-
-      cx.beginPath(); cx.arc(cx_, cy_, 3, 0, Math.PI * 2); cx.fillStyle = '#00f0ff'; cx.shadowColor = '#00f0ff'; cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
-
-      const blips = [{ a: 0.8, r: 0.45 }, { a: 2.1, r: 0.7 }, { a: 3.8, r: 0.35 }, { a: 5.0, r: 0.6 }, { a: 1.4, r: 0.82 }, { a: 4.4, r: 0.55 }];
-      blips.forEach(b => {
-        const diff = ((angle - b.a) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-        if (diff < Math.PI * 0.8) {
-          const fade = 1 - diff / (Math.PI * 0.8);
-          cx.beginPath(); cx.arc(cx_ + Math.cos(b.a) * b.r * maxR, cy_ + Math.sin(b.a) * b.r * maxR, 2.5, 0, Math.PI * 2);
-          cx.fillStyle = `rgba(0,255,136,${fade * 0.8})`; cx.shadowColor = '#00ff88'; cx.shadowBlur = 6 * fade; cx.fill(); cx.shadowBlur = 0;
-        }
-      });
-      angle = (angle + 0.012) % (Math.PI * 2);
-      animId = requestAnimationFrame(drawRadar);
-    };
-    drawRadar();
-    return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(animId); };
-  }, []);
 
 
 
@@ -221,6 +199,22 @@ export default function ProjectorPage() {
       }, 4000);
     }
   }, [adminLiveStats?.reactions]);
+  
+  // Reset suspense state when game resets
+  useEffect(() => {
+    if (uiPhase === 'idle' || uiPhase === 'level_intro') {
+      setShowFinalResults(false);
+    }
+  }, [uiPhase]);
+
+  // Jittery telemetry drift
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setDataIntegrity(prev => Math.min(100, Math.max(94, prev + (Math.random() - 0.5) * 2)));
+      setXFreq(prev => 8.4 + (Math.random() - 0.5) * 0.05);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
 
   const maxScore = leaderboard.length ? leaderboard[0].totalScore : 1;
   const timePct = Math.min(100, (timeLeft / (timerTotal || 60)) * 100);
@@ -245,37 +239,36 @@ export default function ProjectorPage() {
         :root {
           --bg: #03070f; --nir: #00f0ff; --opt: #00ff88; --thm: #b500ff; --alert: #ff2d55; --gold: #ffd700; --warn: #ffaa00;
           --sentinel: #3b82f6; --landsat: #10b981; --modis: #a855f7;
-          --text: #ccdeff; --text2: #445577; --text3: #7a99cc; --border: rgba(0,240,255,0.12); --border2: rgba(0,255,136,0.12);
+          --text: #eef5ff; --text2: #88aacc; --text3: #aaccff; --border: rgba(0,240,255,0.18); --border2: rgba(0,255,136,0.18);
           --font-orb: 'Orbitron', monospace; --font-exo: 'Exo 2', sans-serif; --font-mono: 'Share Tech Mono', monospace;
         }
         .prj-shell { position:fixed; inset:0; background:rgba(3,7,15,0.7); color:var(--text); font-family:var(--font-exo); display:grid; grid-template-rows:64px 1fr 48px; grid-template-columns:1fr 400px; grid-template-areas:"header header" "main sidebar" "ticker ticker"; overflow:hidden; z-index:10; }
         .prj-shell::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:9000; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.05) 3px,rgba(0,0,0,0.05) 4px); }
         .prj-shell::after { content:''; position:fixed; inset:0; pointer-events:none; z-index:8999; background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,0.4) 100%); }
-        #radarCanvas { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; }
-        #radarCanvas { z-index:1; }
+        #radarCanvas { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:0; }
         
         #header { grid-area:header; display:flex; align-items:center; justify-content:space-between; padding:0 24px; background:rgba(3,7,15,0.97); border-bottom:1px solid var(--border); backdrop-filter:blur(12px); position:relative; overflow:hidden; }
         #header::after { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:linear-gradient(90deg, transparent, var(--nir) 20%, var(--opt) 50%, var(--thm) 80%, transparent); animation:scanHeader 4s linear infinite; }
         @keyframes scanHeader { 0%{opacity:.4;transform:scaleX(.6)} 50%{opacity:1;transform:scaleX(1)} 100%{opacity:.4;transform:scaleX(.6)} }
-        .hdr-left { display:flex; align-items:center; gap:16px; } .hdr-logo { font-family:var(--font-orb); font-size:1.05rem; font-weight:900; color:var(--nir); letter-spacing:3px; } .hdr-logo span { color:var(--opt); }
+        .hdr-left { display:flex; align-items:center; gap:16px; } .hdr-logo { font-family:var(--font-orb); font-size:1.15rem; font-weight:900; color:var(--nir); letter-spacing:3px; text-shadow:0 0 10px rgba(0,240,255,0.5); } .hdr-logo span { color:var(--opt); }
         .hdr-divider { width:1px; height:30px; background:var(--border); } .hdr-status { display:flex; align-items:center; gap:7px; font-family:var(--font-mono); font-size:.72rem; color:var(--opt); letter-spacing:1px; }
         .pulse-dot { width:8px; height:8px; border-radius:50%; background:var(--opt); box-shadow:0 0 8px var(--opt); animation:pulseDot 1.4s ease-in-out infinite; }
         @keyframes pulseDot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
         .hdr-center { position:absolute; left:50%; transform:translateX(-50%); text-align:center; } .hdr-mission { font-family:var(--font-orb); font-size:.6rem; letter-spacing:4px; color:var(--text2); text-transform:uppercase; }
-        .hdr-phase-lbl { font-family:var(--font-orb); font-size:1rem; font-weight:700; color:var(--text); animation:fadePhaseName 1s ease; } @keyframes fadePhaseName { from{opacity:0;letter-spacing:8px} to{opacity:1;letter-spacing:.5px} }
+        .hdr-phase-lbl { font-family:var(--font-orb); font-size:1.2rem; font-weight:800; color:#fff; text-shadow:0 0 15px rgba(255,255,255,0.3); animation:fadePhaseName 1s ease; } @keyframes fadePhaseName { from{opacity:0;letter-spacing:8px} to{opacity:1;letter-spacing:.5px} }
         .hdr-right { display:flex; align-items:center; gap:20px; } .stat-block { text-align:right; } .stat-lbl { font-size:.56rem; letter-spacing:2px; text-transform:uppercase; color:var(--text2); }
         .stat-val { font-family:var(--font-orb); font-size:1rem; font-weight:700; } .stat-val.nir { color:var(--nir); } .utc-clock { font-family:var(--font-mono); font-size:.75rem; color:var(--nir); letter-spacing:2px; border:1px solid var(--border); border-radius:5px; padding:4px 10px; background:rgba(0,240,255,.04); }
 
         #sidebar { grid-area:sidebar; display:flex; flex-direction:column; background:rgba(3,7,15,0.96); border-left:1px solid var(--border); overflow:hidden; }
         .sb-section { padding:14px 16px; border-bottom:1px solid var(--border); flex:0 0 auto; }
-        .sb-title { font-family:var(--font-orb); font-size:.6rem; letter-spacing:3px; color:var(--text2); text-transform:uppercase; margin-bottom:12px; display:flex; align-items:center; gap:7px; }
+        .sb-title { font-family:var(--font-orb); font-size:.7rem; font-weight:700; letter-spacing:3px; color:var(--text); text-transform:uppercase; margin-bottom:12px; display:flex; align-items:center; gap:7px; text-shadow:0 0 5px rgba(238,245,255,0.2); }
         .sb-title::before { content:''; width:16px; height:1px; background:linear-gradient(90deg, var(--nir), transparent); }
         
         .lb-row { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; margin-bottom:5px; background:rgba(255,255,255,.02); border:1px solid transparent; transition:all .4s; position:relative; overflow:hidden; }
         .lb-row.rank1 { background:rgba(0,240,255,.07); border-color:rgba(0,240,255,.25); box-shadow:0 0 16px rgba(0,240,255,.08); }
         .lb-row::before { content:''; position:absolute; left:0; top:0; bottom:0; width:2px; border-radius:2px; } .lb-row.rank1::before { background:var(--nir); } .lb-row.rank2::before { background:rgba(200,200,200,.6); } .lb-row.rank3::before { background:rgba(180,120,0,.6); }
         .lb-rank { font-family:var(--font-orb); font-size:.72rem; width:18px; color:var(--text2); flex-shrink:0; } .lb-row.rank1 .lb-rank { color:var(--nir); }
-        .lb-name-block { flex:1; min-width:0; } .lb-name { font-size:.78rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .lb-row.rank1 .lb-name { color:var(--nir); }
+        .lb-name-block { flex:1; min-width:0; } .lb-name { font-size:.85rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#fff; } .lb-row.rank1 .lb-name { color:var(--nir); text-shadow:0 0 10px rgba(0,240,255,0.3); }
         .lb-usn { font-size:.6rem; color:var(--text2); font-family:var(--font-mono); } .lb-score { font-family:var(--font-orb); font-size:.78rem; color:var(--opt); font-weight:700; flex-shrink:0; }
         
         .faction-row { margin-bottom:11px; } .faction-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; } .faction-name { font-size:.72rem; font-weight:700; letter-spacing:.5px; } .faction-score { font-family:var(--font-orb); font-size:.68rem; }
@@ -286,6 +279,11 @@ export default function ProjectorPage() {
         
         .telem-line { font-family:var(--font-mono); font-size:.62rem; color:var(--text2); padding:4px 0; border-bottom:1px solid rgba(255,255,255,.04); display:flex; justify-content:space-between; gap:8px; animation:telemSlide .4s ease; }
         @keyframes telemSlide { from{opacity:0;transform:translateX(6px)} to{opacity:1;transform:translateX(0)} } .telem-key { color:var(--text3); } .telem-val { color:var(--opt); font-weight:500; }
+        
+        .uplink-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .uplink-box { background: rgba(0, 240, 255, 0.03); border: 1px solid rgba(0, 240, 255, 0.1); border-radius: 8px; padding: 12px 10px; text-align: center; }
+        .uplink-val { font-family: var(--font-orb); font-size: 1.1rem; color: var(--opt); font-weight: 700; margin-bottom: 6px; }
+        .uplink-lbl { font-family: var(--font-mono); font-size: 0.55rem; color: var(--text3); letter-spacing: 1px; }
         
         #main { grid-area:main; position:relative; overflow:hidden; }
         .phase-view { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; opacity:0; transform:scale(.96); pointer-events:none; transition:opacity .5s ease, transform .5s ease; }
@@ -315,7 +313,7 @@ export default function ProjectorPage() {
         .band-overlay { position:absolute; inset:0; pointer-events:none; background:linear-gradient(180deg, rgba(0,240,255,.04) 0%, transparent 30%, transparent 70%, rgba(0,255,136,.04) 100%); z-index:5; }
         .corner-data { position:absolute; font-family:var(--font-mono); font-size:.6rem; color:rgba(0,240,255,.7); background:rgba(3,7,15,.85); padding:3px 7px; border-radius:3px; z-index:10; } .corner-data.tl { top:8px; left:8px; } .corner-data.tr { top:8px; right:8px; } .corner-data.bl { bottom:8px; left:8px; } .corner-data.br { bottom:8px; right:8px; }
         
-        .q-text { font-family:var(--font-exo); font-size:2.8rem; font-weight:700; color:#e8f4ff; line-height:1.2; text-align:center; max-width:1000px; margin:40px auto; text-shadow:0 0 40px rgba(0,240,255,0.2); text-transform: uppercase; letter-spacing: 2px; }
+        .q-text { font-family:var(--font-exo); font-size:3.5rem; font-weight:800; color:#ffffff; line-height:1.2; text-align:center; max-width:1100px; margin:40px auto; text-shadow:0 0 50px rgba(0,240,255,0.4), 0 0 20px rgba(255,255,255,0.2); text-transform: uppercase; letter-spacing: 2px; }
         .scramble-hint { font-family: var(--font-orb); font-size: 0.8rem; color: var(--nir); border: 1px solid var(--nir); padding: 4px 12px; border-radius: 4px; display: inline-block; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
         .options-bar { display:grid; grid-template-columns:1fr 1fr; gap:20px; width:100%; max-width:900px; margin:0 auto; } .opt-pill { display:flex; align-items:center; gap:16px; padding:18px 24px; border-radius:12px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); font-size:1.2rem; font-weight:600; color:var(--text); } .opt-key { font-family:var(--font-orb); font-size:0.9rem; width:32px; height:32px; border-radius:8px; background:rgba(0,240,255,.08); border:1px solid rgba(0,240,255,.2); color:var(--nir); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 
@@ -353,8 +351,10 @@ export default function ProjectorPage() {
         .top10-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 1000px; margin-top: 30px; }
         .top10-item { display: flex; align-items: center; gap: 15px; padding: 12px 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(0,240,255,0.1); border-radius: 10px; }
         .top10-rank { font-family: var(--font-orb); font-size: 1.2rem; width: 30px; color: var(--nir); }
-        .top10-name { flex: 1; font-weight: 700; font-size: 1.1rem; }
-        .top10-score { font-family: var(--font-orb); font-size: 1.1rem; color: var(--opt); }
+        .top10-name-block { flex: 1; min-width: 0; }
+        .top10-name { font-weight: 700; font-size: 1rem; color: #fff; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .top10-usn { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text3); }
+        .top10-score { font-family: var(--font-orb); font-size: 1.1rem; color: var(--opt); flex-shrink: 0; }
 
         /* Final Reveal Button Overlay */
         .finale-suspense { text-align: center; padding: 40px; }
@@ -363,7 +363,7 @@ export default function ProjectorPage() {
       `}</style>
 
       <StarfieldCanvas />
-      <canvas ref={radarRef} id="radarCanvas" />
+
 
       {emojis.map(e => (
         <div key={e.id} className="uplink-emoji" style={{ left: e.left, bottom: '60px', animationDelay: `${e.delay}s` }}>{e.emoji}</div>
@@ -417,9 +417,13 @@ export default function ProjectorPage() {
           </div>
         </header>
 
-        <main id="main">
-          {/* IDLE */}
-          <div className={`phase-view ${uiPhase === 'idle' ? 'active' : ''}`} id="phase-idle">
+        <main id="main" style={{ position: 'relative' }}>
+          <div style={{ position: 'absolute', inset: 0, zIndex: 0, opacity: 0.85, mixBlendMode: 'screen' }}>
+            <RadarCanvas />
+          </div>
+          <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%' }}>
+            {/* IDLE */}
+            <div className={`phase-view ${uiPhase === 'idle' ? 'active' : ''}`} id="phase-idle" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             {(currentLevel || 0) === 0 ? (
               <div className="idle-outer">
                 <div className="idle-label">🛰 SATELLITE TERMINAL — ANALYST UPLINK</div>
@@ -541,10 +545,39 @@ export default function ProjectorPage() {
             </div>
             <div className="accuracy-wrap">
               <span className="accuracy-num">
-                {reviewData?.correctAnswer ? Math.round(((adminLiveStats?.distribution?.[reviewData.correctAnswer] as number || 0) / Math.max(1, adminStats?.connectedCount || 1)) * 100) : 0}%
+                <AnimatedNumber value={reviewData?.correctAnswer ? Math.round(((adminLiveStats?.distribution?.[reviewData.correctAnswer] as number || 0) / Math.max(1, adminStats?.connectedCount || 1)) * 100) : 0} />%
               </span>
               <div className="accuracy-sub">FIELD ACCURACY · TELEMETRY CONFIRMED</div>
             </div>
+          </div>
+
+          {/* AUCTION */}
+          <div className={`phase-view ${uiPhase === 'auction' ? 'active' : ''}`} id="phase-auction">
+            <div className="level-num-huge" style={{ fontSize: '4rem' }}>LEVEL 5 · PHASE A</div>
+            <div className="level-title-huge">CONSTELLATION PROCUREMENT</div>
+            <div className="q-text" style={{ fontSize: '2rem' }}>ANALYSTS ARE ACQUIRING MISSION TOOLS.<br />PREPARING FOR ANOMALY RESPONSE...</div>
+            <div className="idle-stat">
+              <span className="idle-stat-num">{timeLeft}s</span>
+              <span className="idle-stat-lbl">UPLINK CLOSING</span>
+            </div>
+          </div>
+
+          {/* DISASTER */}
+          <div className={`phase-view ${uiPhase === 'disaster' ? 'active' : ''}`} id="phase-disaster">
+            <div className="level-num-huge" style={{ fontSize: '4rem', color: 'var(--alert)' }}>LEVEL 5 · PHASE B</div>
+            <div className="level-title-huge" style={{ color: 'var(--warn)' }}>ANOMALY RECONNAISSANCE</div>
+            <div className="q-text" style={{ fontSize: '2.4rem', color: '#fff' }}>{adminStats?.phase === 'disaster_active' ? 'MISSION CRITICAL: ANALYSTS DEPLOYING SENSORS' : 'ANALYZING FIELD DATA...'}</div>
+            <div className="idle-stat">
+              <span className="idle-stat-num" style={{ color: 'var(--warn)' }}>{adminStats?.answeredCount || 0}</span>
+              <span className="idle-stat-lbl">Tools Deployed</span>
+            </div>
+          </div>
+
+          {/* ANOMALY */}
+          <div className={`phase-view ${uiPhase === 'anomaly' ? 'active' : ''}`} id="phase-anomaly" style={{ background: 'rgba(255,0,0,0.05)' }}>
+            <div className="level-num-huge" style={{ color: 'var(--alert)', animation: 'blinkText 0.5s infinite' }}>⚠️ BREACH</div>
+            <div className="level-title-huge" style={{ color: 'var(--alert)' }}>SYSTEM COMPROMISED</div>
+            <div className="q-text" style={{ fontSize: '2rem', color: 'var(--alert)' }}>UNAUTHORIZED DATA ACCESS DETECTED.<br />ANALYSTS ARE PATCHING FIREWALLS...</div>
           </div>
 
           {/* LEVEL END */}
@@ -553,9 +586,9 @@ export default function ProjectorPage() {
               <span className="levelend-badge">MISSION COMPLETE — LEVEL <span>{currentLevel || 1}</span></span>
               <div className="levelend-title">TRAINING MISSION<br />DEBRIEF</div>
               <div className="levelend-acc-row">
-                <div className="le-stat"><span className="le-num" style={{ color: 'var(--opt)' }}>{levelCompleteData?.levelStats?.avgAccuracy || 0}%</span><span className="le-lbl">Global Accuracy</span></div>
-                <div className="le-stat"><span className="le-num" style={{ color: 'var(--nir)' }}>{adminStats?.connectedCount || 0}</span><span className="le-lbl">Analysts Scored</span></div>
-                <div className="le-stat"><span className="le-num" style={{ color: 'var(--gold)' }}>{leaderboard?.[0]?.totalScore?.toLocaleString() || '—'}</span><span className="le-lbl">Top Score</span></div>
+                <div className="le-stat"><span className="le-num" style={{ color: 'var(--opt)' }}><AnimatedNumber value={levelCompleteData?.levelStats?.avgAccuracy || 0} />%</span><span className="le-lbl">Global Accuracy</span></div>
+                <div className="le-stat"><span className="le-num" style={{ color: 'var(--nir)' }}><AnimatedNumber value={adminStats?.connectedCount || 0} /></span><span className="le-lbl">Analysts Scored</span></div>
+                <div className="le-stat"><span className="le-num" style={{ color: 'var(--gold)' }}><AnimatedNumber value={leaderboard?.[0]?.totalScore || 0} /></span><span className="le-lbl">Top Score</span></div>
               </div>
 
               {riser && (
@@ -576,7 +609,10 @@ export default function ProjectorPage() {
                   {leaderboard.slice(0, 10).map((p, i) => (
                     <div key={p.usn} className="top10-item" style={{ borderColor: i < 3 ? 'rgba(0,240,255,0.3)' : '' }}>
                       <span className="top10-rank">{i < 3 ? medals[i] : i + 1}</span>
-                      <span className="top10-name" style={{ color: i === 0 ? 'var(--nir)' : '' }}>{p.name}</span>
+                      <div className="top10-name-block">
+                        <span className="top10-name" style={{ color: i === 0 ? 'var(--nir)' : '' }}>{p.name}</span>
+                        <span className="top10-usn">{p.usn}</span>
+                      </div>
                       <span className="top10-score">{p.totalScore.toLocaleString()}</span>
                     </div>
                   ))}
@@ -599,7 +635,10 @@ export default function ProjectorPage() {
                           const realIdx = leaderboard.indexOf(p);
                           return (
                             <div key={p.usn} className="podium-col">
-                              <div className="podium-name" style={{ fontSize: '0.6rem' }}>{p.name.split(' ')[0]}</div>
+                              <div className="podium-name" style={{ fontSize: '0.55rem' }}>
+                                {p.name.split(' ')[0]}
+                                <div style={{ opacity: 0.6, fontSize: '0.45rem' }}>{p.usn}</div>
+                              </div>
                               <div className={`podium-bar p${realIdx + 1}`} style={{ height: `${100 - realIdx * 15}%`, width: 60 }}>
                                 <div className="podium-rank">{medals[realIdx] || realIdx + 1}</div>
                               </div>
@@ -612,6 +651,7 @@ export default function ProjectorPage() {
                 </div>
               )}
             </div>
+          </div>
           </div>
         </main>
 
@@ -670,8 +710,29 @@ export default function ProjectorPage() {
             </div>
           </div>
 
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12, position: 'relative' }}>
-            <canvas ref={orbitRef} width={288} height={180} />
+          <div className="sb-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', borderBottom: 'none' }}>
+            <div className="sb-title">Geospatial Link</div>
+            <div className="uplink-grid">
+              <div className="uplink-box">
+                <div className="uplink-val">{xFreq.toFixed(2)} GHz</div>
+                <div className="uplink-lbl">X-BAND FREQ</div>
+              </div>
+              <div className="uplink-box">
+                <div className="uplink-val" style={{ color: 'var(--opt)' }}><AnimatedNumber value={Math.round(dataIntegrity)} />%</div>
+                <div className="uplink-lbl">DATA INTEGRITY</div>
+              </div>
+              <div className="uplink-box">
+                <div className="uplink-val">NOMINAL</div>
+                <div className="uplink-lbl">THERMAL SENSORS</div>
+              </div>
+              <div className="uplink-box">
+                <div className="uplink-val" style={{ color: 'var(--nir)' }}>LOCKED</div>
+                <div className="uplink-lbl">ATTITUDE CTRL</div>
+              </div>
+            </div>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 0', position: 'relative' }}>
+              <canvas ref={orbitRef} width={288} height={180} />
+            </div>
           </div>
         </aside>
 
@@ -680,10 +741,10 @@ export default function ProjectorPage() {
           <div className="ticker-track">
             <div className="ticker-inner">
               {[...TICKER_DATA, ...TICKER_DATA].map(([k, v], i) => (
-                <React.Fragment key={i}>
+                <Fragment key={i}>
                   <span className="tick-item"><span className="tick-key">{k}:</span><span className="tick-val"> {v}</span></span>
                   <span className="tick-sep">◆</span>
-                </React.Fragment>
+                </Fragment>
               ))}
             </div>
           </div>
