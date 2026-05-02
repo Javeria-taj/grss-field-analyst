@@ -47,7 +47,7 @@ const io = new socket_io_1.Server(server, {
     pingInterval: 25000,
 });
 (0, game_1.default)(io);
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, () => {
     console.log(`🚀 Dedicated Realtime Server listening on port ${PORT}`);
-    console.log(`📡 WebSocket endpoint: ws://0.0.0.0:${PORT}`);
+    console.log(`📡 WebSocket endpoint: ws://localhost:${PORT}`);
 });

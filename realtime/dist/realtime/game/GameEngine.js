@@ -609,8 +609,8 @@ class GameEngine {
         };
         this.io.emit('level_complete', payload);
         this.broadcastAdminStats();
-        // Zero-Day Anomaly (Sabotage Event) triggered 8 seconds after Level 3 completion
-        if (this.currentLevel === 3) {
+        // Zero-Day Anomaly (Sabotage Event) triggered 8 seconds after Level completion
+        if (this.currentLevel < 5) {
             setTimeout(() => this.triggerAnomaly(), 8000);
         }
         // If level 5 just completed, game over
@@ -825,6 +825,25 @@ class GameEngine {
         this.updateFactionScores();
         this.io.emit('leaderboard_update', this.getLeaderboard());
         this.endLevel();
+    }
+    // Accepts the client-computed Level 5 score (capped server-side in socket handler)
+    applyLevel5Score(usn, score) {
+        const ps = this.playerScores.get(usn);
+        if (!ps)
+            return;
+        // Prevent double-apply
+        if (ps.__l5Applied)
+            return;
+        ps.__l5Applied = true;
+        ps.totalScore += score;
+        ps.currentLevelScore += score;
+        ps.levelScores[5] = score;
+        this.leaderboardDirty = true;
+        this.adminStatsDirty = true;
+        this.io.emit('leaderboard_update', this.getLeaderboard());
+        // Trigger level complete / game over for this player's view
+        // The whole-game endLevel is called after auction timer expires server-side
+        // but we emit a personalized score-update so the leaderboard reflects immediately
     }
     // ═══════════════════════════════════════════════════════════════
     // TIMER

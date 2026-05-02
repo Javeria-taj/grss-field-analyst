@@ -80,9 +80,9 @@ function AnswerRow({ val, setVal, onSubmit, disabled }: {
   onSubmit: (a: string) => void; disabled: boolean;
 }) {
   return (
-    <div style={{ display: 'flex', width: '100%', maxWidth: 460, margin: '0 auto' }}>
+    <div className="answer-row-wrap" style={{ display: 'flex', width: '100%', maxWidth: 460, margin: '0 auto' }}>
       <input
-        className="input"
+        className="input answer-input"
         style={{
           flex: 1, textTransform: 'uppercase', textAlign: 'center',
           fontSize: '1rem', borderRadius: '10px 0 0 10px', borderRight: 'none',
@@ -95,7 +95,7 @@ function AnswerRow({ val, setVal, onSubmit, disabled }: {
         onKeyDown={e => { if (e.key === 'Enter' && val.trim()) onSubmit(val.trim()); }}
       />
       <button
-        className="btn btn-primary"
+        className="btn btn-primary answer-btn"
         style={{ borderRadius: '0 10px 10px 0', padding: '13px 24px', fontWeight: 800, letterSpacing: 1 }}
         disabled={disabled || !val.trim()}
         onClick={() => onSubmit(val.trim())}

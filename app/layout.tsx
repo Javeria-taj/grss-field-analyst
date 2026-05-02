@@ -24,8 +24,14 @@ const exo2 = Exo_2({
   display: "swap",
 });
 
-export const viewport = {
+import type { Viewport } from "next";
+
+export const viewport: Viewport = {
   themeColor: '#03070f',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export const metadata: Metadata = {

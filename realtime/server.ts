@@ -51,7 +51,7 @@ const io = new Server(server, {
 setupGameSockets(io);
 
 
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, () => {
   console.log(`🚀 Dedicated Realtime Server listening on port ${PORT}`);
-  console.log(`📡 WebSocket endpoint: ws://0.0.0.0:${PORT}`);
+  console.log(`📡 WebSocket endpoint: ws://localhost:${PORT}`);
 });

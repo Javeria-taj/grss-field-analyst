@@ -253,7 +253,7 @@ export default function ProjectorPage() {
                   className="w-full flex flex-col items-center"
                 >
                   <h2 className="text-5xl font-black mb-16 tracking-[0.5em] text-blue-400 uppercase">INTEL DISTRIBUTION</h2>
-                  <div className="w-full h-[600px] relative">
+                  <div className="w-full h-[600px] relative" style={{ minWidth: 0 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={Object.entries(adminLiveStats?.distribution || {}).map(([name, value]) => {
                         let label = name;

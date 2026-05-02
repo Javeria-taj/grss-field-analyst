@@ -27,12 +27,7 @@ function OrbitalSweepVFX() {
     const draw = () => {
       cx.clearRect(0, 0, cv.width, cv.height);
 
-      // Sweep gradient "pie" from center
-      const grad = cx.createConicalGradient
-        ? (cx as any).createConicalGradient(angle, cx0, cy0) // Chrome flag — may not exist
-        : null;
-
-      // Fallback: draw sweep as a rotated arc segment
+      // Draw sweep as a rotated arc segment with linear gradient
       cx.save();
       cx.globalAlpha = alpha * 0.55;
       cx.translate(cx0, cy0);

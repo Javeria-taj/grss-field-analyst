@@ -977,39 +977,46 @@ html, body {
 /* ─────────────────────────────────────────
    RESPONSIVE
 ───────────────────────────────────────── */
+@media (max-width: 768px) {
+  .card { padding: 20px; border-radius: 16px; }
+  .hud { padding: 10px 16px; gap: 8px; flex-wrap: wrap; }
+}
+
 @media (max-width: 600px) {
   html, body { font-size: 14px; touch-action: manipulation; }
   
   /* Prevent iOS Safari auto-zoom on inputs */
   input, textarea, select { font-size: 16px !important; }
 
-  .hud { padding: 6px 10px; gap: 4px; }
-  .hud-score { font-size: 0.85rem; }
-  .hud-level { font-size: 0.75rem; }
+  .hud { padding: 8px 12px; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .hud-score { font-size: 0.9rem; }
+  .hud-level { font-size: 0.8rem; }
 
   .page-content { padding: 8px; gap: 8px; }
   
-  .card { padding: 14px; border-radius: 12px; }
-  .card-sm { padding: 10px; border-radius: 10px; }
+  .card { padding: 16px; border-radius: 12px; }
+  .card-sm { padding: 12px; border-radius: 10px; }
 
-  .btn { padding: 8px 14px; font-size: 0.8rem; min-height: 38px; }
-  .btn-lg { padding: 12px 20px; font-size: 0.95rem; min-height: 44px; }
+  .btn { padding: 10px 16px; font-size: 0.85rem; min-height: 40px; }
+  .btn-lg { padding: 12px 20px; font-size: 0.95rem; min-height: 44px; width: 100%; }
+  
+  .input-lg { font-size: 1rem; padding: 12px 14px; letter-spacing: 2px; }
 
   .logo-icon { font-size: 2.2rem; }
-  .logo-title { font-size: 1.05rem; }
-  .logo-sub { font-size: 0.55rem; letter-spacing: 1px; }
+  .logo-title { font-size: 1.15rem; }
+  .logo-sub { font-size: 0.65rem; letter-spacing: 1px; }
 
-  .scramble-disp { font-size: 1.1rem; letter-spacing: 2px; padding: 10px; }
-  .em-clue { font-size: 1.6rem; padding: 8px; letter-spacing: 3px; }
-  .word-slots { gap: 2px; }
-  .letter-slot { width: 22px; height: 30px; font-size: 0.85rem; }
-  .letter-slot.space { width: 6px; }
+  .scramble-disp { font-size: 1.2rem; letter-spacing: 3px; padding: 14px; }
+  .em-clue { font-size: 1.8rem; padding: 10px; letter-spacing: 4px; }
+  .word-slots { gap: 3px; }
+  .letter-slot { width: 26px; height: 34px; font-size: 1rem; }
+  .letter-slot.space { width: 8px; }
   
-  .alpha-grid { gap: 3px; padding: 0 4px; }
-  .alpha-key { width: 26px; height: 26px; font-size: 0.6rem; min-height: 26px; }
+  .alpha-grid { gap: 4px; padding: 0 4px; justify-content: center; }
+  .alpha-key { width: 30px; height: 30px; font-size: 0.75rem; min-height: 30px; }
 
-  .option { padding: 8px 10px; font-size: 0.8rem; min-height: 38px; gap: 8px; }
-  .option-letter { width: 24px; height: 24px; font-size: 0.65rem; }
+  .option { padding: 10px 12px; font-size: 0.85rem; min-height: 42px; gap: 10px; }
+  .option-letter { width: 26px; height: 26px; font-size: 0.7rem; }
   
   .final-score { font-size: 2rem; }
   
@@ -1019,18 +1026,26 @@ html, body {
   .grid-3-mobile-1 { grid-template-columns: 1fr !important; }
   .hide-mobile { display: none !important; }
 
+  /* Ensure inputs stack nicely on small screens instead of squishing */
+  .answer-row-wrap { flex-direction: column !important; gap: 8px; }
+  .answer-input { border-radius: 10px !important; border-right: 1px solid var(--border) !important; width: 100% !important; }
+  .answer-btn { border-radius: 10px !important; width: 100% !important; }
+
   /* Level 5 Auction Grid Overrides */
-  .tool-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
-  .tool-card { padding: 10px; }
+  .tool-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+  .tool-card { padding: 12px; }
   .tool-price { font-size: 0.85rem; }
-  .eff-bar-label { font-size: 0.55rem; }
+  .eff-bar-label { font-size: 0.6rem; }
 }
 
 @media (max-width: 400px) {
-  .hud { padding: 4px 6px; flex-wrap: nowrap; overflow-x: auto; }
-  .alpha-key { width: 22px; height: 22px; font-size: 0.55rem; min-height: 22px; }
-  .letter-slot { width: 18px; height: 26px; font-size: 0.75rem; }
+  .hud { padding: 6px; flex-wrap: wrap; gap: 4px; justify-content: center; }
+  .alpha-key { width: 26px; height: 26px; font-size: 0.65rem; min-height: 26px; }
+  .letter-slot { width: 22px; height: 28px; font-size: 0.85rem; }
   .logo-icon { font-size: 1.8rem; }
   .btn-sm { padding: 6px 12px; font-size: 0.75rem; }
   .tool-grid { grid-template-columns: 1fr; } /* Stack tools entirely on very small screens */
+  
+  /* Make all main input groups stretch */
+  .auth-card-content { width: 100%; max-width: 100%; }
 }

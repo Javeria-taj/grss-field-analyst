@@ -162,6 +162,7 @@ export default function AuthPage() {
         width: '100%'
       }}>
         <motion.div
+          className="auth-card-content"
           style={{ width: '100%', maxWidth: 420 }}
           initial={{ opacity: 0, y: 28 }}
           animate={{ opacity: 1, y: 0 }}

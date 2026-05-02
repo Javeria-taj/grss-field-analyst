@@ -329,7 +329,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
     });
 
     socket.on('connect_error', (err) => {
-      console.error('🔴 Socket connect_error:', err.message);
+      // console.error('🔴 Socket connect_error:', err.message);
     });
 
     socket.on('connect', () => {
