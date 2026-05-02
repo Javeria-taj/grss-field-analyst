@@ -1,29 +1,58 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, LabelList } from 'recharts';
-import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
 import { SFX } from '@/lib/sfx';
+import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
+
+const TICKER_DATA = [
+  ['ORBITAL ALT', '694 km'], ['INCLINATION', '98.7°'], ['SWATH WIDTH', '290 km'],
+  ['REVISIT TIME', '5 days'], ['CLOUD REJ', 'NOMINAL'], ['NDVI THRESHOLD', '0.63'],
+  ['SAR FREQUENCY', 'C-BAND'], ['RESOLUTION', '10 m'], ['TELEMETRY LOCK', 'CONFIRMED'],
+  ['DATA RATE', '520 Mbps'], ['SOLAR PANEL', 'OPTIMAL'], ['GROUND TRACK', 'ASCENDING'],
+  ['PASS COUNT', '1,847'], ['EPOCH', 'J2000'], ['GROUND STA', 'SVALBARD'],
+  ['SIGNAL LAG', '22 ms'], ['ORBIT TYPE', 'SUN-SYNC'], ['RADIOMETRIC CAL', 'PASS'],
+];
+
+const TELEM_LIVE = [
+  ['SWATH', '290 KM'], ['REVISIT', '5 DAYS'], ['ALT', '694 KM'],
+  ['SNR', '42 dB'], ['INCL', '98.7°'], ['FRAME', 'L1C'],
+];
+
+const FACTIONS = [
+  { id: 'team_sentinel', name: 'SENTINEL · SAR', color: 'var(--sentinel)' },
+  { id: 'team_landsat', name: 'LANDSAT · OPTICAL', color: 'var(--landsat)' },
+  { id: 'team_modis', name: 'MODIS · THERMAL', color: 'var(--modis)' },
+];
 
 export default function ProjectorPage() {
-  const { 
-    phase, currentLevel, currentQuestion, timerEndTime, timerTotal, 
+  const {
+    phase, currentLevel, currentQuestion, timerEndTime, timerTotal,
     leaderboard, adminLiveStats, adminStats, factionScores,
-    levelCompleteData, auctionTools, auctionPrices, auctionMultiplier,
-    disasterInfo,
-    init, destroy, connected
+    levelCompleteData, reviewData, init, destroy, connected
   } = useGameSyncStore();
 
   const [timeLeft, setTimeLeft] = useState(0);
+  const [utcTime, setUtcTime] = useState('00:00:00 UTC');
+  const [telemIdx, setTelemIdx] = useState(0);
+  const [orbitPass, setOrbitPass] = useState('ORBIT 14 / PASS 3');
+  const [isLeaderboardExpanded, setIsLeaderboardExpanded] = useState(false);
+  const [showFinalResults, setShowFinalResults] = useState(false);
+
+  const LEVEL_TITLES: Record<number, string> = {
+    1: 'RIDDLES AND WORD SCRAMBLE',
+    2: 'IMAGE GUESSING',
+    3: 'EMOJI HANGMAN',
+    4: 'RAPID FIRE',
+    5: 'DISASTER DASH'
+  };
+
+  const radarRef = useRef<HTMLCanvasElement>(null);
+  const orbitRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     init();
-    return () => {
-      destroy();
-      SFX.stopMusic();
-    };
+    return () => { destroy(); SFX.stopMusic(); };
   }, [init, destroy]);
 
   useEffect(() => {
@@ -36,540 +65,630 @@ export default function ProjectorPage() {
     const timer = setInterval(() => {
       const remaining = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
       setTimeLeft(remaining);
-    }, 100);
+
+      const now = new Date();
+      setUtcTime(`${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}:${String(now.getUTCSeconds()).padStart(2, '0')} UTC`);
+    }, 1000);
     return () => clearInterval(timer);
   }, [timerEndTime]);
 
-  const leadingFaction = Object.entries(factionScores).sort((a, b) => b[1] - a[1])[0]?.[0];
-  const factionMeta: Record<string, any> = {
-    'team_sentinel': { name: 'SENTINEL', color: '#3b82f6', glow: 'rgba(59, 130, 246, 0.2)' },
-    'team_landsat': { name: 'LANDSAT', color: '#10b981', glow: 'rgba(16, 185, 129, 0.2)' },
-    'team_modis': { name: 'MODIS', color: '#a855f7', glow: 'rgba(168, 85, 247, 0.2)' }
-  };
+  useEffect(() => {
+    const tTimer = setInterval(() => setTelemIdx(i => (i + 1) % TELEM_LIVE.length), 3500);
+    const oTimer = setInterval(() => {
+      const pass = Math.floor(Date.now() / 90000) % 20 + 1;
+      setOrbitPass(`ORBIT ${14 + Math.floor(pass / 6)} / PASS ${pass % 6 + 1}`);
+    }, 12000);
+    return () => { clearInterval(tTimer); clearInterval(oTimer); };
+  }, []);
 
-  const JOIN_URL = typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '';
-  const QR_URL = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(JOIN_URL)}&bgcolor=03070f&color=60a5fa`;
+  // Map backend phase names to projector UI states
+  const uiPhase = useMemo(() => {
+    if (phase === 'idle') return 'idle';
+    if (phase === 'level_intro') return 'level_intro';
+    if (phase === 'question_active') return 'question';
+    if (phase === 'question_review') return 'results';
+    if (phase === 'level_complete' || phase === 'game_over') return 'levelend';
+    return 'idle';
+  }, [phase]);
 
-  if (!connected) {
-    return (
-      <div className="min-h-screen bg-[#03070f] flex items-center justify-center font-orbitron">
-        <StarfieldCanvas />
-        <div className="z-10 text-center">
-          <motion.div 
-            animate={{ rotate: 360 }} 
-            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-            className="w-24 h-24 border-b-4 border-blue-500 rounded-full mx-auto mb-8 shadow-[0_0_30px_rgba(59,130,246,0.5)]" 
-          />
-          <h1 className="text-3xl text-blue-400 font-bold tracking-[0.5em] animate-pulse">ESTABLISHING SATELLITE LINK</h1>
-        </div>
-      </div>
-    );
-  }
+  const phaseLabel = {
+    idle: 'AWAITING ANALYSTS',
+    level_intro: 'MISSION START',
+    question: 'ACTIVE ACQUISITION',
+    results: 'TELEMETRY REVIEW',
+    levelend: 'RECON COMPLETE'
+  }[uiPhase];
+
+  // Custom QR Matrix (visually matching the HTML)
+  const qrMatrix = useMemo(() => {
+    const pattern = [];
+    const corners = [[0, 0], [0, 6], [6, 0]];
+    for (let row = 0; row < 9; row++) {
+      for (let col = 0; col < 9; col++) {
+        let filled = false;
+        corners.forEach(([cr, cc]) => {
+          if (row >= cr && row <= cr + 2 && col >= cc && col <= cc + 2) filled = true;
+          if ((row === cr - 1 || row === cr + 3) && col >= cc - 1 && col <= cc + 3) filled = true;
+          if ((col === cc - 1 || col === cc + 3) && row >= cr - 1 && row <= cr + 3) filled = true;
+        });
+        if ((row === 3 && col % 2 === 0) || (col === 3 && row % 2 === 0)) filled = true;
+        if (!filled) filled = ((row * 13 + col * 7 + row * col) % 3 === 0);
+        pattern.push(filled);
+      }
+    }
+    return pattern;
+  }, []);
+
+  // Canvases initialization
+  useEffect(() => {
+    if (!radarRef.current) return;
+    const cv = radarRef.current;
+    const cx = cv.getContext('2d')!;
+    let W, H, angle = 0, animId: number;
+    const resize = () => { W = cv.width = window.innerWidth; H = cv.height = window.innerHeight; };
+    resize(); window.addEventListener('resize', resize);
+
+    const drawRadar = () => {
+      W = cv.width; H = cv.height;
+      const cx_ = Math.round(W * 0.36), cy_ = Math.round(H * 0.5), maxR = Math.min(W, H) * 0.42;
+      cx.clearRect(0, 0, W, H);
+      cx.strokeStyle = 'rgba(0,240,255,0.04)'; cx.lineWidth = 1;
+      for (let i = -4; i <= 4; i++) {
+        const y = cy_ + (i / 4) * maxR; cx.beginPath(); cx.moveTo(cx_ - maxR, y); cx.lineTo(cx_ + maxR, y); cx.stroke();
+        const x = cx_ + (i / 4) * maxR; cx.beginPath(); cx.moveTo(x, cy_ - maxR); cx.lineTo(x, cy_ + maxR); cx.stroke();
+      }
+      for (let r = 1; r <= 5; r++) {
+        cx.strokeStyle = r === 3 ? 'rgba(0,240,255,0.10)' : 'rgba(0,240,255,0.05)'; cx.lineWidth = r === 3 ? 1.5 : 1;
+        cx.beginPath(); cx.arc(cx_, cy_, (r / 5) * maxR, 0, Math.PI * 2); cx.stroke();
+      }
+      cx.strokeStyle = 'rgba(0,240,255,0.06)'; cx.lineWidth = 1;
+      cx.beginPath(); cx.moveTo(cx_, cy_ - maxR); cx.lineTo(cx_, cy_ + maxR); cx.stroke();
+      cx.beginPath(); cx.moveTo(cx_ - maxR, cy_); cx.lineTo(cx_ + maxR, cy_); cx.stroke();
+
+      for (let t = 0; t < 80; t++) {
+        const trailAngle = angle - (t / 80) * (Math.PI * 0.75);
+        cx.save(); cx.beginPath(); cx.moveTo(cx_, cy_); cx.arc(cx_, cy_, maxR, trailAngle, trailAngle + 0.05); cx.closePath();
+        cx.fillStyle = `rgba(0,240,255,${((80 - t) / 80) * 0.15})`; cx.fill(); cx.restore();
+      }
+      const sweepGrad = cx.createLinearGradient(cx_, cy_, cx_ + Math.cos(angle) * maxR, cy_ + Math.sin(angle) * maxR);
+      sweepGrad.addColorStop(0, 'rgba(0,240,255,0.7)'); sweepGrad.addColorStop(1, 'rgba(0,240,255,0)');
+      cx.beginPath(); cx.moveTo(cx_, cy_); cx.lineTo(cx_ + Math.cos(angle) * maxR, cy_ + Math.sin(angle) * maxR);
+      cx.strokeStyle = sweepGrad; cx.lineWidth = 2.5; cx.stroke();
+
+      cx.beginPath(); cx.arc(cx_, cy_, 3, 0, Math.PI * 2); cx.fillStyle = '#00f0ff'; cx.shadowColor = '#00f0ff'; cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
+
+      const blips = [{ a: 0.8, r: 0.45 }, { a: 2.1, r: 0.7 }, { a: 3.8, r: 0.35 }, { a: 5.0, r: 0.6 }, { a: 1.4, r: 0.82 }, { a: 4.4, r: 0.55 }];
+      blips.forEach(b => {
+        const diff = ((angle - b.a) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+        if (diff < Math.PI * 0.8) {
+          const fade = 1 - diff / (Math.PI * 0.8);
+          cx.beginPath(); cx.arc(cx_ + Math.cos(b.a) * b.r * maxR, cy_ + Math.sin(b.a) * b.r * maxR, 2.5, 0, Math.PI * 2);
+          cx.fillStyle = `rgba(0,255,136,${fade * 0.8})`; cx.shadowColor = '#00ff88'; cx.shadowBlur = 6 * fade; cx.fill(); cx.shadowBlur = 0;
+        }
+      });
+      angle = (angle + 0.012) % (Math.PI * 2);
+      animId = requestAnimationFrame(drawRadar);
+    };
+    drawRadar();
+    return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(animId); };
+  }, []);
+
+
+
+  useEffect(() => {
+    if (!orbitRef.current) return;
+    const cv = orbitRef.current;
+    const cx = cv.getContext('2d')!;
+    const W = cv.width, H = cv.height;
+    let t = 0, animId: number;
+    const drawOrbit = () => {
+      cx.clearRect(0, 0, W, H);
+      [60, 72, 86].forEach((r, i) => {
+        cx.beginPath(); cx.ellipse(W / 2, H / 2, r, r * 0.36, -0.2, 0, Math.PI * 2);
+        cx.strokeStyle = `rgba(0,240,255,${0.08 - i * 0.02})`; cx.lineWidth = 1; cx.stroke();
+      });
+      const earthGrad = cx.createRadialGradient(W / 2, H / 2, 2, W / 2, H / 2, 44);
+      earthGrad.addColorStop(0, '#1a5276'); earthGrad.addColorStop(0.4, '#0e2745'); earthGrad.addColorStop(1, '#040c1e');
+      cx.beginPath(); cx.arc(W / 2, H / 2, 44, 0, Math.PI * 2); cx.fillStyle = earthGrad; cx.fill();
+      cx.strokeStyle = 'rgba(0,240,255,0.2)'; cx.lineWidth = 1; cx.stroke();
+
+      const sats = [
+        { r: 60, flat: 0.36, tilt: -0.2, speed: 0.022, phase: 0, col: '#3b82f6' },
+        { r: 72, flat: 0.36, tilt: -0.2, speed: -0.015, phase: 2.1, col: '#10b981' },
+        { r: 86, flat: 0.36, tilt: -0.2, speed: 0.01, phase: 4.4, col: '#a855f7' },
+      ];
+      sats.forEach(s => {
+        const a = t * s.speed + s.phase;
+        const sx = W / 2 + Math.cos(a) * s.r; const sy = H / 2 + Math.sin(a) * s.r * s.flat;
+        cx.beginPath(); cx.arc(sx, sy, 3, 0, Math.PI * 2); cx.fillStyle = s.col; cx.shadowColor = s.col; cx.shadowBlur = 6; cx.fill(); cx.shadowBlur = 0;
+      });
+      t++; animId = requestAnimationFrame(drawOrbit);
+    };
+    drawOrbit();
+    return () => cancelAnimationFrame(animId);
+  }, []);
+
+  // Floating Emojis based on reactions
+  const [emojis, setEmojis] = useState<{ id: string, emoji: string, left: number, delay: number }[]>([]);
+  useEffect(() => {
+    if (adminLiveStats?.reactions?.length) {
+      const newEmojis = adminLiveStats.reactions.map(r => ({
+        id: r.id, emoji: r.emoji, left: 60 + Math.random() * (window.innerWidth - 120), delay: Math.random() * 0.3
+      }));
+      setEmojis(prev => [...prev, ...newEmojis]);
+      setTimeout(() => {
+        setEmojis(prev => prev.filter(e => !newEmojis.find(n => n.id === e.id)));
+      }, 4000);
+    }
+  }, [adminLiveStats?.reactions]);
+
+  const maxScore = leaderboard.length ? leaderboard[0].totalScore : 1;
+  const timePct = Math.min(100, (timeLeft / (timerTotal || 60)) * 100);
+
+  // Compute biggest riser
+  const riser = useMemo(() => {
+    if (!leaderboard.length) return null;
+    const prev = leaderboard.map((e, idx) => ({ ...e, prevRank: (e as any).prevRank ?? idx + 1 }));
+    return prev.reduce<any>((best, e) => {
+      const delta = e.prevRank - e.rank;
+      return delta > (best?.delta ?? 0) ? { ...e, delta } : best;
+    }, null);
+  }, [leaderboard]);
+
+  const medals = ['🥇', '🥈', '🥉'];
+
+  if (!connected) return <div style={{ background: '#03070f', height: '100vh' }} />;
 
   return (
-    <div className="min-h-screen bg-[#000] text-white font-orbitron overflow-hidden relative">
+    <>
+      <style>{`
+        :root {
+          --bg: #03070f; --nir: #00f0ff; --opt: #00ff88; --thm: #b500ff; --alert: #ff2d55; --gold: #ffd700; --warn: #ffaa00;
+          --sentinel: #3b82f6; --landsat: #10b981; --modis: #a855f7;
+          --text: #ccdeff; --text2: #445577; --text3: #7a99cc; --border: rgba(0,240,255,0.12); --border2: rgba(0,255,136,0.12);
+          --font-orb: 'Orbitron', monospace; --font-exo: 'Exo 2', sans-serif; --font-mono: 'Share Tech Mono', monospace;
+        }
+        .prj-shell { position:fixed; inset:0; background:rgba(3,7,15,0.7); color:var(--text); font-family:var(--font-exo); display:grid; grid-template-rows:64px 1fr 48px; grid-template-columns:1fr 400px; grid-template-areas:"header header" "main sidebar" "ticker ticker"; overflow:hidden; z-index:10; }
+        .prj-shell::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:9000; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.05) 3px,rgba(0,0,0,0.05) 4px); }
+        .prj-shell::after { content:''; position:fixed; inset:0; pointer-events:none; z-index:8999; background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,0.4) 100%); }
+        #radarCanvas { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+        #radarCanvas { z-index:1; }
+        
+        #header { grid-area:header; display:flex; align-items:center; justify-content:space-between; padding:0 24px; background:rgba(3,7,15,0.97); border-bottom:1px solid var(--border); backdrop-filter:blur(12px); position:relative; overflow:hidden; }
+        #header::after { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:linear-gradient(90deg, transparent, var(--nir) 20%, var(--opt) 50%, var(--thm) 80%, transparent); animation:scanHeader 4s linear infinite; }
+        @keyframes scanHeader { 0%{opacity:.4;transform:scaleX(.6)} 50%{opacity:1;transform:scaleX(1)} 100%{opacity:.4;transform:scaleX(.6)} }
+        .hdr-left { display:flex; align-items:center; gap:16px; } .hdr-logo { font-family:var(--font-orb); font-size:1.05rem; font-weight:900; color:var(--nir); letter-spacing:3px; } .hdr-logo span { color:var(--opt); }
+        .hdr-divider { width:1px; height:30px; background:var(--border); } .hdr-status { display:flex; align-items:center; gap:7px; font-family:var(--font-mono); font-size:.72rem; color:var(--opt); letter-spacing:1px; }
+        .pulse-dot { width:8px; height:8px; border-radius:50%; background:var(--opt); box-shadow:0 0 8px var(--opt); animation:pulseDot 1.4s ease-in-out infinite; }
+        @keyframes pulseDot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+        .hdr-center { position:absolute; left:50%; transform:translateX(-50%); text-align:center; } .hdr-mission { font-family:var(--font-orb); font-size:.6rem; letter-spacing:4px; color:var(--text2); text-transform:uppercase; }
+        .hdr-phase-lbl { font-family:var(--font-orb); font-size:1rem; font-weight:700; color:var(--text); animation:fadePhaseName 1s ease; } @keyframes fadePhaseName { from{opacity:0;letter-spacing:8px} to{opacity:1;letter-spacing:.5px} }
+        .hdr-right { display:flex; align-items:center; gap:20px; } .stat-block { text-align:right; } .stat-lbl { font-size:.56rem; letter-spacing:2px; text-transform:uppercase; color:var(--text2); }
+        .stat-val { font-family:var(--font-orb); font-size:1rem; font-weight:700; } .stat-val.nir { color:var(--nir); } .utc-clock { font-family:var(--font-mono); font-size:.75rem; color:var(--nir); letter-spacing:2px; border:1px solid var(--border); border-radius:5px; padding:4px 10px; background:rgba(0,240,255,.04); }
+
+        #sidebar { grid-area:sidebar; display:flex; flex-direction:column; background:rgba(3,7,15,0.96); border-left:1px solid var(--border); overflow:hidden; }
+        .sb-section { padding:14px 16px; border-bottom:1px solid var(--border); flex:0 0 auto; }
+        .sb-title { font-family:var(--font-orb); font-size:.6rem; letter-spacing:3px; color:var(--text2); text-transform:uppercase; margin-bottom:12px; display:flex; align-items:center; gap:7px; }
+        .sb-title::before { content:''; width:16px; height:1px; background:linear-gradient(90deg, var(--nir), transparent); }
+        
+        .lb-row { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; margin-bottom:5px; background:rgba(255,255,255,.02); border:1px solid transparent; transition:all .4s; position:relative; overflow:hidden; }
+        .lb-row.rank1 { background:rgba(0,240,255,.07); border-color:rgba(0,240,255,.25); box-shadow:0 0 16px rgba(0,240,255,.08); }
+        .lb-row::before { content:''; position:absolute; left:0; top:0; bottom:0; width:2px; border-radius:2px; } .lb-row.rank1::before { background:var(--nir); } .lb-row.rank2::before { background:rgba(200,200,200,.6); } .lb-row.rank3::before { background:rgba(180,120,0,.6); }
+        .lb-rank { font-family:var(--font-orb); font-size:.72rem; width:18px; color:var(--text2); flex-shrink:0; } .lb-row.rank1 .lb-rank { color:var(--nir); }
+        .lb-name-block { flex:1; min-width:0; } .lb-name { font-size:.78rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .lb-row.rank1 .lb-name { color:var(--nir); }
+        .lb-usn { font-size:.6rem; color:var(--text2); font-family:var(--font-mono); } .lb-score { font-family:var(--font-orb); font-size:.78rem; color:var(--opt); font-weight:700; flex-shrink:0; }
+        
+        .faction-row { margin-bottom:11px; } .faction-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; } .faction-name { font-size:.72rem; font-weight:700; letter-spacing:.5px; } .faction-score { font-family:var(--font-orb); font-size:.68rem; }
+        .faction-bar-track { height:6px; background:rgba(255,255,255,.06); border-radius:3px; overflow:hidden; position:relative; } .faction-bar-fill { height:100%; border-radius:3px; transition:width 1.2s; position:relative; } .faction-bar-fill::after { content:''; position:absolute; right:0; top:0; bottom:0; width:6px; border-radius:3px; filter:blur(3px); }
+        .faction-sentinel .faction-bar-fill { background:linear-gradient(90deg, rgba(59,130,246,.6), var(--sentinel)); } .faction-sentinel .faction-bar-fill::after { background:var(--sentinel); }
+        .faction-landsat .faction-bar-fill { background:linear-gradient(90deg, rgba(16,185,129,.6), var(--landsat)); } .faction-landsat .faction-bar-fill::after { background:var(--landsat); }
+        .faction-modis .faction-bar-fill { background:linear-gradient(90deg, rgba(168,85,247,.6), var(--modis)); } .faction-modis .faction-bar-fill::after { background:var(--modis); }
+        
+        .telem-line { font-family:var(--font-mono); font-size:.62rem; color:var(--text2); padding:4px 0; border-bottom:1px solid rgba(255,255,255,.04); display:flex; justify-content:space-between; gap:8px; animation:telemSlide .4s ease; }
+        @keyframes telemSlide { from{opacity:0;transform:translateX(6px)} to{opacity:1;transform:translateX(0)} } .telem-key { color:var(--text3); } .telem-val { color:var(--opt); font-weight:500; }
+        
+        #main { grid-area:main; position:relative; overflow:hidden; }
+        .phase-view { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; opacity:0; transform:scale(.96); pointer-events:none; transition:opacity .5s ease, transform .5s ease; }
+        .phase-view.active { opacity:1; transform:scale(1); pointer-events:auto; }
+        
+        #phase-idle { background:radial-gradient(ellipse at center, rgba(0,240,255,.04) 0%, transparent 65%); } .idle-outer { text-align:center; position:relative; }
+        .idle-label { font-family:var(--font-orb); font-size:.62rem; letter-spacing:5px; color:var(--text2); text-transform:uppercase; margin-bottom:18px; animation:blinkText 2.5s ease infinite; } @keyframes blinkText { 0%,100%{opacity:.5} 50%{opacity:1} }
+        .qr-wrap { position:relative; display:inline-block; margin-bottom:24px; } .qr-corner { position:absolute; width:24px; height:24px; border-color:var(--nir); border-style:solid; }
+        .qr-corner.tl { top:-4px; left:-4px; border-width:3px 0 0 3px; } .qr-corner.tr { top:-4px; right:-4px; border-width:3px 3px 0 0; } .qr-corner.bl { bottom:-4px; left:-4px; border-width:0 0 3px 3px; } .qr-corner.br { bottom:-4px; right:-4px; border-width:0 3px 3px 0; }
+        .qr-box { width:220px; height:220px; background:linear-gradient(45deg, rgba(0,240,255,.08) 0%, transparent 50%), radial-gradient(circle at 30% 30%, rgba(0,240,255,.06), transparent 60%), #040c1e; border:1px solid rgba(0,240,255,.2); border-radius:8px; overflow:hidden; display:flex; align-items:center; justify-content:center; position:relative; }
+        .qr-box::after { content:''; position:absolute; left:0; right:0; height:3px; background:linear-gradient(90deg, transparent, var(--nir) 40%, var(--opt) 60%, transparent); box-shadow:0 0 12px var(--nir); animation:qrScan 2.4s ease-in-out infinite; } @keyframes qrScan { 0%{top:-3px} 50%{top:calc(100% + 3px)} 100%{top:-3px} }
+        .qr-inner { width:100%; height:100%; padding:10px; display:flex; align-items:center; justify-content:center; }
+        .qr-img { width:100%; height:100%; object-fit:contain; border-radius:4px; filter: drop-shadow(0 0 10px rgba(0,240,255,0.4)); }
+        .idle-event-code { font-family:var(--font-orb); font-size:1.8rem; font-weight:900; color:var(--nir); letter-spacing:8px; text-shadow:0 0 30px rgba(0,240,255,.5); margin-bottom:12px; }
+        .idle-url { font-family:var(--font-mono); font-size:.82rem; color:var(--opt); letter-spacing:2px; background:rgba(0,255,136,.05); border:1px solid rgba(0,255,136,.15); padding:8px 20px; border-radius:6px; animation:pulseUrl 3s ease infinite; } @keyframes pulseUrl { 0%,100%{box-shadow:0 0 0 rgba(0,255,136,0)} 50%{box-shadow:0 0 20px rgba(0,255,136,.15)} }
+        .idle-bottom { margin-top:28px; display:flex; gap:28px; justify-content:center; flex-wrap:wrap; } .idle-stat { text-align:center; } .idle-stat-num { font-family:var(--font-orb); font-size:1.8rem; font-weight:900; color:var(--nir); display:block; line-height:1; } .idle-stat-lbl { font-size:.65rem; letter-spacing:2px; color:var(--text2); text-transform:uppercase; }
+
+        #phase-question { padding:40px 60px; justify-content:center; }
+        #countdown-chip { position:absolute; top:16px; right:16px; font-family:var(--font-orb); font-size:.65rem; letter-spacing:2px; color:var(--nir); background:rgba(0,240,255,.07); border:1px solid rgba(0,240,255,.2); border-radius:6px; padding:5px 12px; pointer-events:none; z-index:20; display:flex; align-items:center; gap:7px; }
+        .question-header { width:100%; display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; } .q-number { font-family:var(--font-orb); font-size:.62rem; letter-spacing:3px; color:var(--text2); } .q-cat-tag { font-family:var(--font-mono); font-size:.68rem; padding:4px 12px; border-radius:4px; border:1px solid rgba(0,240,255,.25); color:var(--nir); background:rgba(0,240,255,.05); letter-spacing:1px; } .q-pts { font-family:var(--font-orb); font-size:.72rem; color:var(--gold); letter-spacing:1px; }
+        .acq-window { width:100%; margin-bottom:20px; position:relative; } .acq-labels { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; } .acq-lbl-l { font-family:var(--font-mono); font-size:.6rem; color:var(--text2); letter-spacing:2px; } .acq-time-txt { font-family:var(--font-orb); font-size:1.1rem; font-weight:700; letter-spacing:2px; transition:color .3s; }
+        .acq-track { width:100%; height:10px; background:rgba(255,255,255,.05); border-radius:3px; overflow:hidden; border:1px solid rgba(255,255,255,.06); position:relative; } .acq-fill { height:100%; border-radius:3px; background:linear-gradient(90deg, var(--nir), var(--opt)); transition:width .9s linear, background .5s; position:relative; } .acq-fill::after { content:''; position:absolute; right:0; top:0; bottom:0; width:30px; background:linear-gradient(90deg, transparent, rgba(255,255,255,.35)); } .acq-fill.warn { background:linear-gradient(90deg, var(--warn), #ff8800); } .acq-fill.crit { background:linear-gradient(90deg, #880000, var(--alert)); animation:critFlash .35s infinite alternate; } @keyframes critFlash { from{opacity:1} to{opacity:.35} }
+        .acq-los { font-family:var(--font-mono); font-size:.6rem; color:var(--alert); letter-spacing:2px; animation:blinkText .5s infinite; }
+        
+        .sat-img-wrap { width:100%; max-height:280px; border-radius:10px; border:1px solid var(--border); overflow:hidden; position:relative; margin-bottom:20px; background:#040c1e; display:flex; justify-content:center; } .sat-img-wrap img { width:auto; height:280px; object-fit:contain; display:block; }
+        .spectral-scanner { position:absolute; left:0; right:0; height:4px; background:linear-gradient(90deg, transparent, var(--nir) 20%, var(--opt) 50%, var(--nir) 80%, transparent); box-shadow:0 0 18px var(--nir), 0 0 40px rgba(0,240,255,.3); animation:specScan 2.8s ease-in-out infinite; pointer-events:none; z-index:10; } @keyframes specScan { 0%{top:0;opacity:.9} 48%{top:calc(100% - 4px);opacity:.9} 50%{opacity:.2} 100%{top:0;opacity:.9} }
+        .band-overlay { position:absolute; inset:0; pointer-events:none; background:linear-gradient(180deg, rgba(0,240,255,.04) 0%, transparent 30%, transparent 70%, rgba(0,255,136,.04) 100%); z-index:5; }
+        .corner-data { position:absolute; font-family:var(--font-mono); font-size:.6rem; color:rgba(0,240,255,.7); background:rgba(3,7,15,.85); padding:3px 7px; border-radius:3px; z-index:10; } .corner-data.tl { top:8px; left:8px; } .corner-data.tr { top:8px; right:8px; } .corner-data.bl { bottom:8px; left:8px; } .corner-data.br { bottom:8px; right:8px; }
+        
+        .q-text { font-family:var(--font-exo); font-size:2.8rem; font-weight:700; color:#e8f4ff; line-height:1.2; text-align:center; max-width:1000px; margin:40px auto; text-shadow:0 0 40px rgba(0,240,255,0.2); text-transform: uppercase; letter-spacing: 2px; }
+        .scramble-hint { font-family: var(--font-orb); font-size: 0.8rem; color: var(--nir); border: 1px solid var(--nir); padding: 4px 12px; border-radius: 4px; display: inline-block; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
+        .options-bar { display:grid; grid-template-columns:1fr 1fr; gap:20px; width:100%; max-width:900px; margin:0 auto; } .opt-pill { display:flex; align-items:center; gap:16px; padding:18px 24px; border-radius:12px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); font-size:1.2rem; font-weight:600; color:var(--text); } .opt-key { font-family:var(--font-orb); font-size:0.9rem; width:32px; height:32px; border-radius:8px; background:rgba(0,240,255,.08); border:1px solid rgba(0,240,255,.2); color:var(--nir); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+        #phase-results { padding:24px 32px; justify-content:flex-start; } .results-header { width:100%; margin-bottom:22px; } .results-q-echo { font-size:1.05rem; font-weight:500; color:var(--text3); text-align:center; max-width:680px; margin:0 auto 10px; line-height:1.5; } .results-verdict { text-align:center; font-family:var(--font-orb); font-size:1.2rem; padding:10px 24px; border-radius:8px; display:inline-block; margin:0 auto; position:relative; left:50%; transform:translateX(-50%); color:var(--opt); background:rgba(0,255,136,.07); border:1px solid rgba(0,255,136,.25); }
+        .vote-chart { display:grid; grid-template-columns:1fr 1fr; gap:14px; width:100%; max-width:840px; margin:0 auto; } .vote-bar-wrap { position:relative; } .vote-bar-label { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; } .vote-bar-key { font-family:var(--font-orb); font-size:.72rem; color:var(--text2); } .vote-bar-pct { font-family:var(--font-orb); font-size:.82rem; } .vote-bar-track { height:48px; background:rgba(255,255,255,.04); border-radius:7px; overflow:hidden; position:relative; border:1px solid rgba(255,255,255,.06); } .vote-bar-fill { height:100%; border-radius:7px; display:flex; align-items:center; padding-left:12px; font-family:var(--font-exo); font-size:.85rem; font-weight:600; color:#fff; transition:width 1.2s cubic-bezier(.23,1,.32,1); position:relative; overflow:hidden; } .vote-bar-fill::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg, transparent 70%, rgba(255,255,255,.12)); } .vote-bar-fill.correct { outline:2px solid var(--opt); box-shadow:0 0 18px rgba(0,255,136,.3); } .expected-sig { position:absolute; left:0; right:0; border-top:2px dashed var(--opt); opacity:.7; pointer-events:none; top:50%; transform:translateY(-1px); } .expected-sig-label { position:absolute; right:6px; top:-18px; font-family:var(--font-mono); font-size:.58rem; color:var(--opt); background:rgba(3,7,15,.9); padding:2px 5px; border-radius:3px; }
+        .accuracy-wrap { text-align:center; margin-top:18px; } .accuracy-num { font-family:var(--font-orb); font-size:3.5rem; font-weight:900; display:block; line-height:1; background:linear-gradient(135deg, var(--nir), var(--opt)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; } .accuracy-sub { font-size:.72rem; letter-spacing:3px; color:var(--text2); margin-top:4px; }
+
+        #phase-levelend { padding:24px 32px; } .levelend-wrap { text-align:center; max-width:680px; margin:0 auto; } .levelend-badge { font-family:var(--font-orb); font-size:.62rem; letter-spacing:5px; color:var(--text2); margin-bottom:12px; display:block; text-transform:uppercase; } .levelend-title { font-family:var(--font-orb); font-size:2.4rem; font-weight:900; background:linear-gradient(135deg, var(--nir) 0%, var(--opt) 60%, var(--thm) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; line-height:1.1; margin-bottom:8px; animation:titleReveal 1s ease forwards; } @keyframes titleReveal { from{letter-spacing:20px;opacity:0} to{letter-spacing:.5px;opacity:1} } .levelend-acc-row { display:flex; justify-content:center; gap:40px; margin:24px 0 28px; } .le-stat { text-align:center; } .le-num { font-family:var(--font-orb); font-size:2rem; font-weight:900; display:block; color:var(--nir); } .le-lbl { font-size:.62rem; letter-spacing:2px; color:var(--text2); text-transform:uppercase; }
+        .boost-card { background:linear-gradient(135deg, rgba(0,240,255,.08), rgba(0,255,136,.06)); border:1px solid rgba(0,240,255,.3); border-radius:14px; padding:20px 24px; margin-bottom:20px; position:relative; overflow:hidden; } .boost-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg, var(--nir), var(--opt)); animation:scanHeader 2.5s linear infinite; } .boost-label { font-size:.62rem; letter-spacing:3px; color:var(--text2); text-transform:uppercase; margin-bottom:8px; } .boost-row { display:flex; align-items:center; gap:14px; } .boost-emo { font-size:2.2rem; animation:rocketFloat .8s ease-in-out infinite alternate; } @keyframes rocketFloat { from{transform:translateY(0)} to{transform:translateY(-6px)} } .boost-name { font-family:var(--font-orb); font-size:1.15rem; color:var(--nir); font-weight:700; text-transform:uppercase; } .boost-delta { font-family:var(--font-orb); font-size:.85rem; color:var(--opt); margin-top:2px; }
+        .podium { display:flex; align-items:flex-end; justify-content:center; gap:10px; height:120px; margin-top:20px; } .podium-col { display:flex; flex-direction:column; align-items:center; gap:4px; } .podium-name { font-size:.72rem; font-weight:600; text-align:center; max-width:80px; line-height:1.2; text-transform:uppercase; } .podium-score { font-family:var(--font-orb); font-size:.68rem; color:var(--opt); } .podium-bar { width:70px; border-radius:5px 5px 0 0; display:flex; align-items:flex-start; justify-content:center; padding-top:8px; transition:height 1s ease; } .podium-rank { font-family:var(--font-orb); font-size:1.1rem; font-weight:900; } .podium-bar.p1 { background:linear-gradient(180deg, rgba(0,240,255,.25), rgba(0,240,255,.1)); border:1px solid rgba(0,240,255,.3); height:100%; } .podium-bar.p2 { background:rgba(200,200,200,.1); border:1px solid rgba(200,200,200,.2); height:76%; } .podium-bar.p3 { background:rgba(180,120,0,.1); border:1px solid rgba(180,120,0,.2); height:56%; }
+
+        #ticker { grid-area:ticker; background:rgba(0,240,255,.04); border-top:1px solid var(--border); display:flex; align-items:center; overflow:hidden; position:relative; } .ticker-label { font-family:var(--font-mono); font-size:.6rem; letter-spacing:2px; color:var(--nir); padding:0 14px; flex-shrink:0; border-right:1px solid var(--border); background:rgba(0,240,255,.06); height:100%; display:flex; align-items:center; z-index:2; } .ticker-track { flex:1; overflow:hidden; position:relative; height:100%; } .ticker-inner { display:flex; align-items:center; height:100%; white-space:nowrap; animation:tickerScroll 48s linear infinite; font-family:var(--font-mono); font-size:.65rem; color:var(--text3); letter-spacing:1px; } @keyframes tickerScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} } .tick-item { margin-right:48px; } .tick-key { color:var(--text2); } .tick-val { color:var(--opt); margin-left:4px; } .tick-sep { color:rgba(0,240,255,.25); margin:0 24px; }
+        .uplink-emoji { position:fixed; z-index:7000; pointer-events:none; font-size:2.2rem; line-height:1; animation:uplinkFloat 3.5s ease-in forwards; } @keyframes uplinkFloat { 0%{transform:translateY(0) scale(.7); opacity:0;} 8%{opacity:1; transform:translateY(-20px) scale(1.1);} 85%{opacity:.9;} 100%{transform:translateY(-85vh) scale(.8); opacity:0;} }
+
+        .leaderboard-overlay { position:fixed; inset:0; z-index:10000; background:rgba(3,7,15,0.98); backdrop-filter:blur(20px); display:flex; flex-direction:column; align-items:center; padding:60px 40px; animation:lbExpand .5s cubic-bezier(.16,1,.3,1); }
+        @keyframes lbExpand { from{opacity:0;transform:scale(1.1)} to{opacity:1;transform:scale(1)} }
+        .lb-expanded-title { font-family:var(--font-orb); font-size:2.5rem; color:var(--nir); margin-bottom:40px; letter-spacing:8px; text-transform:uppercase; text-shadow:0 0 30px rgba(0,240,255,0.4); }
+        .lb-expanded-list { width:100%; max-width:1000px; }
+        .lb-expanded-row { display:flex; align-items:center; gap:30px; padding:20px 40px; background:rgba(255,255,255,0.03); border:1px solid rgba(0,240,255,0.1); border-radius:15px; margin-bottom:15px; }
+        .lb-expanded-rank { font-family:var(--font-orb); font-size:2.2rem; width:60px; color:var(--text2); }
+        .lb-expanded-name-block { flex:1; }
+        .lb-expanded-name { font-size:1.8rem; font-weight:700; color:#fff; }
+        .lb-expanded-usn { font-size:1rem; color:var(--text3); font-family:var(--font-mono); }
+        .lb-expanded-score { font-family:var(--font-orb); font-size:2.2rem; color:var(--opt); font-weight:900; }
+        .lb-close-hint { margin-top:40px; font-family:var(--font-mono); font-size:0.9rem; color:var(--text3); opacity:0.6; }
+        .sb-expand-btn { cursor:pointer; padding:2px 8px; font-size:0.6rem; border:1px solid var(--border); border-radius:4px; margin-left:auto; transition:all 0.2s; }
+        .sb-expand-btn:hover { background:rgba(0,240,255,0.1); border-color:var(--nir); color:var(--nir); }
+
+        /* Level Intro Styles */
+        .level-intro-view { text-align: center; animation: levelPop 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+        .level-num-huge { font-family: var(--font-orb); font-size: 8rem; font-weight: 900; background: linear-gradient(135deg, var(--nir), var(--opt)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1; margin-bottom: 10px; }
+        .level-title-huge { font-family: var(--font-orb); font-size: 2rem; color: var(--text); letter-spacing: 12px; text-transform: uppercase; opacity: 0.8; }
+
+        /* Top 10 Leaderboard Styles */
+        .top10-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 1000px; margin-top: 30px; }
+        .top10-item { display: flex; align-items: center; gap: 15px; padding: 12px 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(0,240,255,0.1); border-radius: 10px; }
+        .top10-rank { font-family: var(--font-orb); font-size: 1.2rem; width: 30px; color: var(--nir); }
+        .top10-name { flex: 1; font-weight: 700; font-size: 1.1rem; }
+        .top10-score { font-family: var(--font-orb); font-size: 1.1rem; color: var(--opt); }
+
+        /* Final Reveal Button Overlay */
+        .finale-suspense { text-align: center; padding: 40px; }
+        .reveal-btn-temp { background: linear-gradient(135deg, var(--gold), #ffaa00); color: #000; border: none; padding: 15px 40px; font-family: var(--font-orb); font-weight: 900; border-radius: 50px; cursor: pointer; font-size: 1.2rem; box-shadow: 0 0 30px rgba(255,170,0,0.4); margin-top: 40px; transition: transform 0.2s; }
+        .reveal-btn-temp:hover { transform: scale(1.05); }
+      `}</style>
+
       <StarfieldCanvas />
-      
-      {/* Background Cinematic Glows */}
-      <AnimatePresence>
-        <motion.div
-          key={phase}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.3 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 pointer-events-none z-0"
-          style={{
-            background: phase === 'question_active' 
-              ? 'radial-gradient(circle at 50% 50%, #1e3a8a 0%, transparent 70%)' 
-              : phase === 'question_review'
-              ? 'radial-gradient(circle at 50% 50%, #1e40af 0%, transparent 70%)'
-              : 'radial-gradient(circle at 50% 50%, #111827 0%, transparent 70%)'
-          }}
-        />
-      </AnimatePresence>
+      <canvas ref={radarRef} id="radarCanvas" />
 
-      {/* Floating Reactions Layer */}
-      <div className="absolute inset-0 z-40 overflow-hidden pointer-events-none">
-        <AnimatePresence>
-          {adminLiveStats?.reactions?.map((r) => (
-            <motion.div
-              key={r.id}
-              initial={{ y: '110vh', x: `${Math.random() * 80 + 10}vw`, opacity: 0, scale: 0.5, rotate: Math.random() * 40 - 20 }}
-              animate={{ 
-                y: '-20vh', 
-                opacity: [0, 1, 1, 0], 
-                scale: [0.5, 2.5, 2.5, 2],
-                rotate: Math.random() * 90 - 45
-              }}
-              transition={{ duration: 5, ease: "easeOut" }}
-              className="absolute text-7xl drop-shadow-[0_0_30px_rgba(255,255,255,0.6)]"
-            >
-              {r.emoji}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+      {emojis.map(e => (
+        <div key={e.id} className="uplink-emoji" style={{ left: e.left, bottom: '60px', animationDelay: `${e.delay}s` }}>{e.emoji}</div>
+      ))}
 
-      <div className="relative z-10 h-screen flex flex-col">
-        {/* Dynamic Header */}
-        <header className="h-24 border-b border-white/10 flex items-center justify-between px-16 bg-black/40 backdrop-blur-xl">
-          <div className="flex items-center gap-8">
-            <motion.div 
-              animate={{ boxShadow: ['0 0 20px rgba(59,130,246,0.3)', '0 0 40px rgba(59,130,246,0.6)', '0 0 20px rgba(59,130,246,0.3)'] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="px-6 py-2 border-2 border-blue-500 rounded-lg"
-            >
-              <span className="text-3xl font-black italic text-blue-400">MISSION CONTROL</span>
-            </motion.div>
-            <div className="h-10 w-[2px] bg-white/20" />
-            <div className="text-xl tracking-[0.3em] font-bold text-white/60">
-              PHASE: <span className="text-white">{phase.replace('_', ' ').toUpperCase()}</span>
+      {isLeaderboardExpanded && (
+        <div className="leaderboard-overlay" onClick={() => setIsLeaderboardExpanded(false)}>
+          <div className="lb-expanded-title">Live Mission Standings</div>
+          <div className="lb-expanded-list">
+            {leaderboard.slice(0, 5).map((p, i) => {
+              const fCol = p.faction === 'team_sentinel' ? 'var(--sentinel)' : p.faction === 'team_landsat' ? 'var(--landsat)' : 'var(--modis)';
+              return (
+                <div key={p.usn} className="lb-expanded-row" style={{ borderColor: i === 0 ? 'rgba(0,240,255,0.4)' : '' }}>
+                  <div className="lb-expanded-rank">{i < 3 ? medals[i] : i + 1}</div>
+                  <div className="lb-expanded-name-block">
+                    <div className="lb-expanded-name" style={{ color: i === 0 ? 'var(--nir)' : '' }}>{p.name}</div>
+                    <div className="lb-expanded-usn">{p.usn} · <span style={{ color: fCol }}>{p.faction?.replace('team_', '').toUpperCase() || 'UNAFFILIATED'}</span></div>
+                  </div>
+                  <div className="lb-expanded-score">{p.totalScore.toLocaleString()}</div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="lb-close-hint">CLICK ANYWHERE TO MINIMIZE</div>
+        </div>
+      )}
+
+      <div className="prj-shell">
+        <header id="header">
+          <div className="hdr-left">
+            <div className="hdr-logo">GEO<span>-COMMAND</span></div>
+            <div className="hdr-divider" />
+            <div className="hdr-status">
+              <div className="pulse-dot" />
+              <span>UPLINK: ACTIVE</span>&nbsp;·&nbsp;<span>{orbitPass}</span>
             </div>
           </div>
-
-          <div className="flex items-center gap-12">
-            <div className="text-right">
-              <div className="text-5xl font-black text-blue-400 leading-none">
-                {adminStats?.connectedCount || 0}
-              </div>
-              <div className="text-[10px] tracking-[0.4em] text-white/40 mt-1 uppercase">Analysts Online</div>
+          <div className="hdr-center">
+            <div className="hdr-mission">IEEE GRSS · FIELD ANALYST MISSION</div>
+            <div className="hdr-phase-lbl">{phaseLabel}</div>
+          </div>
+          <div className="hdr-right">
+            <div className="stat-block">
+              <div className="stat-lbl">Active Sensors</div>
+              <div className="stat-val nir">{adminStats?.connectedCount || 0}</div>
             </div>
-            <div className="h-12 w-[2px] bg-white/20" />
-            <motion.div 
-              animate={{ opacity: [1, 0.5, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-              className="w-4 h-4 rounded-full bg-blue-500 shadow-[0_0_15px_#3b82f6]" 
-            />
+            <div className="stat-block">
+              <div className="stat-lbl">Uptime</div>
+              <div className="utc-clock">{utcTime}</div>
+            </div>
           </div>
         </header>
 
-        {/* Main Stage */}
-        <main className="flex-1 flex overflow-hidden">
-          {/* Central Visualization */}
-          <div className="flex-[3] relative flex flex-col items-center justify-center border-r border-white/10 p-12">
-            <AnimatePresence mode="wait">
-              {phase === 'idle' && (
-                <motion.div 
-                  key="idle"
-                  initial={{ opacity: 0, scale: 0.8, rotateY: 90 }}
-                  animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-                  exit={{ opacity: 0, scale: 1.2, filter: 'blur(20px)' }}
-                  transition={{ type: 'spring', damping: 15 }}
-                  className="flex flex-col items-center"
-                >
-                  <div className="relative group mb-12">
-                    <div className="absolute -inset-8 bg-blue-500/20 blur-[100px] rounded-full animate-pulse" />
-                    <motion.div
-                      animate={{ 
-                        scale: [1, 1.02, 1],
-                        rotate: [0, 1, 0, -1, 0]
-                      }}
-                      transition={{ duration: 6, repeat: Infinity }}
-                    >
-                      <img src={QR_URL} alt="Join QR" className="w-[450px] h-[450px] relative rounded-3xl border-4 border-blue-500/30 p-4 bg-white/10 shadow-2xl backdrop-blur-md" />
-                    </motion.div>
-                    <div className="absolute top-0 left-0 w-full h-full pointer-events-none border-2 border-blue-400/20 rounded-3xl" />
-                  </div>
-                  <h2 className="text-7xl font-black mb-4 tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white to-blue-400">SCAN TO ENLIST</h2>
-                  <div className="flex flex-col items-center gap-2">
-                    <p className="text-3xl text-white/30 tracking-[0.5em] font-light italic mb-6">{JOIN_URL}</p>
-                    <motion.div 
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="bg-blue-500/10 border-2 border-blue-500/30 px-12 py-6 rounded-3xl backdrop-blur-xl"
-                    >
-                      <div className="text-7xl font-black text-blue-400 tabular-nums">
-                        {adminStats?.connectedCount || 0}
-                      </div>
-                      <div className="text-sm tracking-[0.5em] text-white/40 uppercase font-bold">Analysts Connected</div>
-                    </motion.div>
-                  </div>
-                </motion.div>
-              )}
-
-              {phase === 'question_active' && (
-                <motion.div 
-                  key="active"
-                  initial={{ opacity: 0, y: 100 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="w-full flex flex-col items-center"
-                >
-                  <div className="w-full flex justify-between items-center mb-16">
-                    <div className="bg-white/5 border border-white/10 px-10 py-4 rounded-full backdrop-blur-md">
-                      <span className="text-2xl font-bold tracking-[0.3em] text-blue-400 uppercase">MISSION {currentLevel}</span>
-                    </div>
-                    <div className="relative group">
-                      <div className={`absolute -inset-6 blur-2xl rounded-full opacity-30 transition-colors ${timeLeft <= 5 ? 'bg-red-600 animate-pulse' : 'bg-blue-600'}`} />
-                      <div className={`text-[12rem] font-black leading-none tabular-nums relative ${timeLeft <= 5 ? 'text-red-500' : 'text-white'}`}>
-                        {timeLeft}
-                      </div>
+        <main id="main">
+          {/* IDLE */}
+          <div className={`phase-view ${uiPhase === 'idle' ? 'active' : ''}`} id="phase-idle">
+            {(currentLevel || 0) === 0 ? (
+              <div className="idle-outer">
+                <div className="idle-label">🛰 SATELLITE TERMINAL — ANALYST UPLINK</div>
+                <div className="qr-wrap">
+                  <div className="qr-corner tl" /><div className="qr-corner tr" /><div className="qr-corner bl" /><div className="qr-corner br" />
+                  <div className="qr-box">
+                    <div className="qr-inner">
+                      <img src="/qr_code.png" alt="Mission QR Code" className="qr-img" />
                     </div>
                   </div>
-
-                  <div className="flex-1 w-full flex flex-col items-center justify-center">
-                    {currentQuestion?.imageUrl && (
-                      <motion.div 
-                        initial={{ opacity: 0, scale: 0.9, rotateX: 45 }}
-                        animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-                        className="mb-12 relative"
-                      >
-                        <div className="absolute -inset-4 bg-blue-500/20 blur-2xl opacity-50" />
-                        <img 
-                          src={currentQuestion.imageUrl} 
-                          alt="Visual Intel" 
-                          className="relative max-h-[450px] w-auto rounded-3xl border-2 border-white/20 shadow-[0_0_50px_rgba(0,0,0,0.5)]"
-                        />
-                      </motion.div>
-                    )}
-                    <motion.h2 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.3 }}
-                      className="text-7xl font-bold leading-tight max-w-6xl tracking-tight text-center italic drop-shadow-2xl"
-                    >
-                      "{currentQuestion?.question || currentQuestion?.scrambled || 'PENDING INTEL...'}"
-                    </motion.h2>
+                </div>
+                <div className="idle-event-code">GRSS·2026</div>
+                <div className="idle-bottom">
+                  <div className="idle-stat">
+                    <span className="idle-stat-num">{adminStats?.connectedCount || 0}</span>
+                    <span className="idle-stat-lbl">Analysts Joined</span>
                   </div>
-
-                  {/* High-End Progress Bar */}
-                  <div className="w-full h-3 bg-white/5 rounded-full mt-20 overflow-hidden border border-white/10 p-[2px]">
-                    <motion.div 
-                      className={`h-full rounded-full ${timeLeft <= 5 ? 'bg-gradient-to-r from-red-600 to-orange-400' : 'bg-gradient-to-r from-blue-600 via-blue-400 to-white'}`}
-                      initial={{ width: '100%' }}
-                      animate={{ width: `${(timeLeft / timerTotal) * 100}%` }}
-                      transition={{ duration: 1, ease: "linear" }}
-                      style={{ boxShadow: `0 0 20px ${timeLeft <= 5 ? 'rgba(239, 68, 68, 0.5)' : 'rgba(59, 130, 246, 0.5)'}` }}
-                    />
+                  <div className="idle-stat">
+                    <span className="idle-stat-num" style={{ color: 'var(--opt)' }}>{adminStats?.totalPlayers || 0}</span>
+                    <span className="idle-stat-lbl">Total Registered</span>
                   </div>
-                </motion.div>
-              )}
-
-              {phase === 'question_review' && (
-                <motion.div 
-                  key="review"
-                  initial={{ opacity: 0, scale: 1.1 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="w-full flex flex-col items-center"
-                >
-                  <h2 className="text-5xl font-black mb-16 tracking-[0.5em] text-blue-400 uppercase">INTEL DISTRIBUTION</h2>
-                  <div className="w-full h-[600px] relative" style={{ minWidth: 0 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={Object.entries(adminLiveStats?.distribution || {}).map(([name, value]) => {
-                        let label = name;
-                        if (currentQuestion?.type === 'mcq' || currentQuestion?.type === 'image_mcq') {
-                          const idx = parseInt(name);
-                          if (!isNaN(idx)) label = String.fromCharCode(65 + idx); // 0 -> A, 1 -> B, etc
-                        }
-                        return { name: label, value };
-                      })}>
-                        <XAxis dataKey="name" stroke="#60a5fa" fontSize={28} fontWeight="900" tickLine={false} axisLine={false} dy={20} />
-                        <Bar dataKey="value" radius={[20, 20, 0, 0]} animationDuration={2000}>
-                          {Object.entries(adminLiveStats?.distribution || {}).map((_, index) => (
-                            <Cell key={`cell-${index}`} fill={index === 0 ? '#60a5fa' : '#1d4ed8'} />
-                          ))}
-                          <LabelList dataKey="value" position="top" fill="#fff" fontSize={48} fontWeight="900" offset={25} />
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
+                  <div className="idle-stat">
+                    <span className="idle-stat-num" style={{ color: 'var(--gold)' }}>{leaderboard?.length || 0}</span>
+                    <span className="idle-stat-lbl">On Leaderboard</span>
                   </div>
-                </motion.div>
-              )}
-
-              {(phase === 'level_complete' || phase === 'game_over') && (
-                <motion.div
-                  key="complete"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="w-full h-full flex flex-col"
-                >
-                  {/* Header */}
-                  <div className="flex justify-between items-end mb-10">
-                    <div>
-                      <h2 className="text-5xl font-black tracking-tighter text-blue-400 uppercase">
-                        {phase === 'game_over' ? 'Final Standings' : `Mission ${currentLevel} Results`}
-                      </h2>
-                      <p className="text-lg text-white/40 tracking-[0.3em] mt-1">
-                        {phase === 'game_over' ? 'GLOBAL CAMPAIGN COMPLETE' : 'RECONNAISSANCE COMPLETE'}
-                      </p>
-                    </div>
-                    {phase === 'level_complete' && (
-                      <div className="text-right">
-                        <div className="text-xs tracking-[0.3em] text-white/40 uppercase mb-1">Global Accuracy</div>
-                        <div className="text-5xl font-black text-white">{levelCompleteData?.levelStats.avgAccuracy || 0}%</div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* PHASE 5: Biggest Riser Spotlight */}
-                  {(() => {
-                    // Compute biggest riser: player with biggest positive rank delta
-                    const prev = (leaderboard as any[]).map((e, idx) => ({
-                      ...e,
-                      prevRank: (e as any).prevRank ?? idx + 1,
-                    }));
-                    const riser = prev.reduce<any>((best, e) => {
-                      const delta = e.prevRank - e.rank;
-                      return delta > (best?.delta ?? 0) ? { ...e, delta } : best;
-                    }, null);
-                    if (!riser || riser.delta <= 0) return null;
-                    return (
-                      <motion.div
-                        initial={{ opacity: 0, x: -40 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.5, type: 'spring', bounce: 0.4 }}
-                        className="mb-6 flex items-center gap-6 bg-gradient-to-r from-yellow-900/40 to-transparent border-l-4 border-yellow-400 px-6 py-4 rounded-2xl"
-                      >
-                        <motion.span
-                          animate={{ scale: [1, 1.25, 1] }}
-                          transition={{ duration: 1.5, repeat: Infinity }}
-                          className="text-4xl"
-                        >🚀</motion.span>
-                        <div>
-                          <div className="text-xs tracking-[0.4em] text-yellow-400 font-black uppercase mb-1">Biggest Riser</div>
-                          <div className="text-2xl font-black text-white uppercase">{riser.name}</div>
-                        </div>
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ delay: 0.8, type: 'spring' }}
-                          className="ml-auto text-4xl font-black text-yellow-400"
-                        >
-                          +{riser.delta} ↑
-                        </motion.div>
-                      </motion.div>
-                    );
-                  })()}
-
-                  {/* PHASE 5: Dynamic rank bars with fluid layout animation */}
-                  <div className="flex-1 flex flex-col gap-3 overflow-hidden py-2">
-                    {leaderboard.slice(0, 6).map((entry, idx) => {
-                      const maxScore = leaderboard[0]?.totalScore || 1;
-                      const width = Math.max(8, (entry.totalScore / maxScore) * 100);
-                      const factionBorder = entry.faction === 'team_sentinel' ? '#3b82f6'
-                        : entry.faction === 'team_landsat' ? '#10b981'
-                        : entry.faction === 'team_modis' ? '#a855f7' : '#3b82f6';
-                      const medalEmoji = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null;
-
-                      return (
-                        <motion.div
-                          key={entry.usn}
-                          layout
-                          layoutId={entry.usn}
-                          initial={{ x: -120, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{ layout: { type: 'spring', stiffness: 120, damping: 20 }, delay: idx * 0.07 }}
-                          className="relative h-20 flex items-center"
-                        >
-                          <div className="w-20 text-3xl font-black text-white/25 italic flex-shrink-0">
-                            {medalEmoji ?? `#${idx + 1}`}
-                          </div>
-                          <div className="flex-1 h-full relative flex items-center px-6">
-                            {/* Score bar — width animates as scores change */}
-                            <motion.div
-                              className="absolute left-0 top-0 bottom-0 rounded-xl"
-                              initial={{ width: 0 }}
-                              animate={{ width: `${width}%` }}
-                              transition={{ duration: 1.6, type: 'spring', bounce: 0.25 }}
-                              style={{
-                                background: `linear-gradient(90deg, ${factionBorder}30, ${factionBorder}08)`,
-                                border: `2px solid ${factionBorder}60`,
-                                boxShadow: idx === 0 ? `0 0 30px ${factionBorder}40` : 'none',
-                              }}
-                            />
-                            <div className="relative z-10 flex justify-between w-full items-center">
-                              <div className="flex items-center gap-4">
-                                <div className="text-2xl font-black text-white uppercase truncate max-w-[280px]">{entry.name}</div>
-                                {entry.streak >= 3 && (
-                                  <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity }}>🔥</motion.span>
-                                )}
-                              </div>
-                              <div className="text-3xl font-black tabular-nums" style={{ color: factionBorder }}>
-                                {entry.totalScore.toLocaleString()}
-                              </div>
-                            </div>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                </motion.div>
-              )}
-
-
-              {phase === 'auction_active' && (
-                <motion.div 
-                  key="auction"
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  className="w-full h-full flex flex-col"
-                >
-                  <div className="flex justify-between items-center mb-12">
-                    <h2 className="text-5xl font-black tracking-widest text-blue-400">EQUIPMENT AUCTION</h2>
-                    <div className="bg-white/10 px-8 py-4 rounded-2xl border border-white/20">
-                      <div className="text-white/40 text-xs tracking-widest mb-1 uppercase">Market Multiplier</div>
-                      <div className="text-4xl font-black text-white">x{auctionMultiplier.toFixed(1)}</div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-6 w-full">
-                    {auctionTools.map(tool => (
-                      <div key={tool.id} className="bg-white/5 border border-white/10 p-6 rounded-2xl flex items-center gap-6">
-                        <div className="text-5xl">{tool.icon}</div>
-                        <div className="flex-1">
-                          <div className="text-xl font-bold text-white uppercase">{tool.name}</div>
-                          <div className="text-sm text-white/40">{tool.desc}</div>
-                        </div>
-                        <div className="text-3xl font-black text-blue-400">
-                          ${auctionPrices[tool.id]?.toLocaleString()}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-
-              {phase === 'disaster_active' && disasterInfo && (
-                <motion.div 
-                  key="disaster"
-                  initial={{ opacity: 0, scale: 1.2 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="w-full flex flex-col items-center text-center"
-                >
-                  <motion.div 
-                    animate={{ scale: [1, 1.2, 1], filter: ['drop-shadow(0 0 20px rgba(239, 68, 68, 0.5))', 'drop-shadow(0 0 50px rgba(239, 68, 68, 0.8))', 'drop-shadow(0 0 20px rgba(239, 68, 68, 0.5))'] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                    style={{ fontSize: '8rem', marginBottom: 20 }}
-                  >
-                    {disasterInfo.icon}
-                  </motion.div>
-                  <h2 className="text-8xl font-black text-red-500 tracking-tighter mb-6 italic uppercase">CRITICAL ALERT</h2>
-                  <h3 className="text-5xl font-bold text-white mb-8 tracking-widest">{disasterInfo.name}</h3>
-                  <p className="text-2xl text-white/60 max-w-4xl leading-relaxed italic border-y border-white/10 py-8">
-                    "{disasterInfo.desc}"
-                  </p>
-                  <div className="mt-12 flex gap-12 items-center">
-                    <div className="flex flex-col items-center">
-                      <div className="text-9xl font-black text-white tabular-nums">{timeLeft}</div>
-                      <div className="text-white/40 tracking-[0.4em] uppercase text-sm">Deployment Window</div>
-                    </div>
-                    <div className="h-24 w-[2px] bg-white/20" />
-                    <div className="text-left">
-                      <div className="text-white/40 tracking-[0.2em] uppercase text-xs mb-4">Priority Metrics</div>
-                      {disasterInfo.metrics.map((m, i) => (
-                        <div key={i} className="text-lg font-bold text-blue-400 mb-1 flex items-center gap-3">
-                          <span className="w-2 h-2 bg-blue-500 rounded-full" /> {m}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
+              </div>
+            ) : (
+              <div className="level-intro-view">
+                <div className="level-num-huge">LEVEL {currentLevel}</div>
+                <div className="level-title-huge">{LEVEL_TITLES[currentLevel] || 'INCOMING DATA STREAM'}</div>
+              </div>
+            )}
           </div>
 
-          {/* Right Gutter: Performance Metrics */}
-          <div className="w-[500px] flex flex-col p-10 gap-10 bg-black/20 backdrop-blur-md">
-            {/* Real-time Rankings */}
-            <div className="flex-1 flex flex-col">
-              <h3 className="text-2xl font-black text-blue-400 mb-8 tracking-[0.3em] uppercase flex items-center gap-4">
-                <span className="w-3 h-3 bg-blue-500 rounded-full animate-ping" />
-                Live Standings
-              </h3>
-              <div className="space-y-4">
-                <AnimatePresence>
-                  {leaderboard.slice(0, 7).map((entry, idx) => (
-                    <motion.div
-                      key={entry.usn}
-                      layout
-                      initial={{ opacity: 0, x: 50 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className={`flex items-center p-5 rounded-2xl border-2 transition-all duration-500 ${
-                        idx === 0 
-                          ? 'bg-blue-600/20 border-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.15)]' 
-                          : 'bg-white/5 border-white/5'
-                      }`}
-                      style={{
-                        borderColor: entry.faction === 'team_sentinel' ? '#3b82f6' : 
-                                     entry.faction === 'team_landsat' ? '#10b981' : 
-                                     entry.faction === 'team_modis' ? '#a855f7' : 'rgba(255,255,255,0.05)'
-                      }}
-                    >
-                      <div className="w-12 text-3xl font-black text-white/20 italic">#{idx + 1}</div>
-                      <div className="flex-1 ml-2 flex items-center gap-3">
-                        <div className="text-2xl font-bold uppercase truncate max-w-[180px]">{entry.name}</div>
-                        {entry.streak >= 3 && (
-                          <motion.span 
-                            animate={{ scale: [1, 1.2, 1] }} 
-                            transition={{ repeat: Infinity }}
-                            className="text-2xl"
-                          >🔥</motion.span>
-                        )}
-                      </div>
-                      <div className="text-3xl font-black text-blue-400 tabular-nums">
-                        {entry.totalScore.toLocaleString()}
-                      </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+          {/* LEVEL INTRO (Explicit Phase) */}
+          <div className={`phase-view ${uiPhase === 'level_intro' ? 'active' : ''}`} id="phase-intro">
+            <div className="level-intro-view">
+              <div className="level-num-huge">LEVEL {currentLevel}</div>
+              <div className="level-title-huge">{LEVEL_TITLES[currentLevel] || 'MISSION START'}</div>
+            </div>
+          </div>
+
+          {/* QUESTION */}
+          <div className={`phase-view ${uiPhase === 'question' ? 'active' : ''}`} id="phase-question">
+            <div id="countdown-chip"><span>ACQ WINDOW</span><span>{timeLeft}s</span></div>
+            <div className="question-header">
+              <span className="q-number">MISSION {currentLevel || 1}</span>
+              <span className="q-cat-tag">{currentQuestion?.type?.replace('_', ' ')?.toUpperCase() || 'REMOTE SENSING'}</span>
+              <span className="q-pts">+ {currentQuestion?.points || 100} pts</span>
+            </div>
+            <div className="acq-window">
+              <div className="acq-labels">
+                <span className="acq-lbl-l">ACQUISITION WINDOW ▶</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {timeLeft <= 5 && <span className="acq-los show">⚠ LOS IMMINENT</span>}
+                  <span className="acq-time-txt" style={{ color: timePct > 40 ? 'var(--opt)' : timePct > 15 ? 'var(--warn)' : 'var(--alert)' }}>{timeLeft}</span>
+                </div>
+              </div>
+              <div className="acq-track">
+                <div className={`acq-fill ${timePct <= 15 ? 'crit' : timePct <= 40 ? 'warn' : ''}`} style={{ width: `${timePct}%` }} />
               </div>
             </div>
 
-            {/* Faction Power Dynamics */}
-            <div className="h-80 bg-gradient-to-br from-blue-900/40 to-purple-900/40 border-2 border-white/10 rounded-3xl p-8 relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 blur-[60px] rounded-full" />
-               <h3 className="text-2xl font-black text-purple-400 mb-8 tracking-[0.3em] uppercase">Faction War</h3>
-               <div className="space-y-6">
-                 {[
-                   { id: 'team_sentinel', name: 'SENTINEL', color: '#3b82f6' },
-                   { id: 'team_landsat', name: 'LANDSAT', color: '#10b981' },
-                   { id: 'team_modis', name: 'MODIS', color: '#a855f7' }
-                 ].map(f => {
-                   const score = factionScores[f.id] || 0;
-                   const maxScore = Math.max(...Object.values(factionScores), 1);
-                   return (
-                    <div key={f.id} className="space-y-2">
-                      <div className="flex justify-between items-end">
-                        <span className="text-xs font-black tracking-[0.2em] text-white/60">{f.name}</span>
-                        <span className="text-xl font-black text-white">{score.toLocaleString()}</span>
-                      </div>
-                      <div className="h-4 bg-black/40 rounded-full overflow-hidden border border-white/10 p-[2px]">
-                        <motion.div 
-                          className="h-full rounded-full"
-                          style={{ backgroundColor: f.color, boxShadow: `0 0 15px ${f.color}88` }}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${(score / maxScore) * 100}%` }}
-                          transition={{ duration: 1.5, type: 'spring' }}
-                        />
-                      </div>
+            {currentQuestion?.imageUrl && (
+              <div className="sat-img-wrap">
+                <img src={currentQuestion.imageUrl} alt="Satellite imagery" />
+                <div className="spectral-scanner" /><div className="band-overlay" />
+                <div className="corner-data tl">LAT 28.6°N · LON 77.2°E</div>
+                <div className="corner-data tr">NIR · B08 · 10m</div>
+                <div className="corner-data bl">SENTINEL-2A</div>
+                <div className="corner-data br">2025-01-15T09:22Z</div>
+              </div>
+            )}
+            {currentQuestion?.scrambled && <div style={{ textAlign: 'center' }}><span className="scramble-hint">SCRAMBLE</span></div>}
+            <div className="q-text">{currentQuestion?.question || currentQuestion?.scrambled || 'Loading question data from orbital uplink...'}</div>
+
+            {currentQuestion?.options && (
+              <div className="options-bar">
+                {currentQuestion.options.map((o: string, i: number) => (
+                  <div key={i} className="opt-pill"><span className="opt-key">{'ABCD'[i]}</span><span>{o}</span></div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* RESULTS */}
+          <div className={`phase-view ${uiPhase === 'results' ? 'active' : ''}`} id="phase-results">
+            <div className="results-header">
+              <div className="results-q-echo">{currentQuestion?.question}</div>
+              {reviewData?.correctAnswer && (
+                <div className="results-verdict">✅ SIGNAL CONFIRMED — CORRECT ANSWER: {reviewData.correctAnswer}</div>
+              )}
+            </div>
+            <div className="vote-chart">
+              {Object.entries(adminLiveStats?.distribution || {}).map(([ans, count], i) => {
+                const isCorrect = reviewData?.correctAnswer === ans;
+                const distValues = Object.values(adminLiveStats?.distribution || {}) as number[];
+                const total = Math.max(1, distValues.reduce((a, b) => a + b, 0));
+                const pct = Math.round(((count as number) / total) * 100);
+                const bgColors = ['rgba(0,200,255,.7)', 'rgba(0,200,80,.7)', 'rgba(180,0,255,.7)', 'rgba(255,150,0,.7)'];
+                return (
+                  <div key={ans} className="vote-bar-wrap">
+                    <div className="vote-bar-label">
+                      <span className="vote-bar-key" style={{ color: isCorrect ? 'var(--opt)' : 'var(--text2)' }}>
+                        {isCorrect ? '✓ ' : ''}{ans}
+                      </span>
+                      <span className="vote-bar-pct" style={{ color: isCorrect ? 'var(--opt)' : 'var(--text2)' }}>{pct}%</span>
                     </div>
-                   );
-                 })}
-               </div>
+                    <div className="vote-bar-track">
+                      <div className={`vote-bar-fill ${isCorrect ? 'correct' : ''}`} style={{ width: `${Math.max(pct, 3)}%`, background: `linear-gradient(90deg, ${bgColors[i % 4]}, ${bgColors[i % 4].replace('.7', '.9')})` }}>
+                        {count as number} analysts
+                      </div>
+                      {isCorrect && <div className="expected-sig"><div className="expected-sig-label">EXPECTED SIGNATURE</div></div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="accuracy-wrap">
+              <span className="accuracy-num">
+                {reviewData?.correctAnswer ? Math.round(((adminLiveStats?.distribution?.[reviewData.correctAnswer] as number || 0) / Math.max(1, adminStats?.connectedCount || 1)) * 100) : 0}%
+              </span>
+              <div className="accuracy-sub">FIELD ACCURACY · TELEMETRY CONFIRMED</div>
+            </div>
+          </div>
+
+          {/* LEVEL END */}
+          <div className={`phase-view ${uiPhase === 'levelend' ? 'active' : ''}`} id="phase-levelend">
+            <div className="levelend-wrap">
+              <span className="levelend-badge">MISSION COMPLETE — LEVEL <span>{currentLevel || 1}</span></span>
+              <div className="levelend-title">TRAINING MISSION<br />DEBRIEF</div>
+              <div className="levelend-acc-row">
+                <div className="le-stat"><span className="le-num" style={{ color: 'var(--opt)' }}>{levelCompleteData?.levelStats?.avgAccuracy || 0}%</span><span className="le-lbl">Global Accuracy</span></div>
+                <div className="le-stat"><span className="le-num" style={{ color: 'var(--nir)' }}>{adminStats?.connectedCount || 0}</span><span className="le-lbl">Analysts Scored</span></div>
+                <div className="le-stat"><span className="le-num" style={{ color: 'var(--gold)' }}>{leaderboard?.[0]?.totalScore?.toLocaleString() || '—'}</span><span className="le-lbl">Top Score</span></div>
+              </div>
+
+              {riser && (
+                <div className="boost-card">
+                  <div className="boost-label">⚡ ORBITAL BOOST — BIGGEST RISER</div>
+                  <div className="boost-row">
+                    <span className="boost-emo">🛰️</span>
+                    <div>
+                      <div className="boost-name">{riser.name}</div>
+                      <div className="boost-delta">▲ JUMPED {riser.delta} POSITIONS THIS ROUND</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {currentLevel < 5 ? (
+                <div className="top10-grid">
+                  {leaderboard.slice(0, 10).map((p, i) => (
+                    <div key={p.usn} className="top10-item" style={{ borderColor: i < 3 ? 'rgba(0,240,255,0.3)' : '' }}>
+                      <span className="top10-rank">{i < 3 ? medals[i] : i + 1}</span>
+                      <span className="top10-name" style={{ color: i === 0 ? 'var(--nir)' : '' }}>{p.name}</span>
+                      <span className="top10-score">{p.totalScore.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="finale-suspense">
+                  {!showFinalResults ? (
+                    <>
+                      <div className="level-title-huge" style={{ color: 'var(--gold)', opacity: 1 }}>FINAL CALCULATIONS IN PROGRESS</div>
+                      <div className="idle-label" style={{ marginTop: 20 }}>🛰 SECURING SIGNAL... AWAITING COMMAND</div>
+                      <button className="reveal-btn-temp" onClick={() => setShowFinalResults(true)}>SHOW FINAL RESULTS</button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="level-title-huge" style={{ color: 'var(--nir)', opacity: 1, marginBottom: 40 }}>MISSION CHAMPIONS</div>
+                      <div className="podium" style={{ height: 240, transform: 'scale(1.4)' }}>
+                        {[leaderboard[1], leaderboard[0], leaderboard[2], leaderboard[3], leaderboard[4]].slice(0, 5).map((p, i) => {
+                          if (!p) return null;
+                          const order = [1, 0, 2, 3, 4];
+                          const realIdx = leaderboard.indexOf(p);
+                          return (
+                            <div key={p.usn} className="podium-col">
+                              <div className="podium-name" style={{ fontSize: '0.6rem' }}>{p.name.split(' ')[0]}</div>
+                              <div className={`podium-bar p${realIdx + 1}`} style={{ height: `${100 - realIdx * 15}%`, width: 60 }}>
+                                <div className="podium-rank">{medals[realIdx] || realIdx + 1}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </main>
 
-        {/* Cinematic Ticker Footer */}
-        <footer className="h-16 border-t border-white/10 flex items-center bg-black/60 relative overflow-hidden">
-          <div className="absolute left-0 h-full w-24 bg-gradient-to-r from-black to-transparent z-10" />
-          <div className="absolute right-0 h-full w-24 bg-gradient-to-l from-black to-transparent z-10" />
-          <motion.div
-            animate={{ x: [0, -2000] }}
-            transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-            className="whitespace-nowrap flex gap-20 text-[11px] tracking-[0.6em] text-white/30 font-black uppercase italic"
-          >
-            {[...Array(5)].map((_, i) => (
-              <span key={i} className="flex gap-20">
-                <span>Satellite Uplink: Stable (Region-7)</span>
-                <span>Security Protocol: AES-256 Armed</span>
-                <span>Neural Drift: Nominal</span>
-                <span>Atmospheric Refraction: 0.04%</span>
-                <span>Mission Control Status: Fully Operational</span>
-              </span>
-            ))}
-          </motion.div>
+        <aside id="sidebar">
+          <div className="sb-section" onClick={() => setIsLeaderboardExpanded(true)} style={{ cursor: 'pointer' }}>
+            <div className="sb-title">
+              Live Standings · Top 5
+              <div className="sb-expand-btn">⤢ EXPAND</div>
+            </div>
+            <div>
+              {leaderboard.slice(0, 5).map((p, i) => {
+                const dir = (p as any).delta > 0 ? 'up' : (p as any).delta < 0 ? 'down' : 'same';
+                const fCol = p.faction === 'team_sentinel' ? 'var(--sentinel)' : p.faction === 'team_landsat' ? 'var(--landsat)' : 'var(--modis)';
+                return (
+                  <div key={p.usn} className={`lb-row ${i < 3 ? `rank${i + 1}` : ''}`}>
+                    <div className="lb-rank">{i < 3 ? medals[i] : i + 1}</div>
+                    <div className="lb-name-block">
+                      <div className="lb-name" style={{ color: i === 0 ? 'var(--nir)' : 'var(--text)' }}>{p.name}</div>
+                      <div className="lb-usn">{p.usn} · <span style={{ color: fCol }}>{p.faction?.replace('team_', '').toUpperCase() || 'UNAFFILIATED'}</span></div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                      <div className="lb-score">{p.totalScore.toLocaleString()}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="sb-section">
+            <div className="sb-title">Constellation Power</div>
+            <div>
+              {FACTIONS.map(f => {
+                const s = factionScores[f.id] || 0;
+                const scoreValues = Object.values(factionScores) as number[];
+                const max = Math.max(...scoreValues, 1);
+                const pct = (s / max) * 100;
+                const cls = f.id.replace('team_', 'faction-');
+                return (
+                  <div key={f.id} className={`faction-row ${cls}`}>
+                    <div className="faction-head"><span className="faction-name" style={{ color: f.color }}>{f.name}</span><span className="faction-score" style={{ color: f.color }}>{s.toLocaleString()}</span></div>
+                    <div className="faction-bar-track"><div className="faction-bar-fill" style={{ width: `${Math.max(pct, 5)}%` }} /></div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="sb-section">
+            <div className="sb-title">Orbital Telemetry</div>
+            <div>
+              {[0, 1, 2, 3, 4].map(i => {
+                const [k, v] = TELEM_LIVE[(telemIdx + i) % TELEM_LIVE.length];
+                return <div key={i} className="telem-line"><span className="telem-key">{k}</span><span className="telem-val">{v}</span></div>;
+              })}
+            </div>
+          </div>
+
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12, position: 'relative' }}>
+            <canvas ref={orbitRef} width={288} height={180} />
+          </div>
+        </aside>
+
+        <footer id="ticker">
+          <div className="ticker-label">📡 TELEMETRY</div>
+          <div className="ticker-track">
+            <div className="ticker-inner">
+              {[...TICKER_DATA, ...TICKER_DATA].map(([k, v], i) => (
+                <React.Fragment key={i}>
+                  <span className="tick-item"><span className="tick-key">{k}:</span><span className="tick-val"> {v}</span></span>
+                  <span className="tick-sep">◆</span>
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
         </footer>
       </div>
-    </div>
+    </>
   );
 }

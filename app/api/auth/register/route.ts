@@ -41,7 +41,18 @@ export async function POST(req: NextRequest) {
     const isAdmin = (upperUsn === ADMIN_USN && name.toLowerCase() === ADMIN_NAME);
 
     const factions = ['team_sentinel', 'team_landsat', 'team_modis'];
-    const faction = factions[Math.floor(Math.random() * factions.length)];
+    
+    // Balanced team assignment: find faction with minimum users
+    const counts = await Promise.all(
+      factions.map(async (f) => ({
+        id: f,
+        count: await User.countDocuments({ faction: f })
+      }))
+    );
+    
+    // Sort by count and take the one with the fewest members
+    const sortedFactions = counts.sort((a, b) => a.count - b.count);
+    const faction = sortedFactions[0].id;
 
     // Create the user in the personnel roster (DB)
     if (!isAdmin) {
