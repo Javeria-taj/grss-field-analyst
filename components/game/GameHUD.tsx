@@ -86,18 +86,19 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
       transition={isAnomaly ? { repeat: Infinity, duration: 0.2 } : {}}
       className="hud"
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {/* LEFT: Status dot + user info */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
         <motion.div
           animate={{ opacity: connected ? [0.5, 1, 0.5] : 1 }}
           transition={{ duration: 1.5, repeat: connected ? Infinity : 0 }}
           style={{
-            width: 10, height: 10, borderRadius: '50%',
+            width: 12, height: 12, borderRadius: '50%', flexShrink: 0,
             background: connected ? factionColor : 'var(--danger)',
-            boxShadow: connected ? `0 0 10px ${factionColor}` : 'none',
+            boxShadow: connected ? `0 0 12px ${factionColor}` : 'none',
           }}
         />
         <div style={{ minWidth: 0, overflow: 'hidden' }}>
-          <div className="font-orb hud-user-name" style={{ fontSize: 'clamp(0.85rem, 3vw, 1rem)', color: factionColor, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div className="font-orb hud-user-name" style={{ fontSize: 'clamp(0.85rem, 3vw, 1rem)', color: factionColor, display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {user.name.toUpperCase()}
             {isFire && <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity }}>🔥</motion.span>}
           </div>
@@ -116,7 +117,8 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
         </motion.div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      {/* RIGHT: Timer + Score + Logout */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         {currentLevel > 0 && (
           <div style={{ textAlign: 'center', display: 'none' }} className="hud-mission-label">
             <div style={{ fontSize: '0.5rem', color: 'var(--text2)' }}>MISSION</div>
@@ -139,16 +141,21 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
             </div>
           </div>
         )}
+        {/* Subtle separator */}
+        <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} className="hud-separator" />
         <div className="hud-score-container" style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ fontSize: '0.55rem', color: 'var(--text2)', lineHeight: 1 }}>SCORE</div>
+          <div style={{ fontSize: '0.55rem', color: 'var(--text2)', lineHeight: 1, letterSpacing: '0.08em' }}>SCORE</div>
           <div className="font-orb t-gold hud-score" style={{ fontSize: 'clamp(1rem, 3.5vw, 1.25rem)', lineHeight: 1.1 }}>{displayScore}</div>
         </div>
-        <button className="btn btn-outline btn-sm hud-logout-btn" onClick={onLogout} style={{ fontSize: 'clamp(0.65rem, 2.5vw, 0.75rem)', padding: '6px 12px', minHeight: 36, marginLeft: 4 }}>LOGOUT</button>
+        <button className="btn btn-outline btn-sm hud-logout-btn" onClick={onLogout} style={{ fontSize: 'clamp(0.65rem, 2.5vw, 0.75rem)', padding: '8px 16px', minHeight: 38, minWidth: 72, letterSpacing: '0.05em' }}>LOGOUT</button>
       </div>
 
       <style jsx>{`
         .hud {
-          padding: 10px 14px !important;
+          padding: 10px 16px !important;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
         }
         @media (min-width: 480px) {
           .hud { padding: 14px 28px !important; }
@@ -156,9 +163,11 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
           .hud-timer { width: 90px !important; }
         }
         @media (max-width: 400px) {
+          .hud { padding: 8px 12px !important; }
           .hud-user-name { display: none !important; }
           .hud-usn { font-size: 0.8rem !important; color: var(--text) !important; }
-          .hud-logout-btn { padding: 4px 8px !important; min-height: 32px !important; }
+          .hud-logout-btn { padding: 6px 10px !important; min-height: 32px !important; min-width: 60px !important; }
+          .hud-separator { display: none !important; }
         }
       `}</style>
     </motion.div>
