@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
 // Paths that require a valid authenticated session
-const protectedPaths = ['/dashboard', '/mission', '/auction', '/disaster', '/results', '/leaderboard', '/final'];
+const protectedPaths = ['/dashboard', '/mission', '/auction', '/disaster', '/results', '/leaderboard', '/final', '/projector'];
 const adminPaths = ['/admin'];
 
 const JWT_SECRET = new TextEncoder().encode(
