@@ -1206,20 +1206,18 @@ export class GameEngine {
     this.anomalyTargets.clear();
     (this as any)._anomalyPatchedBy = new Map<string, Set<string>>();
 
-    // Create a 3×3 grid (9 nodes). Pick exactly 3 distinct indices.
-    const allIndices = Array.from({ length: 9 }, (_, i) => i);
-    const picked: number[] = [];
-    while (picked.length < 3) {
-      const idx = allIndices.splice(Math.floor(Math.random() * allIndices.length), 1)[0];
-      picked.push(idx);
-    }
-    picked.forEach(i => this.anomalyTargets.add(`node_${i}`));
-    const targetIdsArr = [...this.anomalyTargets];
+    let anomalyType: 'whack_a_mole' | 'sliders' | 'wire_routing' | 'overload' = 'whack_a_mole';
+    if (this.currentLevel === 2) anomalyType = 'overload';
+    if (this.currentLevel === 3) anomalyType = 'sliders';
+    if (this.currentLevel === 4) anomalyType = 'wire_routing';
+
+    this.anomalyTargets.add('WIN_TOKEN');
 
     const payload: AnomalyPayload = {
       type: 'patch',
-      targetIds: targetIdsArr,
-      targetId: targetIdsArr[0], // legacy fallback
+      anomalyType,
+      targetIds: ['WIN_TOKEN'],
+      targetId: 'WIN_TOKEN',
       gridSize: 9,
       timeLimit: 15
     };
@@ -1229,8 +1227,8 @@ export class GameEngine {
 
     // Trigger Urgent AI Commentary
     MissionCommander.generateCommentary(
-      "TRIPLE SECURITY BREACH",
-      targetIdsArr.join(','),
+      `ZERO-DAY DETECTED: ${anomalyType.toUpperCase().replace(/_/g, ' ')}`,
+      'WIN_TOKEN',
       { distribution: {}, factionScores: {} },
       this.getPlayerCount(),
       this.phase

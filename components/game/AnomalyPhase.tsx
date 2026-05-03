@@ -4,6 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
 import { SFX } from '@/lib/sfx';
 
+import WhackAMole from './anomalies/WhackAMole';
+import OverloadBalance from './anomalies/OverloadBalance';
+import FrequencySliders from './anomalies/FrequencySliders';
+import WireRouting from './anomalies/WireRouting';
+
 export default function AnomalyPhase() {
   const {
     anomalyData, anomalyResult, hasFixedAnomaly,
@@ -32,21 +37,15 @@ export default function AnomalyPhase() {
 
   if (!anomalyData) return null;
 
-  // Support both new (targetIds) and legacy (targetId) server payloads
   const targetIds: string[] = anomalyData.targetIds?.length
     ? anomalyData.targetIds
     : [anomalyData.targetId];
 
-  const nodes = Array.from({ length: anomalyData.gridSize }, (_, i) => `node_${i}`);
-  const patchedCount = anomalyPatchedIds.length;
   const totalTargets = targetIds.length;
 
-  const handleNodeClick = (id: string) => {
-    // Only allow clicking actual error nodes that haven't been patched yet
+  const handleMinigameComplete = () => {
     if (hasFixedAnomaly || anomalyResult) return;
-    if (!targetIds.includes(id)) return;
-    if (anomalyPatchedIds.includes(id)) return;
-    submitAnomalyFix(id);
+    submitAnomalyFix('WIN_TOKEN');
   };
 
   return (
@@ -91,27 +90,24 @@ export default function AnomalyPhase() {
           TRIPLE BREACH DETECTED. PATCH ALL {totalTargets} CORRUPT NODES TO SECURE THE SYSTEM.
         </div>
 
-        {/* Progress indicator */}
-        <div style={{
-          background: '#000', border: '3px solid #fff', padding: '10px 20px',
-          marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12
-        }}>
-          {targetIds.map((_, i) => (
-            <div key={i} style={{
-              width: 28, height: 28, borderRadius: '50%',
-              border: '3px solid #fff',
-              background: i < patchedCount ? '#00ff66' : (glitchPhase % 2 === 0 ? '#ff0033' : '#550000'),
-              transition: 'background 0.2s',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.8rem', fontWeight: 'bold', color: '#000'
-            }}>
-              {i < patchedCount ? '✓' : '!'}
-            </div>
-          ))}
-          <span style={{ color: '#fff', fontFamily: 'monospace', fontWeight: 'bold' }}>
-            {patchedCount}/{totalTargets} PATCHED
-          </span>
-        </div>
+        {!hasFixedAnomaly && !anomalyResult && anomalyData.anomalyType && (
+          <div style={{ marginBottom: 20 }}>
+            {anomalyData.anomalyType === 'whack_a_mole' && <WhackAMole onComplete={handleMinigameComplete} glitchPhase={glitchPhase} />}
+            {anomalyData.anomalyType === 'overload' && <OverloadBalance onComplete={handleMinigameComplete} glitchPhase={glitchPhase} />}
+            {anomalyData.anomalyType === 'sliders' && <FrequencySliders onComplete={handleMinigameComplete} glitchPhase={glitchPhase} />}
+            {anomalyData.anomalyType === 'wire_routing' && <WireRouting onComplete={handleMinigameComplete} glitchPhase={glitchPhase} />}
+          </div>
+        )}
+
+        {hasFixedAnomaly && !anomalyResult && (
+          <div style={{
+            background: '#00ff66', color: '#000', padding: '12px 16px',
+            border: '4px solid #fff', boxShadow: '8px 8px 0px #fff',
+            marginBottom: 20, fontSize: '1.2rem', fontWeight: 'bold'
+          }}>
+            SECURED. WAITING FOR SYSTEM REBOOT...
+          </div>
+        )}
 
         <div className="font-orb anomaly-timer" style={{
           fontSize: '3.5rem', marginBottom: 24, color: localTime <= 5 ? '#ff0033' : '#fff',
@@ -120,44 +116,7 @@ export default function AnomalyPhase() {
           00:{localTime.toString().padStart(2, '0')}
         </div>
 
-        {!anomalyResult ? (
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12,
-            padding: 20, background: '#000', border: '4px solid #fff'
-          }}>
-            {nodes.map((id) => {
-              const isTarget = targetIds.includes(id);
-              const isPatched = anomalyPatchedIds.includes(id);
-              const isError = isTarget && !isPatched && !hasFixedAnomaly;
-
-              return (
-                <motion.button
-                  key={id}
-                  onClick={() => handleNodeClick(id)}
-                  whileHover={isError ? { scale: 1.07 } : {}}
-                  whileTap={isError ? { scale: 0.93 } : {}}
-                  style={{
-                    aspectRatio: '1/1',
-                    background: isPatched
-                      ? '#003a14'
-                      : isError
-                        ? (glitchPhase % 2 === 0 ? '#ff0033' : '#fff')
-                        : '#1a1a1a',
-                    border: `4px solid ${isPatched ? '#00ff66' : '#fff'}`,
-                    cursor: isError ? 'pointer' : 'default',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '1.3rem', fontWeight: 'bold',
-                    boxShadow: isPatched ? 'none' : isError ? '4px 4px 0px #fff' : 'none',
-                    color: isPatched ? '#00ff66' : isError ? '#000' : '#444',
-                    transition: 'background 0.1s, border-color 0.2s',
-                  }}
-                >
-                  {isPatched ? '✓ OK' : isError ? 'ERR' : 'SYNC'}
-                </motion.button>
-              );
-            })}
-          </div>
-        ) : (
+        {anomalyResult && (
           <AnimatePresence>
             <motion.div
               initial={{ scale: 0.5, opacity: 0 }}

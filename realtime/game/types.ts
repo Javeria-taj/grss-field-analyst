@@ -237,7 +237,8 @@ export interface AdminLiveStatsPayload {
 // ── Anomaly ──
 export interface AnomalyPayload {
   type: 'patch' | 'identify';
-  targetIds: string[];  // array of 3 distinct error node IDs
+  anomalyType: 'whack_a_mole' | 'sliders' | 'wire_routing' | 'overload';
+  targetIds: string[];  // array of target node IDs or WIN_TOKEN
   /** @deprecated use targetIds — kept for legacy client compatibility */
   targetId: string;     // first target, for display fallback
   gridSize: number;
