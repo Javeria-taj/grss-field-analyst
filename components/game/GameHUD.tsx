@@ -96,12 +96,12 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
             boxShadow: connected ? `0 0 10px ${factionColor}` : 'none',
           }}
         />
-        <div style={{ minWidth: 0 }}>
-          <div className="font-orb hud-user-name" style={{ fontSize: '1rem', color: factionColor, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ minWidth: 0, overflow: 'hidden' }}>
+          <div className="font-orb hud-user-name" style={{ fontSize: 'clamp(0.85rem, 3vw, 1rem)', color: factionColor, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {user.name.toUpperCase()}
             {isFire && <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity }}>🔥</motion.span>}
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text2)' }}>{user.usn}</div>
+          <div className="hud-usn" style={{ fontSize: 'clamp(0.6rem, 2vw, 0.75rem)', color: 'var(--text2)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{user.usn}</div>
         </div>
       </div>
 
@@ -139,20 +139,26 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
             </div>
           </div>
         )}
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '0.6rem', color: 'var(--text2)' }}>SCORE</div>
-          <div className="font-orb t-gold hud-score" style={{ fontSize: '1.25rem' }}>{displayScore}</div>
+        <div className="hud-score-container" style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div style={{ fontSize: '0.55rem', color: 'var(--text2)', lineHeight: 1 }}>SCORE</div>
+          <div className="font-orb t-gold hud-score" style={{ fontSize: 'clamp(1rem, 3.5vw, 1.25rem)', lineHeight: 1.1 }}>{displayScore}</div>
         </div>
-        <button className="btn btn-outline btn-sm" onClick={onLogout} style={{ fontSize: '0.75rem', padding: '8px 16px', minHeight: 40, marginLeft: 8 }}>LOGOUT</button>
+        <button className="btn btn-outline btn-sm hud-logout-btn" onClick={onLogout} style={{ fontSize: 'clamp(0.65rem, 2.5vw, 0.75rem)', padding: '6px 12px', minHeight: 36, marginLeft: 4 }}>LOGOUT</button>
       </div>
 
       <style jsx>{`
+        .hud {
+          padding: 10px 14px !important;
+        }
         @media (min-width: 480px) {
+          .hud { padding: 14px 28px !important; }
           .hud-mission-label { display: block !important; }
           .hud-timer { width: 90px !important; }
         }
         @media (max-width: 400px) {
           .hud-user-name { display: none !important; }
+          .hud-usn { font-size: 0.8rem !important; color: var(--text) !important; }
+          .hud-logout-btn { padding: 4px 8px !important; min-height: 32px !important; }
         }
       `}</style>
     </motion.div>

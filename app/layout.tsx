@@ -8,7 +8,6 @@ import ClientShell from "@/components/ClientShell";
 import BackgroundSystem from "@/components/game/BackgroundSystem";
 import ReactionOverlay from "@/components/game/ReactionOverlay";
 import MissionFeed from "@/components/game/MissionFeed";
-import AnalystToolkit from "@/components/game/AnalystToolkit";
 
 const orbitron = Orbitron({
   variable: "--font-orbitron",
@@ -67,7 +66,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <BackgroundSystem />
           <ReactionOverlay />
           <MissionFeed />
-          <AnalystToolkit />
+          <MissionFeed />
           <StarfieldCanvas />
           <Toast />
           <main id="app-root" style={{ position: "relative", zIndex: 3, minHeight: "100dvh" }}>
