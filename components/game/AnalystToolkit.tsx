@@ -92,18 +92,24 @@ export default function AnalystToolkit() {
         }
         @media (max-width: 768px) {
           .analyst-toolkit-container {
+            position: relative !important;
             top: auto;
-            bottom: 20px;
-            right: 20px;
-            flex-direction: row;
-            width: auto;
+            bottom: auto;
+            right: auto;
+            flex-direction: row !important;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
             max-width: 100vw;
-            padding: 0 10px;
+            padding: 0;
+            margin-top: 16px;
             pointer-events: none;
           }
           .analyst-toolkit-container :global(button) {
             pointer-events: auto;
-            min-width: 150px;
+            flex: 1;
+            min-width: 140px;
+            max-width: 200px;
           }
           .analyst-toolkit-container > div:first-child {
             display: none;
@@ -111,13 +117,11 @@ export default function AnalystToolkit() {
         }
         @media (max-width: 480px) {
           .analyst-toolkit-container {
-            flex-direction: column;
-            bottom: 15px;
-            right: 15px;
+            gap: 8px;
           }
           .analyst-toolkit-container :global(button) {
-             min-width: 160px;
-             padding: 8px 12px;
+             min-width: 140px;
+             padding: 8px 10px;
           }
         }
       `}</style>

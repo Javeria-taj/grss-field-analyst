@@ -91,17 +91,17 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
           animate={{ opacity: connected ? [0.5, 1, 0.5] : 1 }}
           transition={{ duration: 1.5, repeat: connected ? Infinity : 0 }}
           style={{
-            width: 6, height: 6, borderRadius: '50%',
+            width: 10, height: 10, borderRadius: '50%',
             background: connected ? factionColor : 'var(--danger)',
-            boxShadow: connected ? `0 0 8px ${factionColor}` : 'none',
+            boxShadow: connected ? `0 0 10px ${factionColor}` : 'none',
           }}
         />
         <div style={{ minWidth: 0 }}>
-          <div className="font-orb hud-user-name" style={{ fontSize: '0.8rem', color: factionColor, display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div className="font-orb hud-user-name" style={{ fontSize: '1rem', color: factionColor, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {user.name.toUpperCase()}
             {isFire && <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity }}>🔥</motion.span>}
           </div>
-          <div style={{ fontSize: '0.6rem', color: 'var(--text2)' }}>{user.usn}</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text2)' }}>{user.usn}</div>
         </div>
       </div>
 
@@ -140,10 +140,10 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
           </div>
         )}
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '0.5rem', color: 'var(--text2)' }}>SCORE</div>
-          <div className="font-orb t-gold hud-score">{displayScore}</div>
+          <div style={{ fontSize: '0.6rem', color: 'var(--text2)' }}>SCORE</div>
+          <div className="font-orb t-gold hud-score" style={{ fontSize: '1.25rem' }}>{displayScore}</div>
         </div>
-        <button className="btn btn-outline btn-sm" onClick={onLogout} style={{ fontSize: '0.6rem', padding: '4px 6px', minHeight: 30, minWidth: 30 }}>↩</button>
+        <button className="btn btn-outline btn-sm" onClick={onLogout} style={{ fontSize: '0.75rem', padding: '8px 16px', minHeight: 40, marginLeft: 8 }}>LOGOUT</button>
       </div>
 
       <style jsx>{`

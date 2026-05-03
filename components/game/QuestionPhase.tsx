@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
 import { SFX } from '@/lib/sfx';
+import AnalystToolkit from './AnalystToolkit';
 
 function SlidingHint({ hint, disabled, noScore }: { hint: string; disabled: boolean; noScore: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -602,7 +603,9 @@ export default function QuestionPhase() {
         transition={{ duration: 0.3 }}
         style={{
           width: '100%', maxWidth: 640,
-          background: 'rgba(255,255,255,0.025)',
+          background: 'rgba(10, 15, 30, 0.55)',
+          backdropFilter: 'blur(16px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(180%)',
           border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 18,
           padding: 'clamp(20px, 5vw, 36px)',
@@ -656,6 +659,9 @@ export default function QuestionPhase() {
           </div>
         </motion.div>
       )}
+
+      {/* Analyst Toolkit (Powerups) */}
+      <AnalystToolkit />
     </div>
   );
 }
