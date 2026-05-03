@@ -34,11 +34,11 @@ export default function FrequencySliders({ onComplete, glitchPhase }: { onComple
                 <span>{names[i]}</span>
                 <span>{val}MHz</span>
               </div>
-              <div style={{ position: 'relative', height: 40, background: '#1a1a1a', border: \`2px solid \${match ? '#00ff66' : '#444'}\`, display: 'flex', alignItems: 'center' }}>
+              <div style={{ position: 'relative', height: 40, background: '#1a1a1a', border: `2px solid ${match ? '#00ff66' : '#444'}`, display: 'flex', alignItems: 'center' }}>
                 {/* Target Zone */}
                 <div style={{
                   position: 'absolute',
-                  left: \`\${Math.max(0, targets[i] - 8)}%\`,
+                  left: `${Math.max(0, targets[i] - 8)}%`,
                   width: '16%',
                   height: '100%',
                   background: match ? '#00ff66' : (glitchPhase % 2 === 0 ? 'rgba(255,0,51,0.5)' : 'rgba(255,255,255,0.2)'),
@@ -61,7 +61,7 @@ export default function FrequencySliders({ onComplete, glitchPhase }: { onComple
                 
                 {/* Custom Thumb */}
                 <div style={{
-                  position: 'absolute', left: \`\${val}%\`, top: -5, bottom: -5, width: 10,
+                  position: 'absolute', left: `${val}%`, top: -5, bottom: -5, width: 10,
                   transform: 'translateX(-50%)',
                   background: '#fff', border: '2px solid #000', pointerEvents: 'none', zIndex: 5
                 }} />

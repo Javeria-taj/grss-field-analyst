@@ -55,7 +55,7 @@ export default function OverloadBalance({ onComplete, glitchPhase }: { onComplet
           >
             <div style={{
               position: 'absolute', bottom: 0, left: 0, right: 0,
-              height: \`\${heat}%\`,
+              height: `${heat}%`,
               background: heat > 80 ? (glitchPhase % 2 === 0 ? '#ff0033' : '#fff') : '#ff0033',
               transition: 'height 0.2s',
               opacity: 0.8

@@ -81,7 +81,7 @@ export default function WireRouting({ onComplete, glitchPhase }: { onComplete: (
                 background: isCorrupt 
                   ? (glitchPhase % 2 === 0 ? '#ff0033' : '#330000') 
                   : isPath ? '#00ff66' : '#1a1a1a',
-                border: \`4px solid \${isPath ? '#fff' : '#444'}\`,
+                border: `4px solid ${isPath ? '#fff' : '#444'}`,
                 cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '1.1rem', fontWeight: 'bold',
