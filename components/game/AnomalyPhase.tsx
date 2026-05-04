@@ -162,9 +162,10 @@ export default function AnomalyPhase() {
           100% { transform: translate(1px, -2px) rotate(-1deg); }
         }
         @media (max-width: 600px) {
-          .anomaly-header { font-size: 1.4rem !important; box-shadow: 4px 4px 0px #fff !important; padding: 6px 12px !important; }
-          .anomaly-sub    { font-size: 0.75rem !important; padding: 6px 10px !important; }
-          .anomaly-timer  { font-size: 2rem !important; }
+          .anomaly-header { font-size: 1.4rem !important; box-shadow: 4px 4px 0px #fff !important; padding: 6px 12px !important; margin-bottom: 12px !important; }
+          .anomaly-sub    { font-size: 0.75rem !important; padding: 8px 10px !important; margin-bottom: 12px !important; }
+          .anomaly-timer  { font-size: 2rem !important; padding: 0 10px !important; margin-bottom: 16px !important; }
+          .anomaly-overlay { justify-content: flex-start !important; padding-top: 40px !important; }
           .anomaly-minigame-container { transform: scale(0.85); transform-origin: top center; margin-bottom: 0 !important; }
         }
         @media (max-width: 400px) {
