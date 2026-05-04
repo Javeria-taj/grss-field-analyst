@@ -391,6 +391,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         myStreak: data.myScore?.streak ?? 0,
         myAchievements: data.myScore?.achievements || [],
         factionScores: data.factionScores || {},
+        anomalyData: data.anomalyData || null,
       });
     });
 

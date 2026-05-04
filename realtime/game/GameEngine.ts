@@ -1076,7 +1076,15 @@ export class GameEngine {
       leaderboard: this.getLeaderboard(), levelIntro,
       reviewData: null, myScore: ps, myAnswer: pa,
       hangmanState, auctionState, disasterInfo,
-      factionScores: this.factionScores
+      factionScores: this.factionScores,
+      anomalyData: this.phase === 'anomaly_active' ? {
+        type: 'patch',
+        anomalyType: (this as any)._lastAnomalyType || 'whack_a_mole',
+        targetIds: ['WIN_TOKEN'],
+        targetId: 'WIN_TOKEN',
+        gridSize: 9,
+        timeLimit: 15
+      } : null
     };
   }
 
@@ -1196,11 +1204,13 @@ export class GameEngine {
     this.anomalyFixers.clear();
     this.anomalyTargets.clear();
     (this as any)._anomalyPatchedBy = new Map<string, Set<string>>();
-
     let anomalyType: 'whack_a_mole' | 'sliders' | 'wire_routing' | 'overload' = 'whack_a_mole';
     if (this.currentLevel === 2) anomalyType = 'overload';
     if (this.currentLevel === 3) anomalyType = 'sliders';
     if (this.currentLevel === 4) anomalyType = 'wire_routing';
+
+    (this as any)._lastAnomalyType = anomalyType;
+
 
     this.anomalyTargets.add('WIN_TOKEN');
 
@@ -1311,9 +1321,15 @@ export class GameEngine {
     // Return to previous state (usually level_complete)
     if (this.currentLevel > 0 && this.currentLevel < 5) {
       this.phase = 'level_complete';
+    } else if (this.currentLevel === 5) {
+      this.phase = 'disaster_active'; // Or whatever L5 phase it was
     } else {
       this.phase = 'idle';
     }
+    
+    // Broadcast full sync to force phase transition on all clients
+    this.io.emit('game_state_sync', this.getStateForClient('')); 
+
     
     this.io.emit('anomaly_cleared', {});
     this.leaderboardDirty = true;

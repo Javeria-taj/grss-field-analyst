@@ -53,7 +53,7 @@ export default function AnomalyPhase() {
       position: 'fixed', inset: 0, zIndex: 1000,
       background: glitchPhase % 2 === 0 ? 'rgba(255, 0, 51, 0.4)' : '#000',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      padding: 20, overflow: 'hidden',
+      padding: 20, overflowY: 'auto',
       color: '#fff', fontFamily: 'monospace'
     }}>
       {/* Scanline overlay */}
@@ -162,9 +162,10 @@ export default function AnomalyPhase() {
           100% { transform: translate(1px, -2px) rotate(-1deg); }
         }
         @media (max-width: 600px) {
-          .anomaly-header { font-size: 1.6rem !important; box-shadow: 5px 5px 0px #fff !important; }
-          .anomaly-sub    { font-size: 0.8rem !important; }
-          .anomaly-timer  { font-size: 2.2rem !important; }
+          .anomaly-header { font-size: 1.4rem !important; padding: 6px 12px !important; box-shadow: 4px 4px 0px #fff !important; margin-bottom: 12px !important; }
+          .anomaly-sub    { font-size: 0.75rem !important; padding: 8px 10px !important; margin-bottom: 12px !important; }
+          .anomaly-timer  { font-size: 2rem !important; padding: 0 10px !important; margin-bottom: 16px !important; }
+          .anomaly-overlay { justify-content: flex-start !important; padding-top: 40px !important; }
         }
       `}</style>
     </div>
