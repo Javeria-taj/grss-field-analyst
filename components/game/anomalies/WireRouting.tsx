@@ -79,7 +79,7 @@ export default function WireRouting({ onComplete, glitchPhase }: { onComplete: (
               style={{
                 aspectRatio: '1/1',
                 background: isCorrupt 
-                  ? (glitchPhase % 2 === 0 ? '#ff0033' : '#330000') 
+                  ? (glitchPhase % 2 === 0 ? '#ff9900' : '#330000') 
                   : isPath ? '#00ff66' : '#1a1a1a',
                 border: `4px solid ${isPath ? '#fff' : '#444'}`,
                 cursor: 'pointer',

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 
 export default function FrequencySliders({ onComplete, glitchPhase }: { onComplete: () => void, glitchPhase: number }) {
-  const [values, setValues] = useState([50, 50, 50]);
+  const [values, setValues] = useState([0, 0, 0]);
   
   const targets = useMemo(() => [
     Math.floor(Math.random() * 60 + 20),

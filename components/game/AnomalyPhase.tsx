@@ -51,7 +51,7 @@ export default function AnomalyPhase() {
   return (
     <div className="anomaly-overlay" style={{
       position: 'fixed', inset: 0, zIndex: 1000,
-      background: glitchPhase % 2 === 0 ? '#ff0033' : '#000',
+      background: glitchPhase % 2 === 0 ? 'rgba(255, 0, 51, 0.4)' : '#000',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: 20, overflow: 'hidden',
       color: '#fff', fontFamily: 'monospace'
