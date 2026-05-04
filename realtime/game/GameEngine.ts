@@ -1287,7 +1287,7 @@ export class GameEngine {
       if (!this.anomalyFixers.has(usn)) {
         const ps = this.playerScores.get(usn);
         if (ps) {
-          const penalty = 500;
+          const penalty = 200;
           ps.totalScore = Math.max(0, ps.totalScore - penalty);
           // Emit individual result
           this.io.to(usn).emit('anomaly_resolved', { 
