@@ -53,7 +53,7 @@ export default function AnomalyPhase() {
       position: 'fixed', inset: 0, zIndex: 1000,
       background: glitchPhase % 2 === 0 ? '#ff0033' : '#000',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      padding: 20, overflow: 'hidden',
+      padding: '10px', overflowY: 'auto', overflowX: 'hidden',
       color: '#fff', fontFamily: 'monospace'
     }}>
       {/* Scanline overlay */}
@@ -75,23 +75,23 @@ export default function AnomalyPhase() {
           style={{
             fontSize: '2.4rem', fontWeight: 900, textTransform: 'uppercase',
             background: '#000', color: '#ff0033', padding: '10px 20px',
-            border: '4px solid #fff', boxShadow: '10px 10px 0px #fff',
-            marginBottom: 20
+            border: '4px solid #fff', boxShadow: '8px 8px 0px #fff',
+            marginBottom: 'clamp(10px, 3vh, 20px)'
           }}
         >
           Zero-Day Anomaly
         </motion.h1>
 
         <div className="anomaly-sub" style={{
-          background: '#fff', color: '#000', padding: '12px 16px',
-          border: '4px solid #000', boxShadow: '8px 8px 0px #000',
-          marginBottom: 20, fontSize: '1rem', fontWeight: 'bold'
+          background: '#fff', color: '#000', padding: '10px 14px',
+          border: '4px solid #000', boxShadow: '6px 6px 0px #000',
+          marginBottom: 'clamp(10px, 3vh, 20px)', fontSize: '1rem', fontWeight: 'bold'
         }}>
           TRIPLE BREACH DETECTED. PATCH ALL {totalTargets} CORRUPT NODES TO SECURE THE SYSTEM.
         </div>
 
         {!hasFixedAnomaly && !anomalyResult && anomalyData.anomalyType && (
-          <div style={{ marginBottom: 20 }}>
+          <div className="anomaly-minigame-container" style={{ marginBottom: 'clamp(10px, 3vh, 20px)' }}>
             {anomalyData.anomalyType === 'whack_a_mole' && <WhackAMole onComplete={handleMinigameComplete} glitchPhase={glitchPhase} />}
             {anomalyData.anomalyType === 'overload' && <OverloadBalance onComplete={handleMinigameComplete} glitchPhase={glitchPhase} />}
             {anomalyData.anomalyType === 'sliders' && <FrequencySliders onComplete={handleMinigameComplete} glitchPhase={glitchPhase} />}
@@ -110,7 +110,7 @@ export default function AnomalyPhase() {
         )}
 
         <div className="font-orb anomaly-timer" style={{
-          fontSize: '3.5rem', marginBottom: 24, color: localTime <= 5 ? '#ff0033' : '#fff',
+          fontSize: '3.5rem', marginBottom: 10, color: localTime <= 5 ? '#ff0033' : '#fff',
           background: '#000', padding: '0 20px', border: '4px solid #fff'
         }}>
           00:{localTime.toString().padStart(2, '0')}
@@ -162,9 +162,13 @@ export default function AnomalyPhase() {
           100% { transform: translate(1px, -2px) rotate(-1deg); }
         }
         @media (max-width: 600px) {
-          .anomaly-header { font-size: 1.6rem !important; box-shadow: 5px 5px 0px #fff !important; }
-          .anomaly-sub    { font-size: 0.8rem !important; }
-          .anomaly-timer  { font-size: 2.2rem !important; }
+          .anomaly-header { font-size: 1.4rem !important; box-shadow: 4px 4px 0px #fff !important; padding: 6px 12px !important; }
+          .anomaly-sub    { font-size: 0.75rem !important; padding: 6px 10px !important; }
+          .anomaly-timer  { font-size: 2rem !important; }
+          .anomaly-minigame-container { transform: scale(0.85); transform-origin: top center; margin-bottom: 0 !important; }
+        }
+        @media (max-width: 400px) {
+          .anomaly-minigame-container { transform: scale(0.75); }
         }
       `}</style>
     </div>
