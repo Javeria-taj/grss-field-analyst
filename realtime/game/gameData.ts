@@ -44,18 +44,18 @@ export interface ServerGameData {
 const DATA: ServerGameData = {
   level1: {
     scrambles: [
-      { word: 'PENGUIN', sc: 'GNIUNEP', hint: "A bird that can't fly.", hint2: "Looks like it's wearing a tuxedo.", cat: 'Fun', pts: 100, type: 'scramble' },
-      { word: 'CHOCOLATE', sc: 'CCOAHTOEL', hint: 'A sweet treat.', hint2: 'Made from cocoa beans.', cat: 'Fun', pts: 100, type: 'scramble' },
-      { word: 'CINEMA', sc: 'NMEACIN', hint: 'Get your popcorn ready.', hint2: 'A place to watch blockbuster movies.', cat: 'Fun', pts: 100, type: 'scramble' },
-      { word: 'VAMPIRE', sc: 'VIMRAEP', hint: 'A mythical creature.', hint2: 'Hates garlic and sunlight.', cat: 'Fun', pts: 100, type: 'scramble' },
-      { word: 'BACKPACK', sc: 'KPABCACK', hint: 'Something you wear on your shoulders.', hint2: 'Students carry books in it.', cat: 'Fun', pts: 100, type: 'scramble' },
+      { word: 'PENGUIN', sc: 'GNIUNEP', hint: "A bird that can't fly.", hint2: "Looks like it's wearing a tuxedo.", cat: 'GRSS', pts: 100, type: 'scramble' },
+      { word: 'CHOCOLATE', sc: 'CCOAHTOEL', hint: 'A sweet treat.', hint2: 'Made from cocoa beans.', cat: 'GRSS', pts: 100, type: 'scramble' },
+      { word: 'CINEMA', sc: 'NMEACIN', hint: 'Get your popcorn ready.', hint2: 'A place to watch blockbuster movies.', cat: 'GRSS', pts: 100, type: 'scramble' },
+      { word: 'VAMPIRE', sc: 'VIMRAEP', hint: 'A mythical creature.', hint2: 'Hates garlic and sunlight.', cat: 'GRSS', pts: 100, type: 'scramble' },
+      { word: 'BACKPACK', sc: 'KPABCACK', hint: 'Something you wear on your shoulders.', hint2: 'Students carry books in it.', cat: 'GRSS', pts: 100, type: 'scramble' },
     ],
     riddles: [
       { q: "I measure but have no ruler. I fly but have no wings. I can see everything, yet I have no eyes. What am I?", ans: 'SATELLITE', hint: 'I am far above you most of the time.', hint2: 'I orbit the Earth.', cat: 'GRSS', pts: 100, type: 'riddle' },
-      { q: "I shave every day, but my beard stays the exact same. What am I?", ans: 'BARBER', hint: "Think of a profession.", hint2: "I work on other people's hair.", cat: 'Fun', pts: 100, type: 'riddle' },
-      { q: "I have keys but open no doors. I have space but no room. You can enter but can’t go outside. What am I?", ans: 'KEYBOARD', hint: 'You use me to write.', hint2: 'QWERTY.', cat: 'Fun', pts: 100, type: 'riddle' },
+      { q: "I shave every day, but my beard stays the exact same. What am I?", ans: 'BARBER', hint: "Think of a profession.", hint2: "I work on other people's hair.", cat: 'GRSS', pts: 100, type: 'riddle' },
+      { q: "I have keys but open no doors. I have space but no room. You can enter but can’t go outside. What am I?", ans: 'KEYBOARD', hint: 'You use me to write.', hint2: 'QWERTY.', cat: 'GRSS', pts: 100, type: 'riddle' },
       { q: "I send out signals you cannot see, and I listen for their return. From silence, I build a picture of what surrounds you. What am I?", ans: 'RADAR', hint: 'Used in weather and aviation.', hint2: 'Works using radio waves.', cat: 'GRSS', pts: 100, type: 'riddle' },
-      { q: "I have cities but no houses, forests but no trees, and oceans but no water. What am I?", ans: 'MAP', hint: 'I help you navigate.', hint2: 'Google makes a digital version of me.', cat: 'Fun', pts: 100, type: 'riddle' },
+      { q: "I have cities but no houses, forests but no trees, and oceans but no water. What am I?", ans: 'MAP', hint: 'I help you navigate.', hint2: 'Google makes a digital version of me.', cat: 'GRSS', pts: 100, type: 'riddle' },
     ],
   },
   level2: {
@@ -69,11 +69,11 @@ const DATA: ServerGameData = {
   },
   level3: {
     chs: [
-      { em: '🕷️👨🕸️', word: 'SPIDERMAN', hint: 'A friendly neighborhood hero.', hint2: 'Word Length: 10 Letters', expl: 'Spider + Man + Web = SPIDERMAN.', pts: 150 },
+      { em: '🌋🔥💨🪨', word: 'VOLCANO', hint: 'Explodes with lava.', hint2: 'Found in tectonic regions.', expl: 'Volcanoes are mountains that erupt, spewing lava and ash.', pts: 150 },
       { em: '🌊⚠️🌏', word: 'TSUNAMI', hint: 'A massive ocean wave triggered by a submarine earthquake', expl: 'Ocean wave + hazard warning + global coastline impact = TSUNAMI.', pts: 200 },
       { em: '❄️🏔️📉', word: 'GLACIER', hint: 'A slow-moving mass of compacted ice that shapes mountain valleys', expl: 'Ice + mountain terrain + shrinking over time = GLACIER.', pts: 200 },
       { em: '🌪️👁️🌀', word: 'CYCLONE', hint: 'A large rotating storm system tracked continuously by geostationary weather satellites', expl: 'Rotating winds + eye + spiral structure = CYCLONE.', pts: 250 },
-      { em: '🧊🚢💔', word: 'TITANIC', hint: 'A tragic, blockbuster romance movie from 1997.', hint2: 'Word Length: 7 Letters', expl: 'Ice + Ship + Heartbreak = TITANIC.', pts: 250 },
+      { em: '💡🛩🗺📐', word: 'LIDAR', hint: 'Uses lasers to measure distance.', hint2: 'Used in mapping and terrain analysis.', expl: 'Light + Detection + Ranging.', pts: 250 },
     ],
   },
   level4: {
@@ -134,7 +134,7 @@ export const TIME_LIMITS: Record<number, number> = {
   3: 25,   // 25s per hangman
   4: 12,   // 12s for Rapid Fire (increased intensity)
 };
-export const AUCTION_TIME = 120;  // 120s for tool auction
-export const DISASTER_TIME = 90;  // 90s for disaster response
+export const AUCTION_TIME = 180;  // 180s for tool auction
+export const DISASTER_TIME = 120; // 120s for disaster response
 export const INTRO_TIME = 7;      // 7s level intro
 export const REVIEW_TIME = 6;     // 6s answer review

@@ -58,6 +58,7 @@ export interface AuctionToolInfo {
 
 export interface AnomalyPayload {
   type: 'patch' | 'identify';
+  anomalyType: 'whack_a_mole' | 'sliders' | 'wire_routing' | 'overload';
   targetIds: string[];  // array of 3 distinct error node IDs
   targetId: string;     // legacy fallback (first target)
   gridSize: number;
@@ -634,7 +635,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
     });
 
     socket.on('anomaly_cleared', () => {
-      set({ phase: 'idle', anomalyData: null });
+      set({ anomalyData: null, hasFixedAnomaly: false, anomalyResult: null });
     });
 
     socket.on('targeted_sabotage', (data: { type: string }) => {

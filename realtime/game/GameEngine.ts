@@ -901,23 +901,14 @@ export class GameEngine {
         if (tool) effScore += tool.eff[disasterId] * 20;
       }
 
-      // Combo bonuses
-      let comboScore = 0;
-      for (const combo of DATA.level5.combos) {
-        if (combo.tools.every(t => as.deployed.includes(t))) {
-          comboScore += combo.bonus;
-        }
-      }
+      // Legacy scoring disabled to favor client-side Phase 5C submission
+      // const total = effScore + comboScore + budgetBonus;
+      // const ps = this.playerScores.get(usn);
+      // if (ps) {
+      //   ps.totalScore += total;
+      //   ps.currentLevelScore += total;
+      // }
 
-      // Budget efficiency bonus (remaining budget / 100)
-      const budgetBonus = Math.round(as.budget / 100);
-
-      const total = effScore + comboScore + budgetBonus;
-      const ps = this.playerScores.get(usn);
-      if (ps) {
-        ps.totalScore += total;
-        ps.currentLevelScore += total;
-      }
     }
 
     this.leaderboardDirty = true;
@@ -1296,7 +1287,7 @@ export class GameEngine {
       if (!this.anomalyFixers.has(usn)) {
         const ps = this.playerScores.get(usn);
         if (ps) {
-          const penalty = 500;
+          const penalty = 200;
           ps.totalScore = Math.max(0, ps.totalScore - penalty);
           // Emit individual result
           this.io.to(usn).emit('anomaly_resolved', { 

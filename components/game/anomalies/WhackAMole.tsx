@@ -42,7 +42,7 @@ export default function WhackAMole({ onComplete, glitchPhase }: { onComplete: ()
               whileTap={isActive ? { scale: 0.93 } : {}}
               style={{
                 aspectRatio: '1/1',
-                background: isActive ? (glitchPhase % 2 === 0 ? '#ff0033' : '#fff') : '#1a1a1a',
+                background: isActive ? (glitchPhase % 2 === 0 ? '#00ffcc' : '#fff') : '#1a1a1a',
                 border: `4px solid ${isActive ? '#fff' : '#444'}`,
                 cursor: isActive ? 'pointer' : 'default',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',

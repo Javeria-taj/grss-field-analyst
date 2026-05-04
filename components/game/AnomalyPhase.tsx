@@ -51,7 +51,7 @@ export default function AnomalyPhase() {
   return (
     <div className="anomaly-overlay" style={{
       position: 'fixed', inset: 0, zIndex: 1000,
-      background: glitchPhase % 2 === 0 ? '#ff0033' : '#000',
+      background: glitchPhase % 2 === 0 ? 'rgba(255, 0, 51, 0.4)' : '#000',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: '10px', overflowY: 'auto', overflowX: 'hidden',
       color: '#fff', fontFamily: 'monospace'
@@ -87,7 +87,7 @@ export default function AnomalyPhase() {
           border: '4px solid #000', boxShadow: '6px 6px 0px #000',
           marginBottom: 'clamp(10px, 3vh, 20px)', fontSize: '1rem', fontWeight: 'bold'
         }}>
-          TRIPLE BREACH DETECTED. PATCH ALL {totalTargets} CORRUPT NODES TO SECURE THE SYSTEM.
+          ZERO-DAY ANOMALY DETECTED. NEUTRALIZE THE THREAT TO SECURE THE SYSTEM.
         </div>
 
         {!hasFixedAnomaly && !anomalyResult && anomalyData.anomalyType && (
