@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  // Add this block
+  allowedDevOrigins: ['10.165.132.246'],
+
   async headers() {
     // In development, allow all sources so cross-device testing over LAN works
     // In production, lock down to known origins
