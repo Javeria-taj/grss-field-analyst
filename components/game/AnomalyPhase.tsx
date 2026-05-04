@@ -39,13 +39,22 @@ export default function AnomalyPhase() {
 
   const targetIds: string[] = anomalyData.targetIds?.length
     ? anomalyData.targetIds
-    : [anomalyData.targetId];
+    : [anomalyData.targetId].filter(Boolean);
 
   const totalTargets = targetIds.length;
+  const activeAnomalyType = anomalyData.anomalyType || 'whack_a_mole';
 
   const handleMinigameComplete = () => {
     if (hasFixedAnomaly || anomalyResult) return;
-    submitAnomalyFix('WIN_TOKEN');
+    
+    // If the server sent WIN_TOKEN, it's the new engine. 
+    // If it sent real nodes (e.g. A1, B2), it's the legacy engine and we must auto-patch them.
+    if (targetIds.includes('WIN_TOKEN') || targetIds.length === 0) {
+      submitAnomalyFix('WIN_TOKEN');
+    } else {
+      // Legacy bypass: sequentially patch all required nodes
+      targetIds.forEach(id => submitAnomalyFix(id));
+    }
   };
 
   return (
@@ -90,12 +99,12 @@ export default function AnomalyPhase() {
           ZERO-DAY ANOMALY DETECTED. NEUTRALIZE THE THREAT TO SECURE THE SYSTEM.
         </div>
 
-        {!hasFixedAnomaly && !anomalyResult && anomalyData.anomalyType && (
-          <div className="anomaly-minigame-container" style={{ marginBottom: 'clamp(10px, 3vh, 20px)' }}>
-            {anomalyData.anomalyType === 'whack_a_mole' && <WhackAMole onComplete={handleMinigameComplete} glitchPhase={glitchPhase} />}
-            {anomalyData.anomalyType === 'overload' && <OverloadBalance onComplete={handleMinigameComplete} glitchPhase={glitchPhase} />}
-            {anomalyData.anomalyType === 'sliders' && <FrequencySliders onComplete={handleMinigameComplete} glitchPhase={glitchPhase} />}
-            {anomalyData.anomalyType === 'wire_routing' && <WireRouting onComplete={handleMinigameComplete} glitchPhase={glitchPhase} />}
+        {!hasFixedAnomaly && !anomalyResult && (
+          <div className="anomaly-minigame-container" style={{ marginBottom: 'clamp(10px, 3vh, 20px)', flexShrink: 0, width: '100%' }}>
+            {activeAnomalyType === 'whack_a_mole' && <WhackAMole onComplete={handleMinigameComplete} glitchPhase={glitchPhase} />}
+            {activeAnomalyType === 'overload' && <OverloadBalance onComplete={handleMinigameComplete} glitchPhase={glitchPhase} />}
+            {activeAnomalyType === 'sliders' && <FrequencySliders onComplete={handleMinigameComplete} glitchPhase={glitchPhase} />}
+            {activeAnomalyType === 'wire_routing' && <WireRouting onComplete={handleMinigameComplete} glitchPhase={glitchPhase} />}
           </div>
         )}
 

@@ -1283,6 +1283,13 @@ export class GameEngine {
     // Check if this player has patched ALL 3 targets
     if (patchedByMap.get(usn)!.size >= this.anomalyTargets.size) {
       this.anomalyFixers.add(usn);
+      
+      // If everyone active has fixed it, we can end early!
+      if (this.anomalyFixers.size >= this.getActiveUSNs().length) {
+        this.clearTimer();
+        this.endAnomaly();
+      }
+
       return true; // All 3 patched — signal success to client
     }
     return false; // Still more nodes to patch
