@@ -212,6 +212,7 @@ export interface GameStateSync {
   } | null;
   disasterInfo: DisasterInfo | null;
   factionScores?: Record<string, number>;
+  anomalyData?: AnomalyPayload | null;
 }
 
 // ── Admin ──
