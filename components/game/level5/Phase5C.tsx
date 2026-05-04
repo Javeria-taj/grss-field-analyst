@@ -1,5 +1,5 @@
 'use client';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useLevel5Store } from '@/stores/useLevel5Store';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
@@ -76,18 +76,24 @@ export default function Phase5C() {
   const phaseBScore = phaseBRows.reduce((a, r) => a + r.pts, 0);
 
   // ── Grand Total ──
-  const l5Score = phaseAScore + phaseBScore + remainingBudget;
-  // myTotalScore already accumulated from levels 1-4; we add l5Score on top
-  const grandTotal = myTotalScore + l5Score;
+  // The budget was initialized as (myTotalScore + 1000).
+  // We want to add only the GAINS from Level 5 (Phase A + Phase B) 
+  // and the UNSPENT part of the 1000-point bonus.
+  // Net L5 gain = phaseAScore + phaseBScore + (remainingBudget - myTotalScore)
+  const l5Gain = phaseAScore + phaseBScore + (remainingBudget - myTotalScore);
+  
+  // For the server submission, we send the net gain
+  const l5Score = l5Gain; 
+
+  const grandTotal = myTotalScore + l5Gain;
   const rank = getTitle(grandTotal);
 
   // ── Submit to server once (on mount) ──
-  useMemo(() => {
+  useEffect(() => {
     if (socket?.connected) {
       socket.emit('submit_level5_results', { l5Score });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally run once
+  }, [socket, l5Score]); 
 
   const ptColor = (row: ToolRowData) => {
     if (row.pts === 1000) return 'var(--gold)';

@@ -87,7 +87,7 @@ export default function AnomalyPhase() {
           border: '4px solid #000', boxShadow: '8px 8px 0px #000',
           marginBottom: 20, fontSize: '1rem', fontWeight: 'bold'
         }}>
-          TRIPLE BREACH DETECTED. PATCH ALL {totalTargets} CORRUPT NODES TO SECURE THE SYSTEM.
+          ZERO-DAY ANOMALY DETECTED. NEUTRALIZE THE THREAT TO SECURE THE SYSTEM.
         </div>
 
         {!hasFixedAnomaly && !anomalyResult && anomalyData.anomalyType && (
