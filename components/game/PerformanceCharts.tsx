@@ -1,8 +1,14 @@
 'use client';
+import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { motion } from 'framer-motion';
 
 export default function PerformanceCharts({ telemetry }: { telemetry: any[] }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   if (!telemetry || telemetry.length === 0) return null;
 
   const data = telemetry.map(t => ({
@@ -12,17 +18,19 @@ export default function PerformanceCharts({ telemetry }: { telemetry: any[] }) {
     correct: t.correct
   }));
 
+  if (!mounted) return <div style={{ height: 300 }} />;
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="card card-sm" 
-      style={{ width: '100%', height: 300, marginTop: 20, minWidth: 0 }}
+      style={{ width: '100%', height: 300, marginTop: 20, minWidth: 0, overflow: 'hidden' }}
     >
       <div className="font-orb" style={{ fontSize: '0.7rem', marginBottom: 15, color: 'var(--text2)' }}>
         MISSION TELEMETRY: POINTS PER QUESTION
       </div>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <BarChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 25 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
           <XAxis 

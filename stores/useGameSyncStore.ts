@@ -392,6 +392,12 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         myAchievements: data.myScore?.achievements || [],
         factionScores: data.factionScores || {},
         anomalyData: data.anomalyData || null,
+        // If phase is no longer anomaly_active, clear residual anomaly state
+        ...(data.phase !== 'anomaly_active' ? {
+          anomalyResult: null,
+          hasFixedAnomaly: false,
+          anomalyPatchedIds: [],
+        } : {}),
       });
     });
 
@@ -419,7 +425,27 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       });
     });
 
-    // ── Timer Events (rAF based) ──
+    // ── Question resume (after mid-question anomaly) ──
+    socket.on('question_resume', (data: ClientQuestion & { resumed?: boolean }) => {
+      const s = get();
+      set({
+        phase: 'question_active',
+        currentQuestion: data,
+        anomalyData: null,
+        anomalyResult: null,
+        hasFixedAnomaly: false,
+        anomalyPatchedIds: [],
+        // Preserve existing answer — player already answered before the anomaly
+        // Only reset if they hadn't answered yet
+        myAnswer: s.hasAnswered ? s.myAnswer : null,
+        hasAnswered: s.hasAnswered,
+        reviewData: null,
+      });
+      if (data.resumed) {
+        toast('⚡ Question Resumed — time continues!', 'inf');
+      }
+    });
+
     socket.on('timer_start', (data: { endTime: number; total: number; serverTime?: number }) => {
       if (data.serverTime) {
         set({ serverTimeOffset: Date.now() - data.serverTime });
@@ -635,8 +661,17 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       }
     });
 
-    socket.on('anomaly_cleared', () => {
-      set({ anomalyData: null, hasFixedAnomaly: false, anomalyResult: null });
+    socket.on('anomaly_cleared', (data?: { phase?: string }) => {
+      const previousPhase = get().phase;
+      // Restore to the phase the server returned to, or keep the last non-anomaly phase
+      const returnPhase = data?.phase ?? (previousPhase === 'anomaly_active' ? 'level_complete' : previousPhase);
+      set({ 
+        anomalyData: null, 
+        hasFixedAnomaly: false, 
+        anomalyResult: null,
+        anomalyPatchedIds: [],
+        phase: returnPhase as any,
+      });
     });
 
     socket.on('targeted_sabotage', (data: { type: string }) => {

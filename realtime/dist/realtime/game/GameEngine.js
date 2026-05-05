@@ -1202,7 +1202,7 @@ class GameEngine {
         }
         // Broadcast full sync to force phase transition on all clients
         this.io.emit('game_state_sync', this.getStateForClient(''));
-        this.io.emit('anomaly_cleared', {});
+        this.io.emit('anomaly_cleared', { phase: this.phase });
         this.leaderboardDirty = true;
         this.broadcastAdminStats();
     }

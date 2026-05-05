@@ -1200,6 +1200,14 @@ export class GameEngine {
 
   public triggerAnomaly() {
     if (this.phase === 'game_over') return;
+    // Save current phase so we can restore it after the anomaly ends
+    (this as any)._preAnomalyPhase = this.phase;
+    // If a question is active, snapshot the remaining time so we can resume it
+    if (this.phase === 'question_active') {
+      (this as any)._savedTimerRemaining = Math.max(5, this.timerRemaining); // min 5s on resume
+    } else {
+      (this as any)._savedTimerRemaining = null;
+    }
     this.phase = 'anomaly_active';
     this.anomalyFixers.clear();
     this.anomalyTargets.clear();
@@ -1325,20 +1333,45 @@ export class GameEngine {
       }
     }
 
-    // Return to previous state (usually level_complete)
-    if (this.currentLevel > 0 && this.currentLevel < 5) {
-      this.phase = 'level_complete';
+    // Return to the exact phase that was active before the anomaly
+    const savedPhase = (this as any)._preAnomalyPhase;
+    const savedTime: number | null = (this as any)._savedTimerRemaining;
+
+    if (savedPhase === 'question_active' && savedTime) {
+      // Resume the interrupted question
+      this.phase = 'question_active';
+      const q = this.questions[this.currentQIndex];
+      if (q) {
+        // Re-broadcast the question to all clients with remaining time
+        this.io.emit('question_resume', {
+          ...q.clientQ,
+          timeLimit: savedTime,
+          resumed: true,
+        });
+        this.broadcastAdminStats();
+        // Restart the countdown with remaining time
+        this.startCountdown(savedTime, () => this.endQuestion());
+      } else {
+        // Question gone (edge case) — move to next
+        this.endLevel();
+      }
+    } else if (savedPhase && savedPhase !== 'anomaly_active') {
+      this.phase = savedPhase;
+    } else if (this.currentLevel > 0 && this.currentLevel < 5) {
+      this.phase = 'level_complete'; // fallback
     } else if (this.currentLevel === 5) {
-      this.phase = 'disaster_active'; // Or whatever L5 phase it was
+      this.phase = 'disaster_active';
     } else {
       this.phase = 'idle';
     }
+    (this as any)._preAnomalyPhase = null;
+    (this as any)._savedTimerRemaining = null;
     
     // Broadcast full sync to force phase transition on all clients
     this.io.emit('game_state_sync', this.getStateForClient('')); 
 
     
-    this.io.emit('anomaly_cleared', {});
+    this.io.emit('anomaly_cleared', { phase: this.phase });
     this.leaderboardDirty = true;
     this.broadcastAdminStats();
   }

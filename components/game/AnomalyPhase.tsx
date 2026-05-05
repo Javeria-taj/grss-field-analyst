@@ -35,6 +35,24 @@ export default function AnomalyPhase() {
     };
   }, [timerEndTime, serverTimeOffset]);
 
+  // ── Safety net: if result is shown but phase hasn't transitioned, force-clear after 3.5s ──
+  const { phase } = useGameSyncStore();
+  useEffect(() => {
+    if (!anomalyResult) return;
+    const timeout = setTimeout(() => {
+      // Manually trigger the cleared state in the store as a fallback
+      useGameSyncStore.setState(s => ({
+        anomalyData: null,
+        anomalyResult: null,
+        hasFixedAnomaly: false,
+        anomalyPatchedIds: [],
+        // Only restore phase if still stuck in anomaly_active
+        phase: s.phase === 'anomaly_active' ? 'level_complete' : s.phase,
+      }));
+    }, 3500);
+    return () => clearTimeout(timeout);
+  }, [anomalyResult]);
+
   if (!anomalyData) return null;
 
   const targetIds: string[] = anomalyData.targetIds?.length
