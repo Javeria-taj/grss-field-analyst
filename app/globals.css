@@ -214,7 +214,7 @@ html, body {
   100% { background-position: 0% 50%; }
 }
 
-/* ─── PANIC STATE (≤7 seconds remaining) ────────────────── */
+/* ─── PANIC STATE (≤4 seconds remaining) ────────────────── */
 @keyframes panicPulse {
   0%   { background-color: #03070f; box-shadow: inset 0 0 0px rgba(180, 0, 0, 0); }
   40%  { background-color: #1a0000; box-shadow: inset 0 0 160px rgba(200, 0, 0, 0.55); }

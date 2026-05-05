@@ -65,9 +65,9 @@ export default function DashboardPage() {
     if (lastAnnouncement) toast(`📢 ${lastAnnouncement}`, 'inf');
   }, [lastAnnouncement]);
 
-  // ── PHASE 1: Panic State — 7-Second Rule ──
+  // ── PHASE 1: Panic State — 4-Second Rule ──
   // A rAF loop reads the live epoch timer without triggering renders on every tick.
-  // The siren starts exactly at 7s remaining and is forcefully stopped the moment
+  // The siren starts exactly at 4s remaining and is forcefully stopped the moment
   // the phase changes or the clock hits zero — zero audio bleed into other screens.
   useEffect(() => {
     const stopPanic = () => {
@@ -91,14 +91,14 @@ export default function DashboardPage() {
     const tick = () => {
       const remaining = Math.max(0, (timerEndTime - (Date.now() - serverTimeOffset)) / 1000);
 
-      if (remaining <= 7 && remaining > 0) {
+      if (remaining <= 4 && remaining > 0) {
         if (!panicFiredRef.current) {
           panicFiredRef.current = true;
           setPanicActive(true);
           SFX.startPanic();
         }
       } else {
-        // remaining > 7 OR exactly 0 — ensure panic is off
+        // remaining > 4 OR exactly 0 — ensure panic is off
         if (panicFiredRef.current) stopPanic();
       }
 

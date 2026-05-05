@@ -136,7 +136,7 @@ export default function GameHUD({ user, connected, paused, onLogout }: {
                 }}
               />
             </div>
-            <div className="font-orb" style={{ textAlign: 'center', fontSize: '0.75rem', color: localRemaining <= 10 ? 'var(--danger)' : 'var(--text)' }}>
+            <div className="font-orb" style={{ textAlign: 'center', fontSize: '0.75rem', color: localRemaining <= 4 ? 'var(--danger)' : 'var(--text)' }}>
               {localRemaining}s
             </div>
           </div>
