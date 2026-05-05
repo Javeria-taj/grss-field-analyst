@@ -290,10 +290,11 @@ function ImageMCQ({ q, onSubmit, disabled }: { q: any; onSubmit: (a: string) => 
         gap: 10, width: '100%',
       }}>
         {q.options?.map((opt: string, i: number) => {
-          const powerup = useGameSyncStore.getState().powerupResult;
-          const isRemoved = powerup?.type === 'radar_pulse' && powerup?.removed?.includes(i);
-          const distribution = powerup?.type === 'thermal_scan' ? powerup?.distribution : null;
-          const popularity = distribution ? (distribution[String.fromCharCode(65 + i)] || 0) : 0;
+          const activePowerups = useGameSyncStore(s => s.activePowerups);
+          const radar = activePowerups['radar_pulse'];
+          const thermal = activePowerups['thermal_scan'];
+          const isRemoved = radar?.removed?.includes(i);
+          const popularity = thermal?.distribution ? (thermal.distribution[String.fromCharCode(65 + i)] || 0) : 0;
           return (
             <motion.button
               key={i}
@@ -499,10 +500,11 @@ function MCQ({ q, onSubmit, disabled }: { q: any; onSubmit: (a: string) => void;
         gap: 10, width: '100%',
       }}>
         {q.options?.map((opt: string, i: number) => {
-          const powerup = useGameSyncStore.getState().powerupResult;
-          const isRemoved = powerup?.type === 'radar_pulse' && powerup?.removed?.includes(i);
-          const distribution = powerup?.type === 'thermal_scan' ? powerup?.distribution : null;
-          const popularity = distribution ? (distribution[String.fromCharCode(65 + i)] || 0) : 0;
+          const activePowerups = useGameSyncStore(s => s.activePowerups);
+          const radar = activePowerups['radar_pulse'];
+          const thermal = activePowerups['thermal_scan'];
+          const isRemoved = radar?.removed?.includes(i);
+          const popularity = thermal?.distribution ? (thermal.distribution[String.fromCharCode(65 + i)] || 0) : 0;
           return (
             <motion.button
               key={i}

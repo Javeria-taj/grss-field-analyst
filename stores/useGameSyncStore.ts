@@ -184,7 +184,7 @@ interface GameSyncState {
   missionEvents: { id: string; type: string; user: string; achievementId?: string; text?: string }[];
 
   // Toolkit / Powerups
-  powerupResult: { type: string; removed?: number[]; distribution?: Record<string, number> } | null;
+  activePowerups: Record<string, { type: string; removed?: number[]; distribution?: Record<string, number> }>;
 
   // Actions
   init: () => void;
@@ -272,7 +272,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   missionCommentary: null,
   activeReactions: [],
   missionEvents: [],
-  powerupResult: null,
+  activePowerups: {},
   focusViolation: false,
   breachCount: 0,
   setFocusViolation: (v: boolean) => set((state) => {
@@ -421,7 +421,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         hangmanWordLength: data.wordLength ?? 0,
         hangmanMaskedWord: '_'.repeat(data.wordLength ?? 0),
         hangmanSolved: false,
-        powerupResult: null,
+        activePowerups: {},
       });
     });
 
@@ -700,7 +700,10 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
 
     socket.on('powerup_result', (data: any) => {
       if (data.success) {
-        set({ powerupResult: data });
+        set(s => ({
+          activePowerups: { ...s.activePowerups, [data.type]: data },
+          myTotalScore: data.newTotalScore ?? s.myTotalScore
+        }));
         SFX.success();
       } else {
         toast(data.error || 'Toolkit failed', 'err');

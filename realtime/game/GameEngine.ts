@@ -560,7 +560,7 @@ export class GameEngine {
         toRemove.push(wrongIndices.splice(rand, 1)[0]);
       }
 
-      return { success: true, type: 'radar_pulse', removed: toRemove };
+      return { success: true, type: 'radar_pulse', removed: toRemove, newTotalScore: ps.totalScore };
     }
 
     if (type === 'thermal_scan') {
@@ -568,7 +568,7 @@ export class GameEngine {
       if (ps.totalScore < cost) return { success: false, error: 'Insufficient credits (300 req)' };
       
       ps.totalScore -= cost;
-      return { success: true, type: 'thermal_scan', distribution: this.getLiveAnswerStats().distribution };
+      return { success: true, type: 'thermal_scan', distribution: this.getLiveAnswerStats().distribution, newTotalScore: ps.totalScore };
     }
 
     return { success: false, error: 'Unknown toolkit' };

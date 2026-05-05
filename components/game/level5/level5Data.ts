@@ -88,6 +88,6 @@ export const BASE_PRICE = 200;   // starting tool price
 // Scoring constants
 export const PHASE_A_CORRECT_PTS = 500;
 export const PHASE_B_PERFECT_PTS = 1000;    // right tool, right cs, right tier
-export const PHASE_B_PARTIAL_PTS = 400;     // right tool, right cs, wrong tier
+export const PHASE_B_PARTIAL_PTS = 700;     // right tool, right cs, wrong tier
 export const PHASE_B_DECOY_PTS = 0;
 export const PHASE_B_WRONG_PTS = 0;

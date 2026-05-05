@@ -62,7 +62,7 @@ export default function Phase5C() {
         } else if (tool.cs === csNum && tool.tier === ti) {
           pts = PHASE_B_PERFECT_PTS; rowClass = 'perfect'; verdict = '🥇 Perfect match — +1000 pts';
         } else if (tool.cs === csNum && tool.tier !== ti) {
-          pts = PHASE_B_PARTIAL_PTS; rowClass = 'partial'; verdict = '🔄 Right disaster, wrong tier — +400 pts';
+          pts = PHASE_B_PARTIAL_PTS; rowClass = 'partial'; verdict = `🔄 Right disaster, wrong tier — +${PHASE_B_PARTIAL_PTS} pts`;
         } else {
           pts = 0; rowClass = 'miss'; verdict = '❌ Wrong disaster — 0 pts';
         }

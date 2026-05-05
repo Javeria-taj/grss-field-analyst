@@ -25,7 +25,7 @@ const TOOLKIT_ITEMS = [
 ];
 
 export default function AnalystToolkit() {
-  const { usePowerup, powerupResult, hasAnswered, phase } = useGameSyncStore();
+  const { usePowerup, activePowerups, hasAnswered, phase, myTotalScore } = useGameSyncStore();
   const { user } = useGameStore();
 
   if (phase !== 'question_active' || hasAnswered || user?.isAdmin || user?.usn === 'SUPER_ADMIN') return null;
@@ -44,35 +44,40 @@ export default function AnalystToolkit() {
           ⚡ ANALYST TOOLKIT
         </div>
         {TOOLKIT_ITEMS.map(t => {
-          const isUsed = powerupResult?.type === t.id;
+          const isUsed = !!activePowerups[t.id];
+          const canAfford = myTotalScore >= t.cost;
           return (
             <motion.button
               key={t.id}
-              whileHover={{ scale: 1.05, x: -4 }}
-              whileTap={{ scale: 0.95 }}
-              title={t.tooltip}
-              onClick={() => { SFX.click(); usePowerup(t.id as any); }}
-              disabled={isUsed}
+              whileHover={{ scale: (isUsed || !canAfford) ? 1 : 1.05, x: (isUsed || !canAfford) ? 0 : -4 }}
+              whileTap={{ scale: (isUsed || !canAfford) ? 1 : 0.95 }}
+              title={!canAfford ? 'Insufficient credits' : t.tooltip}
+              onClick={() => { 
+                if (isUsed || !canAfford) return;
+                SFX.click(); 
+                usePowerup(t.id as any); 
+              }}
+              disabled={isUsed || !canAfford}
               style={{
                 background: isUsed ? 'rgba(74,222,128,0.08)' : 'rgba(0,0,0,0.5)',
                 backdropFilter: 'blur(12px)',
-                border: `1px solid ${isUsed ? 'var(--accent2)' : 'rgba(255,255,255,0.12)'}`,
+                border: `1px solid ${isUsed ? 'var(--accent2)' : canAfford ? 'rgba(255,255,255,0.12)' : 'rgba(251,113,133,0.2)'}`,
                 borderRadius: 12,
                 padding: '10px 14px',
                 display: 'flex', alignItems: 'center', gap: 10,
                 textAlign: 'left',
-                cursor: isUsed ? 'default' : 'pointer',
+                cursor: (isUsed || !canAfford) ? 'default' : 'pointer',
                 boxShadow: isUsed ? '0 0 15px rgba(74,222,128,0.3)' : 'none',
-                opacity: isUsed ? 0.65 : 1,
+                opacity: (isUsed || !canAfford) ? 0.5 : 1,
                 minWidth: 180,
               }}
             >
               <div style={{ fontSize: '1.2rem', flexShrink: 0 }}>{isUsed ? '✅' : t.icon}</div>
               <div>
-                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: isUsed ? 'var(--accent2)' : 'var(--text)', letterSpacing: 0.5 }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: isUsed ? 'var(--accent2)' : canAfford ? 'var(--text)' : 'var(--danger)', letterSpacing: 0.5 }}>
                   {isUsed ? 'DEPLOYED' : t.name}
                 </div>
-                <div style={{ fontSize: '0.55rem', color: 'var(--text2)', marginTop: 1 }}>
+                <div style={{ fontSize: '0.55rem', color: canAfford ? 'var(--text2)' : 'var(--danger)', marginTop: 1 }}>
                   {t.cost} PTS • {t.desc}
                 </div>
               </div>
