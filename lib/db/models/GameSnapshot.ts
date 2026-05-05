@@ -28,6 +28,7 @@ export interface IGameSnapshot extends Document {
   questionBank: any[];  // serialised BankQuestion[]
   levelLimits: Record<number, number>;
   auctionStates: any[];
+  l5phase: string | null;  // 'auction' | 'disaster' | null
   updatedAt: Date;
 }
 
@@ -43,6 +44,7 @@ const GameSnapshotSchema = new Schema<IGameSnapshot>({
   questionBank:  [{ type: Schema.Types.Mixed }],
   levelLimits:   { type: Schema.Types.Mixed },
   auctionStates: [{ type: Schema.Types.Mixed }],
+  l5phase:       { type: String, default: null },
   updatedAt:     { type: Date, default: Date.now },
 });
 

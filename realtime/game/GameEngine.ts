@@ -207,6 +207,19 @@ export class GameEngine {
         telemetry: [], streak: 0, achievements: [], faction: faction || 'team_sentinel'
       });
     }
+
+    // Late-joiner / Reconnect sub-phase initialization
+    if (this.currentLevel === 3 && this.phase === 'question_active' && !this.hangmanStates.has(usn)) {
+      this.hangmanStates.set(usn, {
+        guessedLetters: [], lives: 6,
+        revealedPositions: [], solved: false, submitted: false,
+      });
+    }
+    if (this.currentLevel === 5 && (this.phase === 'auction_active' || this.phase === 'disaster_active') && !this.auctionStates.has(usn)) {
+      this.auctionStates.set(usn, {
+        budget: 10000, ownedTools: [], deployed: [], submitted: false,
+      });
+    }
   }
 
   registerSpectator(socketId: string) {
@@ -430,6 +443,8 @@ export class GameEngine {
       this.io.emit('preload_asset', { url: nextQ.clientQ.imageUrl });
     }
 
+    if ((this as any)._playerPowerups) (this as any)._playerPowerups.clear();
+
     this.startCountdown(Math.round(q.clientQ.timeLimit * this.heatMultiplier), () => this.endQuestion());
   }
 
@@ -441,8 +456,17 @@ export class GameEngine {
     if (!q) return null;
 
     let correct = false;
-    if (typeof q.answer === 'string' && typeof answer === 'string') {
-      // Strip ALL punctuation, spaces, special chars before comparing
+    const isMCQ = q.clientQ.type === 'mcq' || q.clientQ.type === 'image_mcq';
+
+    if (isMCQ && typeof q.answer === 'number') {
+      // If server stores index but client sends string, try to find the index
+      if (typeof answer === 'string') {
+        const idx = q.clientQ.options?.findIndex(o => normalise(o) === normalise(answer));
+        correct = idx === q.answer;
+      } else {
+        correct = answer === q.answer;
+      }
+    } else if (typeof q.answer === 'string' && typeof answer === 'string') {
       correct = normalise(answer) === normalise(q.answer as string);
     } else if (typeof q.answer === 'number' && typeof answer === 'number') {
       correct = answer === q.answer;
@@ -482,10 +506,20 @@ export class GameEngine {
       // Log Telemetry
       ps.telemetry.push({
         qIndex: this.currentQIndex,
-        timeTaken: this.timerTotal - this.timerRemaining,
+        timeTaken: Math.round((this.timerTotal - preciseTimeLeft) * 10) / 10,
         correct,
         points: finalScore
       });
+
+      // Global Mission Feed for Correct Answers
+      if (correct && finalScore > 0) {
+        this.io.emit('mission_event', {
+          id: randomUUID(),
+          type: 'answer',
+          user: ps.name,
+          text: `+${finalScore} PTS ACQUIRED`,
+        });
+      }
 
       const pa: PlayerAnswer = {
         usn, answer, timeRemaining: this.timerRemaining, correct, score: finalScore,
@@ -554,13 +588,15 @@ export class GameEngine {
         : q.clientQ.options.findIndex(o => normalise(o) === normalise(q.answer as string));
       
       const wrongIndices = q.clientQ.options.map((_, i) => i).filter(i => i !== correctIdx);
-      const toRemove = [];
+      const toRemove: number[] = [];
       while (toRemove.length < 2 && wrongIndices.length > 0) {
         const rand = Math.floor(Math.random() * wrongIndices.length);
         toRemove.push(wrongIndices.splice(rand, 1)[0]);
       }
 
-      return { success: true, type: 'radar_pulse', removed: toRemove, newTotalScore: ps.totalScore };
+      const result = { success: true, type: 'radar_pulse', removed: toRemove, newTotalScore: ps.totalScore };
+      this.trackPowerup(usn, result);
+      return result;
     }
 
     if (type === 'thermal_scan') {
@@ -568,10 +604,19 @@ export class GameEngine {
       if (ps.totalScore < cost) return { success: false, error: 'Insufficient credits (300 req)' };
       
       ps.totalScore -= cost;
-      return { success: true, type: 'thermal_scan', distribution: this.getLiveAnswerStats().distribution, newTotalScore: ps.totalScore };
+      const result = { success: true, type: 'thermal_scan', distribution: this.getLiveAnswerStats().distribution, newTotalScore: ps.totalScore };
+      this.trackPowerup(usn, result);
+      return result;
     }
 
     return { success: false, error: 'Unknown toolkit' };
+  }
+
+  private trackPowerup(usn: string, result: any) {
+    if (!(this as any)._playerPowerups) (this as any)._playerPowerups = new Map<string, Record<string, any>>();
+    const map = (this as any)._playerPowerups;
+    if (!map.has(usn)) map.set(usn, {});
+    map.get(usn)[result.type] = result;
   }
 
   public forceEndQuestion() {
@@ -928,6 +973,14 @@ export class GameEngine {
     ps.totalScore += score;
     ps.currentLevelScore += score;
     ps.levelScores[5] = score;
+
+    this.io.emit('mission_event', {
+      id: randomUUID(),
+      type: 'level_up',
+      user: ps.name,
+      text: `TOTAL MISSION OUTPUT: ${score} PTS`,
+    });
+
     this.leaderboardDirty = true;
     this.adminStatsDirty = true;
     this.io.emit('leaderboard_update', this.getLeaderboard());
@@ -1016,6 +1069,11 @@ export class GameEngine {
   // ═══════════════════════════════════════════════════════════════
 
   getStateForClient(usn: string): GameStateSync {
+    // Collect active powerups for this specific user if any
+    const powerups: Record<string, any> = {};
+    // Note: If we had a Map<usn, powerups>, we'd pull from there. 
+    // Currently they are transient, but for sync we should ideally track them.
+    // I will add a transient tracker for sync persistence.
     const ps = this.playerScores.get(usn) || null;
     const pa = this.currentAnswers.get(usn) || null;
 
@@ -1084,7 +1142,8 @@ export class GameEngine {
         targetId: 'WIN_TOKEN',
         gridSize: 9,
         timeLimit: 15
-      } : null
+      } : null,
+      activePowerups: (this as any)._playerPowerups?.get(usn) || {},
     };
   }
 
@@ -1137,6 +1196,11 @@ export class GameEngine {
 
     this.recentReactions = [];
     this.factionScores = { team_sentinel: 0, team_landsat: 0, team_modis: 0 };
+
+    (this as any)._preAnomalyPhase = null;
+    (this as any)._savedTimerRemaining = null;
+    this.anomalyFixers.clear();
+    this.anomalyTargets.clear();
 
     this.io.emit('game_reset', {});
     this.broadcastAdminStats();
@@ -1199,7 +1263,7 @@ export class GameEngine {
   // ═══════════════════════════════════════════════════════════════
 
   public triggerAnomaly() {
-    if (this.phase === 'game_over') return;
+    if (this.phase === 'game_over' || this.phase === 'anomaly_active') return;
     // Save current phase so we can restore it after the anomaly ends
     (this as any)._preAnomalyPhase = this.phase;
     // If a question is active, snapshot the remaining time so we can resume it
@@ -1360,17 +1424,23 @@ export class GameEngine {
     } else if (this.currentLevel > 0 && this.currentLevel < 5) {
       this.phase = 'level_complete'; // fallback
     } else if (this.currentLevel === 5) {
-      this.phase = 'disaster_active';
+      this.phase = this.l5phase === 'auction' ? 'auction_active' : 'disaster_active';
     } else {
       this.phase = 'idle';
     }
     (this as any)._preAnomalyPhase = null;
     (this as any)._savedTimerRemaining = null;
     
-    // Broadcast full sync to force phase transition on all clients
-    this.io.emit('game_state_sync', this.getStateForClient('')); 
+    // Broadcast personalized full sync to every player individually
+    // (must NOT use a blank USN — that zeroes out every player's personal state)
+    for (const [, usn] of this.connectedPlayers) {
+      if (usn && !usn.startsWith('SPECTATOR_')) {
+        this.io.to(usn).emit('game_state_sync', this.getStateForClient(usn));
+      }
+    }
+    // Also send to admins/spectators with a generic payload
+    this.io.to('admins').to('spectators').emit('game_state_sync', this.getStateForClient(''));
 
-    
     this.io.emit('anomaly_cleared', { phase: this.phase });
     this.leaderboardDirty = true;
     this.broadcastAdminStats();
@@ -1393,6 +1463,7 @@ export class GameEngine {
             endTime: this.endTime,
             timerTotal: this.timerTotal,
             paused: this.paused,
+            l5phase: this.l5phase,
             playerScores: Array.from(this.playerScores.values()),
             questionBank: this.questionBank,
             levelLimits: this.levelLimits,
@@ -1418,6 +1489,7 @@ export class GameEngine {
       this.endTime = snap.endTime;
       this.timerTotal = snap.timerTotal;
       this.paused = snap.paused;
+      this.l5phase = (snap as any).l5phase ?? null;
       
       this.timerRemaining = Math.max(0, Math.ceil((this.endTime - Date.now()) / 1000));
       

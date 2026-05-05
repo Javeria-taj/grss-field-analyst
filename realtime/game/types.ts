@@ -213,6 +213,7 @@ export interface GameStateSync {
   disasterInfo: DisasterInfo | null;
   factionScores?: Record<string, number>;
   anomalyData?: AnomalyPayload | null;
+  activePowerups?: Record<string, any>;
 }
 
 // ── Admin ──

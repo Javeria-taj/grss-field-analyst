@@ -387,6 +387,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         auctionOwned: data.auctionState?.ownedTools ?? [],
         auctionPrices: data.auctionState?.prices ?? {},
         disasterInfo: data.disasterInfo,
+        activePowerups: data.activePowerups || {},
         myTelemetry: data.myScore?.telemetry || [],
         myStreak: data.myScore?.streak ?? 0,
         myAchievements: data.myScore?.achievements || [],
@@ -450,18 +451,20 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       if (data.serverTime) {
         set({ serverTimeOffset: Date.now() - data.serverTime });
       }
-      set({ timerEndTime: data.endTime, timerTotal: data.total, hasAnswered: false, myAnswer: null });
+      // Only update timer fields — do NOT reset hasAnswered/myAnswer here.
+      // New question state is already reset by 'question_start' which fires before this.
+      set({ timerEndTime: data.endTime, timerTotal: data.total });
     });
 
     socket.on('timer_override', (data: { endTime: number }) => {
       set({ timerEndTime: data.endTime });
     });
 
-    // ── Preload Asset ──
+    // ── Preload Asset (single handler) ──
     socket.on('preload_asset', (data: { url: string }) => {
+      if (!data?.url) return;
       set(s => {
         if (!s.preloadedAssets.includes(data.url)) {
-          // Trigger browser caching silently
           const img = new Image();
           img.src = data.url;
           return { preloadedAssets: [...s.preloadedAssets, data.url] };
@@ -530,8 +533,12 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         auctionTools: [], auctionPrices: {}, auctionBudget: 10000,
         auctionOwned: [], disasterInfo: null, deployedTools: [], hasDeployed: false,
         finalLeaderboard: [],
-        anomalyData: null, anomalyResult: null, hasFixedAnomaly: false,
-        missionCommentary: null,
+        anomalyData: null, anomalyResult: null, hasFixedAnomaly: false, anomalyPatchedIds: [],
+        missionCommentary: null, missionEvents: [], activePowerups: {},
+        // Reset all personal score state so HUD doesn't show stale data
+        myTotalScore: 0, myLevelScore: 0, myStreak: 0, myAchievements: [], myTelemetry: [],
+        factionScores: { team_sentinel: 0, team_landsat: 0, team_modis: 0 },
+        breachCount: 0, focusViolation: false, queuedAnswer: null,
       });
     });
 
@@ -540,12 +547,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       set({ paused: data.paused });
     });
 
-    // ── Asset Preloading ──
-    socket.on('preload_asset', (data: { url: string }) => {
-      if (!data.url) return;
-      const img = new Image();
-      img.src = data.url;
-    });
+    // ── Asset Preloading ── (Duplicate handler removed — handled above)
 
     // ── Achievements ──
     socket.on('achievement_earned', (id: string) => {
@@ -661,16 +663,14 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       }
     });
 
-    socket.on('anomaly_cleared', (data?: { phase?: string }) => {
-      const previousPhase = get().phase;
-      // Restore to the phase the server returned to, or keep the last non-anomaly phase
-      const returnPhase = data?.phase ?? (previousPhase === 'anomaly_active' ? 'level_complete' : previousPhase);
+    socket.on('anomaly_cleared', () => {
+      // Phase is already set by the personalized 'game_state_sync' that precedes this event.
+      // Only clear local anomaly UI state here; do NOT overwrite phase.
       set({ 
         anomalyData: null, 
         hasFixedAnomaly: false, 
         anomalyResult: null,
         anomalyPatchedIds: [],
-        phase: returnPhase as any,
       });
     });
 
@@ -791,8 +791,8 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
     const { socket } = get();
     if (!socket?.connected) return;
     socket.emit('use_hint');
-    // Optimistic local deduction so UI updates immediately
-    set(s => ({ myTotalScore: Math.max(0, s.myTotalScore - 50) }));
+    // Score is updated authoritatively by the server's 'penalty_applied' event.
+    // No optimistic deduction here to avoid client/server score drift.
   },
 
   // ── Admin Actions ──
