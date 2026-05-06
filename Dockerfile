@@ -1,8 +1,11 @@
 # ── Build Stage ──────────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
-# Increment this to force a full rebuild (bypasses Docker layer cache)
-ARG CACHE_BUST=6
+# Increment this number to force Railway to bust ALL cached layers below
+ARG CACHE_BUST=7
+# This MUST be before COPY statements — changing the value above invalidates
+# COPY, npm ci, and npm run build:realtime so Railway always recompiles TS
+RUN echo "Cache bust: $CACHE_BUST"
 
 WORKDIR /app
 
@@ -12,10 +15,9 @@ COPY tsconfig.json ./
 COPY realtime/ ./realtime/
 COPY lib/ ./lib/
 
-# Cache bust AFTER copy — forces recompile whenever this arg changes
-RUN echo "Cache bust: $CACHE_BUST" && npm ci
+RUN npm ci
 
-# Compile TypeScript → JavaScript (always fresh, never from committed dist files)
+# Compile TypeScript → JavaScript (always fresh)
 RUN npm run build:realtime
 
 # ── Production Stage ──────────────────────────────────────────────────────────
