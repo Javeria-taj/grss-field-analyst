@@ -302,6 +302,8 @@ export class GameEngine {
 
     // ── Bank-first: use admin Question Bank if it has questions for this level ──
     const bankForLevel = this.questionBank.filter(q => q.level === level);
+    console.log(`[GameEngine] Preparing Level ${level}. Bank questions: ${bankForLevel.length}. Code questions: ${DATA.level1.scrambles.length + DATA.level1.riddles.length} (L1 reference)`);
+
     if (bankForLevel.length > 0) {
       const limit = this.levelLimits[level] || bankForLevel.length;
       const subset = shuffle(bankForLevel).slice(0, limit);

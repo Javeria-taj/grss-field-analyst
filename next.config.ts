@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV !== 'production';
-const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL ?? (isDev ? '' : 'https://grss-field-analyst.onrender.com');
-const socketWss = socketUrl.replace('https://', 'wss://');
+const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL ?? '';
+const socketWss = socketUrl ? socketUrl.replace('https://', 'wss://') : '';
 
 const nextConfig: NextConfig = {
   typescript: {
@@ -15,14 +15,14 @@ const nextConfig: NextConfig = {
   },
 
   // Add this block
-  allowedDevOrigins: ['10.165.132.246'],
+  allowedDevOrigins: ['10.94.220.166'],
 
   async headers() {
     // In development, allow all sources so cross-device testing over LAN works
     // In production, lock down to known origins
     const connectSrc = isDev
       ? "connect-src *"
-      : `connect-src 'self' ${socketUrl} ${socketWss}`;
+      : `connect-src 'self' ${socketUrl} ${socketWss} https://*.up.railway.app https://*.onrender.com wss://*.up.railway.app wss://*.onrender.com`;
 
     const cspValue = isDev
       ? [

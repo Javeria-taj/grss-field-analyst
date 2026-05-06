@@ -2,7 +2,7 @@
 FROM node:20-alpine AS builder
 
 # Increment for cache busting
-ARG CACHE_BUST=4
+ARG CACHE_BUST=5
 RUN echo "Cache bust: $CACHE_BUST"
 
 WORKDIR /app
