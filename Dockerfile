@@ -23,6 +23,10 @@ RUN npm run build:realtime
 # ── Production Stage ──────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
 
+# Same CACHE_BUST as builder — forces runner to also skip its cached layers
+ARG CACHE_BUST=7
+RUN echo "Runner cache bust: $CACHE_BUST"
+
 WORKDIR /app
 
 # Copy package files and install production deps only
