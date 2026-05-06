@@ -476,11 +476,16 @@ export class GameEngine {
 
     const preciseTimeLeft = Math.max(0, (this.endTime - Date.now()) / 1000);
     const score = calcScore(correct, preciseTimeLeft, this.timerTotal, q.clientQ.points);
+    
+    console.log(`[handleAnswer] usn=${usn}, ans=${answer}, correct=${correct}, preciseTimeLeft=${preciseTimeLeft}, timerTotal=${this.timerTotal}, points=${q.clientQ.points}, score=${score}`);
 
     let finalScore = score;
 
     // Update player scores
     const ps = this.playerScores.get(usn);
+    if (!ps) {
+      console.warn(`[handleAnswer] WARNING: Player ${usn} not found in playerScores!`);
+    }
     if (ps) {
       if (correct) {
         ps.streak++;
