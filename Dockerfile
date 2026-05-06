@@ -1,9 +1,8 @@
 # ── Build Stage ──────────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
-# Increment for cache busting
-ARG CACHE_BUST=5
-RUN echo "Cache bust: $CACHE_BUST"
+# Increment this to force a full rebuild (bypasses Docker layer cache)
+ARG CACHE_BUST=6
 
 WORKDIR /app
 
@@ -13,10 +12,10 @@ COPY tsconfig.json ./
 COPY realtime/ ./realtime/
 COPY lib/ ./lib/
 
-# Install all deps (needed for tsc)
-RUN npm ci
+# Cache bust AFTER copy — forces recompile whenever this arg changes
+RUN echo "Cache bust: $CACHE_BUST" && npm ci
 
-# Compile TypeScript → JavaScript
+# Compile TypeScript → JavaScript (always fresh, never from committed dist files)
 RUN npm run build:realtime
 
 # ── Production Stage ──────────────────────────────────────────────────────────
