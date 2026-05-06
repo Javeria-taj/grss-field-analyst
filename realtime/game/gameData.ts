@@ -60,7 +60,7 @@ const DATA: ServerGameData = {
   },
   level2: {
     qs: [
-      { img: '/images/level2/cyclone.jpeg', q: 'What are you looking at? (The Spinning Monster)', opts: ['Tornado', 'Cyclone', 'Whirlpool', 'Alien portal'], ans: 'Cyclone', expl: 'Cyclones are massive rotating storm systems that form over warm tropical waters.', pts: 150, hint: 'Big, organized storm system', hint2: 'Born over warm seas' },
+      { img: '/images/level2/cyclone.jpeg', q: 'What are you looking at? (The Spinning Monster)', opts: ['Tornado', 'Cyclone', 'Whirlpool', 'Alien portal'], ans: 'Whirlpool', expl: 'Whirlpool are massive rotating storm systems that form over warm tropical waters.', pts: 150, hint: 'Big, organized storm system', hint2: 'Born over warm seas' },
       { img: '/images/level2/drought.jpeg', q: "What's happening? (The Thirsty Earth)", opts: ['Flood party', 'Forest growth', 'Drought', 'Snowfall'], ans: 'Drought', expl: 'Droughts occur when a region receives significantly less rain than normal for a long period.', pts: 150, hint: 'Too much sun, not enough rain', hint2: 'Water = missing' },
       { img: '/images/level2/vegetation_health.jpeg', q: 'What is being analyzed? (The Color Code Mystery)', opts: ['Volcano heat', 'Vegetation health', 'Ocean depth', 'Airplanes'], ans: 'Vegetation health', expl: 'Vegetation health is measured using NDVI, where healthy plants reflect more near-infrared light.', pts: 150, hint: 'Farmers love this data', hint2: 'NDVI is involved' },
       { img: '/images/level2/landslide.jpeg', q: 'Identify the disaster: (The Mountain Collapse)', opts: ['Earthquake', 'Landslide', 'Avalanche', 'Tsunami'], ans: 'Landslide', expl: 'Landslides involve the downward movement of rock or earth from a mountain or cliff.', pts: 150, hint: 'Gravity is the villain', hint2: 'Things get buried' },
@@ -74,6 +74,9 @@ const DATA: ServerGameData = {
       { em: '❄️🏔️📉', word: 'GLACIER', hint: 'A slow-moving mass of compacted ice that shapes mountain valleys', expl: 'Ice + mountain terrain + shrinking over time = GLACIER.', pts: 200 },
       { em: '🌪️👁️🌀', word: 'CYCLONE', hint: 'A large rotating storm system tracked continuously by geostationary weather satellites', expl: 'Rotating winds + eye + spiral structure = CYCLONE.', pts: 250 },
       { em: '💡🛩🗺📐', word: 'LIDAR', hint: 'Uses lasers to measure distance.', hint2: 'Used in mapping and terrain analysis.', expl: 'Light + Detection + Ranging.', pts: 250 },
+      { em: '🌀💨🌧🌊', word: 'HURRICANE', hint: 'A powerful storm.', hint2: 'Forms over warm oceans.', expl: 'Hurricanes are massive tropical storms with high winds and heavy rain.', pts: 250 },
+      { em: '🛰🌍📡🔭', word: 'SATELLITE', hint: 'Orbits Earth.', hint2: 'Used for communication and imaging.', expl: 'Satellites orbit Earth to collect data and provide communications.', pts: 200 },
+      { em: '🌊🏖☀🦀', word: 'BEACH', hint: 'A relaxing vacation spot.', hint2: 'Sand, sea, and sunshine.', expl: 'A beach is a landform alongside a body of water which consists of loose particles.', pts: 150 },
     ],
   },
   level4: {
@@ -132,9 +135,9 @@ export const TIME_LIMITS: Record<number, number> = {
   1: 25,   // 25s per question
   2: 25,   // 25s per image
   3: 25,   // 25s per hangman
-  4: 12,   // 12s for Rapid Fire (increased intensity)
+  4: 15,   // 15s for Rapid Fire (increased intensity)
 };
-export const AUCTION_TIME = 180;  // 180s for tool auction
-export const DISASTER_TIME = 120; // 120s for disaster response
-export const INTRO_TIME = 7;      // 7s level intro
-export const REVIEW_TIME = 6;     // 6s answer review
+export const AUCTION_TIME = 420;  // 420s for tool auction
+export const DISASTER_TIME = 300; // 300s for disaster response
+export const INTRO_TIME = 15;     // 15s level intro
+export const REVIEW_TIME = 10;    // 10s answer review
