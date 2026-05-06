@@ -1,0 +1,10 @@
+# nixpacks.toml
+# Tells Railway's Nixpacks builder how to compile and start the realtime server.
+# Without this, Railway runs 'node realtime/dist/realtime/server.js' directly
+# without compiling TypeScript first, causing MODULE_NOT_FOUND.
+
+[phases.build]
+cmds = ["npm run build:realtime"]
+
+[start]
+cmd = "node realtime/dist/realtime/server.js"
