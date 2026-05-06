@@ -15,6 +15,3 @@ postcss.config.mjs
 eslint.config.mjs
 next.config.ts
 
-# TypeScript source (compiled output is in dist/)
-realtime/**/*.ts
-!realtime/dist/**
