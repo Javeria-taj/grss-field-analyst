@@ -23,11 +23,11 @@ export default function setupGameSockets(io: Server) {
   const engine = new GameEngine(io);
   const rateLimitMap = new Map<string, number>();
 
-  const checkRateLimit = (socketId: string, limitMs: number = 150): boolean => {
+  const checkRateLimit = (key: string, limitMs: number = 150): boolean => {
     const now = Date.now();
-    const last = rateLimitMap.get(socketId) || 0;
+    const last = rateLimitMap.get(key) || 0;
     if (now - last < limitMs) return false;
-    rateLimitMap.set(socketId, now);
+    rateLimitMap.set(key, now);
     return true;
   };
 
@@ -202,7 +202,7 @@ export default function setupGameSockets(io: Server) {
     socket.on('submit_answer', (data: { answer: string | number }) => {
       if (isAdmin) return;
       // Rate limit
-      if (!checkRateLimit(socket.id, 150)) return;
+      if (!checkRateLimit(usn || socket.id, 150)) return;
 
       const result = engine.handleAnswer(usn, data.answer);
       if (result) {
@@ -217,7 +217,7 @@ export default function setupGameSockets(io: Server) {
       if (typeof data.letter !== 'string' || data.letter.length !== 1) return;
 
       // Rate limit hangman guesses (150ms)
-      if (!checkRateLimit(socket.id, 150)) return;
+      if (!checkRateLimit(usn || socket.id, 150)) return;
 
       const result = engine.handleLetterGuess(usn, data.letter);
       if (result) {
@@ -237,14 +237,14 @@ export default function setupGameSockets(io: Server) {
 
     socket.on('buy_tool', (data: { toolId: string }) => {
       if (isAdmin) return;
-      if (!checkRateLimit(socket.id, 150)) return;
+      if (!checkRateLimit(usn || socket.id, 150)) return;
       const result = engine.handleBuyTool(usn, data.toolId);
       if (result) socket.emit('auction_update', result);
     });
 
     socket.on('sell_tool', (data: { toolId: string }) => {
       if (isAdmin) return;
-      if (!checkRateLimit(socket.id, 150)) return;
+      if (!checkRateLimit(usn || socket.id, 150)) return;
       const result = engine.handleSellTool(usn, data.toolId);
       if (result) socket.emit('auction_update', result);
     });
@@ -278,14 +278,14 @@ export default function setupGameSockets(io: Server) {
 
     socket.on('focus_breach_penalty', () => {
       if (isAdmin) return;
-      if (!checkRateLimit(socket.id, 2000)) return; // prevent spamming penalties
+      if (!checkRateLimit(usn || socket.id, 2000)) return; // prevent spamming penalties
       engine.applyPenalty(usn, 75);
       console.log(`⚠️ Security Breach: ${usn} penalized 75 pts for focus loss.`);
     });
 
     socket.on('use_hint', () => {
       if (isAdmin) return;
-      if (!checkRateLimit(socket.id, 500)) return;
+      if (!checkRateLimit(usn || socket.id, 500)) return;
       engine.applyPenalty(usn, 50);
       console.log(`💡 Hint used: ${usn} penalized 50 pts.`);
     });
@@ -293,7 +293,7 @@ export default function setupGameSockets(io: Server) {
     // ── Level 5 Finale: client submits locally-computed score ──
     socket.on('submit_level5_results', (data: { l5Score: number }) => {
       if (isAdmin) return;
-      if (!checkRateLimit(socket.id, 2000)) return;
+      if (!checkRateLimit(usn || socket.id, 2000)) return;
       if (typeof data.l5Score !== 'number' || data.l5Score < 0) return;
       // Cap at a reasonable max to prevent exploit
       const capped = Math.min(Math.round(data.l5Score), 9000);
@@ -306,18 +306,32 @@ export default function setupGameSockets(io: Server) {
     // ════════════════════════════════════════════════════════════
 
     socket.on('disconnect', () => {
-      if (!isAdmin) engine.unregisterPlayer(socket.id);
-      rateLimitMap.delete(socket.id);
+      if (!isAdmin) {
+        engine.unregisterPlayer(socket.id);
+        if (usn && !usn.startsWith('SPECTATOR_')) {
+          setTimeout(() => {
+            const isReconnected = Array.from((engine as any).connectedPlayers.values()).includes(usn);
+            if (!isReconnected) {
+              engine.kickPlayer(usn);
+              console.log(`🧹 Ghost Player Cleanup: Removed ${usn} due to inactivity`);
+            }
+          }, 180000);
+        }
+      }
+      rateLimitMap.delete(usn || socket.id);
       engine.broadcastAdminStats();
       console.log(`👋 Disconnected: ${socket.id} | ${usn}`);
     });
   });
 
   // ── Periodic DB persistence & Snapshot ──
+  let isDbSyncing = false;
   setInterval(async () => {
+    if (isDbSyncing) return;
+    isDbSyncing = true;
     // 1. Sync scores using bulkWrite
     try {
-      if (mongoose.connection.readyState !== 1) return; // Only run if DB is connected
+      if (mongoose.connection.readyState !== 1) { isDbSyncing = false; return; } // Only run if DB is connected
       await dbConnect();
       const leaderboard = engine.getLeaderboard();
       if (leaderboard.length > 0) {
@@ -333,6 +347,8 @@ export default function setupGameSockets(io: Server) {
       }
     } catch (err) {
       console.error('DB bulkWrite error:', err);
+    } finally {
+      isDbSyncing = false;
     }
 
     // 2. Persist Engine Snapshot

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useMemo, Fragment } from 'react';
+import { motion } from 'framer-motion';
 import { useGameSyncStore } from '@/stores/useGameSyncStore';
 import { SFX } from '@/lib/sfx';
 import StarfieldCanvas from '@/components/ui/StarfieldCanvas';
@@ -187,11 +188,29 @@ export default function ProjectorPage() {
   }, []);
 
   // Floating Emojis based on reactions
-  const [emojis, setEmojis] = useState<{ id: string, emoji: string, left: number, delay: number }[]>([]);
+  const [emojis, setEmojis] = useState<{ id: string, emoji: string, left: number, delay: number, isBurst?: boolean, burstX?: number }[]>([]);
+  const reactionRateRef = useRef<number[]>([]);
+  const [comboBurst, setComboBurst] = useState(false);
+
   useEffect(() => {
     if (adminLiveStats?.reactions?.length) {
+      const now = Date.now();
+      reactionRateRef.current.push(now);
+      reactionRateRef.current = reactionRateRef.current.filter(t => now - t < 1000);
+      
+      const isBurst = reactionRateRef.current.length > 10;
+      if (isBurst && !comboBurst) {
+        setComboBurst(true);
+        setTimeout(() => setComboBurst(false), 1000);
+      }
+
       const newEmojis = adminLiveStats.reactions.map(r => ({
-        id: r.id, emoji: r.emoji, left: 60 + Math.random() * (window.innerWidth - 120), delay: Math.random() * 0.3
+        id: r.id, 
+        emoji: r.emoji, 
+        left: isBurst ? window.innerWidth / 2 : 60 + Math.random() * (window.innerWidth - 120), 
+        delay: isBurst ? Math.random() * 0.1 : Math.random() * 0.3,
+        isBurst,
+        burstX: isBurst ? (Math.random() - 0.5) * 600 : 0
       }));
       setEmojis(prev => [...prev, ...newEmojis]);
       setTimeout(() => {
@@ -327,6 +346,7 @@ export default function ProjectorPage() {
 
         #ticker { grid-area:ticker; background:rgba(0,240,255,.04); border-top:1px solid var(--border); display:flex; align-items:center; overflow:hidden; position:relative; } .ticker-label { font-family:var(--font-mono); font-size:.6rem; letter-spacing:2px; color:var(--nir); padding:0 14px; flex-shrink:0; border-right:1px solid var(--border); background:rgba(0,240,255,.06); height:100%; display:flex; align-items:center; z-index:2; } .ticker-track { flex:1; overflow:hidden; position:relative; height:100%; } .ticker-inner { display:flex; align-items:center; height:100%; white-space:nowrap; animation:tickerScroll 48s linear infinite; font-family:var(--font-mono); font-size:.65rem; color:var(--text3); letter-spacing:1px; } @keyframes tickerScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} } .tick-item { margin-right:48px; } .tick-key { color:var(--text2); } .tick-val { color:var(--opt); margin-left:4px; } .tick-sep { color:rgba(0,240,255,.25); margin:0 24px; }
         .uplink-emoji { position:fixed; z-index:7000; pointer-events:none; font-size:2.2rem; line-height:1; animation:uplinkFloat 3.5s ease-in forwards; } @keyframes uplinkFloat { 0%{transform:translateY(0) scale(.7); opacity:0;} 8%{opacity:1; transform:translateY(-20px) scale(1.1);} 85%{opacity:.9;} 100%{transform:translateY(-85vh) scale(.8); opacity:0;} }
+        .uplink-emoji.burst { animation: uplinkBurst 2s cubic-bezier(0.25, 1, 0.5, 1) forwards; } @keyframes uplinkBurst { 0%{transform:translateY(0) translateX(0) scale(0.5); opacity:0;} 10%{opacity:1; transform:translateY(-150px) translateX(var(--burstX)) scale(1.6);} 100%{transform:translateY(-100vh) translateX(calc(var(--burstX) * 1.5)) scale(0.9); opacity:0;} }
 
         .leaderboard-overlay { position:fixed; inset:0; z-index:10000; background:rgba(3,7,15,0.98); backdrop-filter:blur(20px); display:flex; flex-direction:column; align-items:center; padding:60px 40px; animation:lbExpand .5s cubic-bezier(.16,1,.3,1); }
         @keyframes lbExpand { from{opacity:0;transform:scale(1.1)} to{opacity:1;transform:scale(1)} }
@@ -366,7 +386,7 @@ export default function ProjectorPage() {
 
 
       {emojis.map(e => (
-        <div key={e.id} className="uplink-emoji" style={{ left: e.left, bottom: '60px', animationDelay: `${e.delay}s` }}>{e.emoji}</div>
+        <div key={e.id} className={`uplink-emoji ${e.isBurst ? 'burst' : ''}`} style={{ left: e.left, bottom: '60px', animationDelay: `${e.delay}s`, '--burstX': `${e.burstX}px` } as React.CSSProperties}>{e.emoji}</div>
       ))}
 
       {isLeaderboardExpanded && (
@@ -499,7 +519,25 @@ export default function ProjectorPage() {
               </div>
             )}
             {currentQuestion?.scrambled && <div style={{ textAlign: 'center' }}><span className="scramble-hint">SCRAMBLE</span></div>}
-            <div className="q-text">{currentQuestion?.question || currentQuestion?.scrambled || 'Loading question data from orbital uplink...'}</div>
+            {currentQuestion?.em ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+                <div style={{ fontSize: '5rem', textShadow: '0 0 40px rgba(0, 240, 255, 0.8)', marginBottom: 10 }}>
+                  {currentQuestion.em}
+                </div>
+                {currentLevel === 3 && currentQuestion.wordLength && (
+                  <div style={{ fontSize: '3rem', letterSpacing: '15px', color: 'var(--text)', textShadow: '0 0 20px rgba(255,255,255,0.5)', fontFamily: 'var(--font-mono)' }}>
+                    {'_'.repeat(currentQuestion.wordLength)}
+                  </div>
+                )}
+                {(timerTotal || 120) - timeLeft >= 60 && currentQuestion.hint && (
+                  <div style={{ fontSize: '1.5rem', color: 'var(--accent2)', fontStyle: 'italic', marginTop: 20, textAlign: 'center' }}>
+                    HINT: {currentQuestion.hint}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="q-text">{currentQuestion?.question || currentQuestion?.scrambled || 'Loading question data from orbital uplink...'}</div>
+            )}
 
             {currentQuestion?.options && (
               <div className="options-bar">
@@ -633,16 +671,38 @@ export default function ProjectorPage() {
                           if (!p) return null;
                           const order = [1, 0, 2, 3, 4];
                           const realIdx = leaderboard.indexOf(p);
+                          const h = realIdx === 0 ? 120 : realIdx === 1 ? 95 : realIdx === 2 ? 80 : realIdx === 3 ? 65 : 55;
+                          const col = p.faction === 'team_sentinel' ? 'var(--sentinel)' : p.faction === 'team_landsat' ? 'var(--landsat)' : 'var(--modis)';
+                          const delay = (4 - realIdx) * 0.4 + 0.2;
                           return (
-                            <div key={p.usn} className="podium-col">
+                            <motion.div key={p.usn} className="podium-col"
+                              initial={{ y: 50, opacity: 0 }}
+                              animate={{ y: 0, opacity: 1 }}
+                              transition={{ duration: 0.8, delay, ease: "backOut" }}
+                            >
                               <div className="podium-name" style={{ fontSize: '0.55rem' }}>
                                 {p.name.split(' ')[0]}
                                 <div style={{ opacity: 0.6, fontSize: '0.45rem' }}>{p.usn}</div>
                               </div>
-                              <div className={`podium-bar p${realIdx + 1}`} style={{ height: `${100 - realIdx * 15}%`, width: 60 }}>
-                                <div className="podium-rank">{medals[realIdx] || realIdx + 1}</div>
-                              </div>
-                            </div>
+                              <motion.div className={`podium-bar p${realIdx + 1}`}
+                                initial={{ height: 0 }}
+                                animate={{ height: h }}
+                                transition={{ duration: 1.2, delay: delay + 0.2, ease: "anticipate" }}
+                                style={{ width: 60, background: `linear-gradient(to top, rgba(0,0,0,0.8), ${col})`, position: 'relative', borderTopLeftRadius: 8, borderTopRightRadius: 8, borderTop: `2px solid ${col}` }}
+                              >
+                                <div className="podium-rank" style={{ position: 'absolute', top: 10, left: 0, width: '100%', textAlign: 'center' }}>{medals[realIdx] || realIdx + 1}</div>
+                                {realIdx === 0 && (
+                                  <motion.div 
+                                    initial={{ opacity: 0, scale: 0 }} 
+                                    animate={{ opacity: [0, 1, 0], scale: [0.5, 2, 3], y: [-20, -60, -100] }} 
+                                    transition={{ duration: 2, delay: delay + 1.2, times: [0, 0.2, 1] }}
+                                    style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', height: '100%', pointerEvents: 'none' }}
+                                  >
+                                    <div style={{ fontSize: '2rem', textAlign: 'center' }}>✨</div>
+                                  </motion.div>
+                                )}
+                              </motion.div>
+                            </motion.div>
                           );
                         })}
                       </div>

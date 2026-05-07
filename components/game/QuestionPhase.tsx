@@ -557,6 +557,14 @@ export default function QuestionPhase() {
     if (hasAnswered) setIsSubmitting(false);
   }, [hasAnswered]);
 
+  const rapidFireComboRef = useRef(0);
+  const [showComboMeter, setShowComboMeter] = useState(false);
+  const questionStartTimeRef = useRef(Date.now());
+
+  useEffect(() => {
+    questionStartTimeRef.current = Date.now();
+  }, [q?.index]);
+
   useEffect(() => {
     if (!myAnswer) return;
     if (myAnswer === prevAnswerRef.current) return;
@@ -567,7 +575,17 @@ export default function QuestionPhase() {
       if (prevStreakRef.current >= 3) { SFX.glassShatter(); prevStreakRef.current = 0; }
       else { SFX.wrong(); }
     }
-  }, [myAnswer]);
+
+    if (currentLevel === 4) {
+      const elapsed = (Date.now() - questionStartTimeRef.current) / 1000;
+      if (myAnswer.correct && elapsed <= 5.5) {
+        rapidFireComboRef.current += 1;
+      } else {
+        rapidFireComboRef.current = 0;
+      }
+      setShowComboMeter(rapidFireComboRef.current >= 3);
+    }
+  }, [myAnswer, currentLevel]);
 
   const handleSubmit = (answer: string | number) => {
     if (isSubmitting || hasAnswered) return;
@@ -586,6 +604,18 @@ export default function QuestionPhase() {
       padding: 'clamp(16px, 4vw, 32px) clamp(12px, 4vw, 24px)',
       gap: 20,
     }}>
+      {/* Combo Meter */}
+      {showComboMeter && currentLevel === 4 && (
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: [0, 1.2, 1], opacity: 1 }}
+          transition={{ type: 'spring' }}
+          style={{ position: 'fixed', top: 20, right: 20, background: 'linear-gradient(90deg, #ffaa00, #ff2d55)', color: '#fff', padding: '6px 16px', borderRadius: 20, fontWeight: 900, boxShadow: '0 0 25px rgba(255,170,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}
+        >
+          <span style={{ fontSize: '1.2rem' }}>🔥</span> COMBO x2
+        </motion.div>
+      )}
+
       {/* Progress label */}
       <div style={{
         fontSize: '0.65rem', color: 'var(--text3)', letterSpacing: 2.5,
@@ -652,7 +682,7 @@ export default function QuestionPhase() {
             color: myAnswer.correct ? 'var(--accent2)' : 'var(--danger)',
             fontSize: '1.15rem', fontWeight: 800, marginBottom: 6,
           }}>
-            {myAnswer.correct ? `+${myAnswer.score} PTS ACQUIRED` : 'TRANSMISSION FAILED'}
+            {myAnswer.correct ? `+${showComboMeter && currentLevel === 4 ? myAnswer.score * 2 : myAnswer.score} PTS ACQUIRED` : 'TRANSMISSION FAILED'}
           </div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text2)', lineHeight: 1.5 }}>
             {myAnswer.correct

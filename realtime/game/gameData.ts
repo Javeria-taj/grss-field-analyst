@@ -5,10 +5,10 @@
 // ============================================================
 
 export interface ScrambleQ {
-  word: string; sc: string; hint: string; hint2?: string; cat: string; pts: number; type: 'scramble';
+  word: string; sc: string; hint: string; hint2?: string; expl: string; cat: string; pts: number; type: 'scramble';
 }
 export interface RiddleQ {
-  q: string; ans: string; hint: string; hint2?: string; cat: string; pts: number; type: 'riddle';
+  q: string; ans: string; hint: string; hint2?: string; expl: string; cat: string; pts: number; type: 'riddle';
 }
 export type Level1Q = ScrambleQ | RiddleQ;
 
@@ -44,18 +44,18 @@ export interface ServerGameData {
 const DATA: ServerGameData = {
   level1: {
     scrambles: [
-      { word: 'PENGUIN', sc: 'GNIUNEP', hint: "A bird that can't fly.", hint2: "Looks like it's wearing a tuxedo.", cat: 'GRSS', pts: 100, type: 'scramble' },
-      { word: 'CHOCOLATE', sc: 'CCOAHTOEL', hint: 'A sweet treat.', hint2: 'Made from cocoa beans.', cat: 'GRSS', pts: 100, type: 'scramble' },
-      { word: 'CINEMA', sc: 'NMEACIN', hint: 'Get your popcorn ready.', hint2: 'A place to watch blockbuster movies.', cat: 'GRSS', pts: 100, type: 'scramble' },
-      { word: 'VAMPIRE', sc: 'VIMRAEP', hint: 'A mythical creature.', hint2: 'Hates garlic and sunlight.', cat: 'GRSS', pts: 100, type: 'scramble' },
-      { word: 'BACKPACK', sc: 'KPABCACK', hint: 'Something you wear on your shoulders.', hint2: 'Students carry books in it.', cat: 'GRSS', pts: 100, type: 'scramble' },
+      { word: 'EARTH', sc: 'HTRAE', hint: 'Our home planet.', hint2: 'Third planet from the Sun.', expl: 'Earth is the planet where we live.', cat: 'GRSS', pts: 100, type: 'scramble' },
+      { word: 'SENSOR', sc: 'EROSNES', hint: 'Used on satellites.', hint2: 'Collects data remotely.', expl: 'Sensors onboard satellites collect remote sensing data from Earth.', cat: 'GRSS', pts: 100, type: 'scramble' },
+      { word: 'PIXEL', sc: 'LEXPI', hint: 'Smallest unit in satellite imagery.', hint2: 'Images contain millions of these.', expl: 'Pixels are the smallest image units in digital and satellite imagery.', cat: 'GRSS', pts: 100, type: 'scramble' },
+      { word: 'CANYON', sc: 'NAYNCO', hint: 'A deep natural valley.', hint2: 'Usually carved by rivers over time.', expl: 'Canyons are major geological landforms studied in Earth science and terrain analysis.', cat: 'GRSS', pts: 100, type: 'scramble' },
+      { word: 'DELTA', sc: 'AETLD', hint: 'Formed where rivers meet larger water bodies.', hint2: 'Often triangular and rich in sediment.', expl: 'Deltas are important geological and environmental regions studied in hydrology and remote sensing.', cat: 'GRSS', pts: 100, type: 'scramble' },
     ],
     riddles: [
-      { q: "I measure but have no ruler. I fly but have no wings. I can see everything, yet I have no eyes. What am I?", ans: 'SATELLITE', hint: 'I am far above you most of the time.', hint2: 'I orbit the Earth.', cat: 'GRSS', pts: 100, type: 'riddle' },
-      { q: "I shave every day, but my beard stays the exact same. What am I?", ans: 'BARBER', hint: "Think of a profession.", hint2: "I work on other people's hair.", cat: 'GRSS', pts: 100, type: 'riddle' },
-      { q: "I have keys but open no doors. I have space but no room. You can enter but can’t go outside. What am I?", ans: 'KEYBOARD', hint: 'You use me to write.', hint2: 'QWERTY.', cat: 'GRSS', pts: 100, type: 'riddle' },
-      { q: "I send out signals you cannot see, and I listen for their return. From silence, I build a picture of what surrounds you. What am I?", ans: 'RADAR', hint: 'Used in weather and aviation.', hint2: 'Works using radio waves.', cat: 'GRSS', pts: 100, type: 'riddle' },
-      { q: "I have cities but no houses, forests but no trees, and oceans but no water. What am I?", ans: 'MAP', hint: 'I help you navigate.', hint2: 'Google makes a digital version of me.', cat: 'GRSS', pts: 100, type: 'riddle' },
+      { q: "I am motion born from surrender. Endless descent without arrival. A path carved by attraction, yet never reaching its center. What am I?", ans: 'ORBIT', hint: 'The Moon has been locked in me for billions of years.', hint2: 'Too slow and you fall. Too fast and you flee.', expl: 'An orbit is the curved path of a satellite around Earth — a perfect balance between gravitational pull and forward velocity. Too slow and gravity wins; too fast and the object escapes. It is the foundation of all satellite-based remote sensing.', cat: 'GRSS', pts: 100, type: 'riddle' },
+      { q: "The more humans take, the less of me remains. I am measured from space, yet rooted to the ground. My condition is revealed in color from above. What am I?", ans: 'VEGETATION', hint: 'Satellites track my health from above.', hint2: 'Farmers and scientists watch me closely from orbit.', expl: 'Vegetation health is monitored from space using NDVI (Normalized Difference Vegetation Index). Healthy vegetation appears green in satellite data while stressed or lost areas appear red — a core application in IEEE Geoscience and Remote Sensing.', cat: 'GRSS', pts: 100, type: 'riddle' },
+      { q: "I divide the Earth without walls or fences. Invisible to humans, yet nations obey me. What am I?", ans: 'LATITUDE', hint: 'Found using coordinates.', hint2: 'Used in mapping and navigation.', expl: 'Latitude lines are essential in mapping, GPS, and geospatial systems.', cat: 'GRSS', pts: 100, type: 'riddle' },
+      { q: "I measure but have no ruler. I fly but have no wings. I can see everything, yet I have no eyes. What am I?", ans: 'SATELLITE', hint: 'I am far above you most of the time.', hint2: 'I am used in observation and data collection.', expl: 'Satellites measure Earth, orbit (fly), and observe without human features.', cat: 'GRSS', pts: 100, type: 'riddle' },
+      { q: "I speak in invisible pulses and listen for echoes in return. Through clouds and darkness, I reveal what eyes cannot see. What am I?", ans: 'RADAR', hint: 'Used in weather forecasting.', hint2: 'Uses radio waves.', expl: 'Radar uses radio waves and reflected signals to detect storms, terrain, and moving objects.', cat: 'GRSS', pts: 100, type: 'riddle' },
     ],
   },
   level2: {
@@ -81,16 +81,16 @@ const DATA: ServerGameData = {
   },
   level4: {
     qs: [
-      { q: 'In what sport is the word "love" considered a score?', opts: ['Volleyball', 'Badminton', 'Tennis', 'Table Tennis'], ans: 'Tennis', expl: '[Tennis / Love]: "Love" comes from the French word for egg (l\'œuf), meaning zero!', diff: 1, pts: 100 },
-      { q: 'How many bones do sharks have in their bodies?', opts: ['0', '100', '206', '300'], ans: '0', expl: '[Sharks / Bones]: Zero bones! Their entire skeleton is made of flexible cartilage.', diff: 1, pts: 100 },
-      { q: 'Which iconic Bollywood movie features the legendary villain dialogue, "Kitne aadmi the?"', opts: ['Don', 'Sholay', 'Deewaar', 'Agneepath'], ans: 'Sholay', expl: '[Sholay / Dialogue]: The legendary Gabbar Singh says this in the 1975 classic, Sholay.', diff: 2, pts: 150 },
-      { q: 'Which planet in our solar system is known as the "Morning Star" or "Evening Star"?', opts: ['Mars', 'Jupiter', 'Venus', 'Mercury'], ans: 'Venus', expl: "[Venus / Morning Star]: It's the brightest planet in our sky just before sunrise and after sunset.", diff: 2, pts: 150 },
-      { q: 'Which animal has fingerprints so similar to human beings that they have actually confused investigators at crime scenes?', opts: ['Chimpanzee', 'Koala', 'Sloth', 'Raccoon'], ans: 'Koala', expl: "[Koalas / Fingerprints]: Their fingerprints are so human-like they've actually confused police at crime scenes!", diff: 2, pts: 150 },
-      { q: 'In the blockbuster movie 3 Idiots, what is Rancho’s actual real name revealed at the end of the film?', opts: ['Chatur Ramalingam', 'Viru Sahastrabuddhe', 'Phunsukh Wangdu', 'Farhan Qureshi'], ans: 'Phunsukh Wangdu', expl: '[3 Idiots / Rancho]: The climax reveals Rancho is actually the genius inventor, Phunsukh Wangdu.', diff: 2, pts: 150 },
-      { q: 'What is the only food that is known to practically never spoil or go bad, even after thousands of years?', opts: ['White Rice', 'Honey', 'Dark Chocolate', 'Salted Butter'], ans: 'Honey', expl: '[Honey / Spoiling]: Its unique chemistry makes it impossible for bacteria to survive inside it.', diff: 3, pts: 200 },
-      { q: 'Which country is credited with the original invention of Tea?', opts: ['India', 'United Kingdom', 'China', 'Japan'], ans: 'China', expl: '[Tea / China]: Legend says a Chinese Emperor accidentally discovered it in 2737 BC!', diff: 3, pts: 200 },
-      { q: "Which layer of Earth's atmosphere protects us from harmful UV rays?", opts: ['Troposphere', 'Stratosphere', 'Mesosphere', 'Thermosphere'], ans: 'Stratosphere', expl: "[Stratosphere / UV Rays]: This layer contains the ozone, which acts as Earth's ultimate natural sunscreen.", diff: 3, pts: 200 },
-      { q: 'Synthetic Aperture Radar (SAR) is powerful because it can:', opts: ['Work only in bright sunlight', 'Measure Earth\'s core temperature', 'See through clouds, day and night', 'Stop hurricanes from forming'], ans: 'See through clouds, day and night', expl: '[SAR / Clouds]: SAR uses microwaves that easily pierce right through thick clouds and rain.', diff: 3, pts: 200 },
+      { q: 'A satellite detects large swirling clouds over the ocean. What is most likely forming?', opts: ['Earthquake', 'Cyclone', 'Landslide', 'Volcano'], ans: 'Cyclone', expl: '[Cyclone]: A cyclone forms over warm ocean water and is characterized by its spiral cloud pattern.', diff: 1, pts: 100 },
+      { q: 'Which atmospheric gas contributes most to anthropogenic warming?', opts: ['Methane', 'Nitrogen', 'Carbon dioxide', 'Ozone'], ans: 'Carbon dioxide', expl: '[Carbon dioxide]: CO2 is a major greenhouse gas released primarily from vehicles and industry.', diff: 1, pts: 100 },
+      { q: 'Which satellite imaging method is most useful during floods with heavy cloud cover?', opts: ['Optical imagery', 'Infrared imagery', 'SAR imagery', 'RGB photography'], ans: 'SAR imagery', expl: '[SAR imagery]: Synthetic Aperture Radar (SAR) is an active remote sensing method that works in bad weather and sees through clouds.', diff: 2, pts: 150 },
+      { q: 'Remote sensing satellites mainly collect data using:', opts: ['Touch sensors', 'Cameras & sensors', 'Sound waves only', 'Heat from Earth core'], ans: 'Cameras & sensors', expl: '[Cameras & sensors]: Satellites orbit in space and detect reflected radiation using specialized cameras and sensors.', diff: 1, pts: 100 },
+      { q: 'Deforestation mainly leads to:', opts: ['More rainfall', 'Soil erosion', 'Less oxygen use', 'Reduced pollution'], ans: 'Soil erosion', expl: '[Soil erosion]: When trees are removed, the lack of roots causes soil to wash away easily.', diff: 2, pts: 150 },
+      { q: 'Which disaster is caused by sudden movement of tectonic plates?', opts: ['Flood', 'Cyclone', 'Earthquake', 'Drought'], ans: 'Earthquake', expl: '[Earthquake]: An earthquake is measured on the Richter scale and happens due to underground tectonic movement.', diff: 1, pts: 100 },
+      { q: 'NDVI (Normalized Difference Vegetation Index) is used to:', opts: ['Vegetation density', 'Vegetation health', 'Surface temperature', 'Atmospheric moisture'], ans: 'Vegetation health', expl: '[Vegetation health]: NDVI is a satellite-derived index widely used in agriculture to monitor vegetation health.', diff: 2, pts: 150 },
+      { q: 'Which satellite dataset is most useful for monitoring urban heat islands?', opts: ['Thermal imagery', 'Elevation maps', 'Rainfall data', 'Ocean currents'], ans: 'Thermal imagery', expl: '[Thermal imagery]: It detects temperature variations, making it essential for urban planning and monitoring heat.', diff: 3, pts: 200 },
+      { q: 'Synthetic Aperture Radar (SAR) is useful because it:', opts: ['Works only in sunlight', 'Cannot see through clouds', 'Works day and night, even through clouds', 'Only measures temperature'], ans: 'Works day and night, even through clouds', expl: '[SAR]: SAR is an active remote sensing technology that penetrates clouds and works equally well in day and night.', diff: 3, pts: 200 },
+      { q: 'A sudden rise in sea level threatens coastal cities. What is the main cause?', opts: ['Earth rotation', 'Climate change', 'Moon shrinking', 'Soil formation'], ans: 'Climate change', expl: '[Climate change]: Global temperature increases and melting glaciers directly contribute to rising sea levels.', diff: 3, pts: 200 },
     ],
   },
   level5: {
