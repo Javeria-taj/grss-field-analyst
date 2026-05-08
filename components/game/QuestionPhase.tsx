@@ -684,6 +684,20 @@ export default function QuestionPhase() {
           }}>
             {myAnswer.correct ? `+${showComboMeter && currentLevel === 4 ? myAnswer.score * 2 : myAnswer.score} PTS ACQUIRED` : 'TRANSMISSION FAILED'}
           </div>
+          {myAnswer.expl && (
+            <div style={{ 
+              marginTop: 12, marginBottom: 12, padding: '10px 14px', 
+              background: 'rgba(0,0,0,0.2)', borderRadius: 8, 
+              borderLeft: `3px solid ${myAnswer.correct ? 'var(--accent2)' : 'var(--danger)'}`,
+              fontSize: '0.85rem', color: 'var(--text1)', textAlign: 'left',
+              lineHeight: 1.5
+            }}>
+              <span style={{ color: 'var(--accent)', fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 1, display: 'block', marginBottom: 4 }}>
+                Mission Intel
+              </span>
+              {myAnswer.expl}
+            </div>
+          )}
           <div style={{ fontSize: '0.8rem', color: 'var(--text2)', lineHeight: 1.5 }}>
             {myAnswer.correct
               ? 'Standing by for next intel package…'

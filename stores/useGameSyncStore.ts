@@ -104,7 +104,7 @@ interface GameSyncState {
   // My stats (real-time feedback)
   myTotalScore: number;
   myLevelScore: number;
-  myAnswer: { correct: boolean; score: number; totalScore?: number; currentLevelScore?: number } | null;
+  myAnswer: { correct: boolean; score: number; totalScore?: number; currentLevelScore?: number; expl?: string } | null;
   hasAnswered: boolean;
   myTelemetry: TelemetryData[];
 
@@ -376,7 +376,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         levelIntro: data.levelIntro,
         myTotalScore: data.myScore?.totalScore ?? 0,
         myLevelScore: data.myScore?.currentLevelScore ?? 0,
-        myAnswer: data.myAnswer ? { correct: data.myAnswer.correct, score: data.myAnswer.score } : null,
+        myAnswer: data.myAnswer ? { correct: data.myAnswer.correct, score: data.myAnswer.score, expl: data.myAnswer.expl } : null,
         hasAnswered: !!data.myAnswer,
         hangmanGuessed: data.hangmanState?.guessedLetters ?? [],
         hangmanLives: data.hangmanState?.lives ?? 6,
@@ -480,6 +480,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       totalScore?: number;
       currentLevelScore?: number;
       telemetry?: TelemetryData[];
+      expl?: string;
     }) => {
       set(state => ({
         myAnswer: data,

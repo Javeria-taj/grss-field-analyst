@@ -229,7 +229,8 @@ export default function setupGameSockets(io: Server) {
             correct: pa.correct,
             score: pa.score,
             totalScore: pa.totalScore,
-            currentLevelScore: pa.currentLevelScore
+            currentLevelScore: pa.currentLevelScore,
+            expl: pa.expl
           });
         }
       }

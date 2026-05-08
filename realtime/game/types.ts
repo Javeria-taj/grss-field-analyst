@@ -70,6 +70,7 @@ export interface PlayerAnswer {
   totalScore: number;
   currentLevelScore: number;
   telemetry: TelemetryData[];
+  expl?: string;
 }
 
 export interface HangmanPlayerState {

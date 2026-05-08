@@ -346,7 +346,7 @@ export class GameEngine {
                 scrambled: sq.sc, hint: sq.hint, hint2: sq.hint2, category: sq.cat,
               },
               answer: normalise(sq.word),
-              explanation: `The answer is ${sq.word}.`,
+              explanation: sq.expl,
             };
           } else {
             const rq = q as RiddleQ;
@@ -357,7 +357,7 @@ export class GameEngine {
                 question: rq.q, hint: rq.hint, hint2: rq.hint2, category: rq.cat,
               },
               answer: normalise(rq.ans),
-              explanation: `The answer is ${rq.ans}.`,
+              explanation: rq.expl,
             };
           }
         });
@@ -532,7 +532,8 @@ export class GameEngine {
         usn, answer, timeRemaining: this.timerRemaining, correct, score: finalScore,
         totalScore: ps.totalScore,
         currentLevelScore: ps.currentLevelScore,
-        telemetry: ps.telemetry
+        telemetry: ps.telemetry,
+        expl: q.explanation
       };
       this.currentAnswers.set(usn, pa);
     }
@@ -560,7 +561,8 @@ export class GameEngine {
       score: finalScore, 
       totalScore: ps?.totalScore ?? 0, 
       currentLevelScore: ps?.currentLevelScore ?? 0,
-      telemetry: ps?.telemetry || []
+      telemetry: ps?.telemetry || [],
+      expl: q.explanation
     };
   }
 
