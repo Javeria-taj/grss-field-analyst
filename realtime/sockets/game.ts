@@ -357,4 +357,7 @@ export default function setupGameSockets(io: Server) {
       engine.snapshotToDb();
     }
   }, 10000); // every 10 seconds
+
+  // Expose the engine so the HTTP layer can flush state on shutdown
+  return engine;
 }
