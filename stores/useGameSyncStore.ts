@@ -299,10 +299,9 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         ? `${window.location.protocol}//${window.location.hostname}:4001`
         : 'http://localhost:4001';
 
-    // Debug logs to verify token retrieval
-    const currentUser = useGameStore.getState().user;
-    console.log('🔐 Init called with user:', currentUser);
-    console.log('🔐 Token value:', currentUser?.token);
+    // One refresh attempt per socket lifetime, so a genuinely dead session
+    // cannot spin in a refresh/reject loop.
+    let authRefreshAttempted = false;
 
     const socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
@@ -311,8 +310,12 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
       reconnectionDelay: 3000,
       reconnectionDelayMax: 10000,
       withCredentials: true,
-      auth: {
-        token: currentUser?.token
+      // auth MUST be a callback, not a static object. Socket.io evaluates a
+      // static object once, so every reconnect attempt would resend the same
+      // (possibly expired) token forever. A callback is re-invoked on each
+      // attempt, so a token refreshed by connect_error below is picked up.
+      auth: (cb: (data: object) => void) => {
+        cb({ token: useGameStore.getState().user?.token });
       },
       query: {
         role: typeof window !== 'undefined' && window.location.pathname === '/projector' ? 'spectator' : 'player'
@@ -330,10 +333,37 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
     });
 
     socket.on('connect_error', (err) => {
-      // console.error('🔴 Socket connect_error:', err.message);
+      console.error('🔴 Socket connect_error:', err.message);
+
+      // The JWT lives in localStorage with a 12h TTL, but the session-recovery
+      // effect skips rehydrateFromCookie whenever a persisted user exists — so
+      // an expired token is reused indefinitely and the handshake is rejected
+      // on every retry ("Invalid or expired session" / "Authentication
+      // required"). The HTTP-only cookie is usually still valid, so mint a
+      // fresh token from it once and let the auth callback pick it up.
+      const isAuthFailure = /auth|session|token/i.test(err.message);
+      if (isAuthFailure && !authRefreshAttempted) {
+        authRefreshAttempted = true;
+        console.warn('🔁 Handshake rejected — refreshing token from cookie...');
+        useGameStore.getState().rehydrateFromCookie()
+          .then(() => {
+            const refreshed = useGameStore.getState().user?.token;
+            if (refreshed) {
+              console.log('✅ Token refreshed; retrying handshake.');
+            } else {
+              toast('Session expired. Please log in again.', 'err');
+              setTimeout(() => { window.location.href = '/'; }, 2000);
+            }
+          })
+          .catch(() => {
+            toast('Session expired. Please log in again.', 'err');
+            setTimeout(() => { window.location.href = '/'; }, 2000);
+          });
+      }
     });
 
     socket.on('connect', () => {
+      authRefreshAttempted = false;
       set({ connected: true });
       // Emit full sync request in case of reconnect after server snapshot hydration
       socket.emit('request_full_sync');
