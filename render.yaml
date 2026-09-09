@@ -1,0 +1,53 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Render Blueprint — GRSS Realtime (Socket.io) backend
+#
+# This replaces the Railway deployment. The Next.js frontend stays on Vercel;
+# only the dedicated realtime server runs here.
+#
+# To use: Render Dashboard → New → Blueprint → pick this repo.
+# Secrets (sync: false) are NOT stored in git — set them in the Render dashboard.
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+  - type: web
+    name: grss-realtime
+    runtime: node
+    plan: starter            # paid plan = no cold-start spin-down
+    region: singapore        # pick the region closest to your players
+    branch: main
+
+    # --include=dev is REQUIRED: NODE_ENV=production makes npm omit devDependencies,
+    # which drops @types/jsonwebtoken and fails the TypeScript build.
+    buildCommand: npm ci --include=dev && npm run build:realtime
+    startCommand: node realtime/dist/realtime/server.js
+
+    # Liveness probe. Stays 200 even if Mongo blips, so a database hiccup
+    # never causes Render to restart the service and drop a live game.
+    healthCheckPath: /health
+
+    # CRITICAL: the GameEngine holds authoritative game state in memory.
+    # Running more than one instance would split players across engines and
+    # break scoring. Never enable autoscaling on this service.
+    numInstances: 1
+
+    # Turn this off before a live event so a stray push can't redeploy
+    # (and reset sockets) mid-game.
+    autoDeploy: true
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # NOTE: PORT is injected by Render automatically — do not set it here,
+      # and do NOT set SOCKET_PORT (that is a local-dev-only variable).
+
+      - key: MONGODB_URI
+        sync: false          # set in dashboard — same Atlas URI the Vercel app uses
+
+      - key: SESSION_SECRET
+        sync: false          # MUST byte-for-byte match Vercel, or JWT auth fails
+
+      # Comma-separated allowed browser origins. A single '*' wildcard is
+      # supported per hostname label so Vercel preview deploys keep working:
+      #   https://your-app.vercel.app,https://*.vercel.app
+      - key: CLIENT_URL
+        sync: false
