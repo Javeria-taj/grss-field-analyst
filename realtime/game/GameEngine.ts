@@ -1,6 +1,7 @@
 import { Server } from 'socket.io';
-import DATA, { LEVEL_INTROS, TIME_LIMITS, AUCTION_TIME, DISASTER_TIME, INTRO_TIME, REVIEW_TIME } from './gameData';
-import type { Level1Q, ScrambleQ, RiddleQ } from './gameData';
+import DATA, { AUCTION_TIME, DISASTER_TIME, INTRO_TIME, REVIEW_TIME } from './gameData';
+import { getSet, isSetId, setLevelCount, getSetCatalog, DEFAULT_SET_ID } from './packs';
+import type { Level1Q, ScrambleQ, RiddleQ, SetId } from './packs';
 import type {
   GamePhase, PlayerScore, PlayerAnswer, HangmanPlayerState, AuctionPlayerState,
   ClientQuestion, LeaderboardEntry, LevelIntroPayload, QuestionEndPayload,
@@ -63,7 +64,10 @@ export class GameEngine {
   private priceTickInterval: ReturnType<typeof setInterval> | null = null;
   private heatMultiplier = 1.0;
 
-  // ── Question Bank (admin-managed, overrides gameData when populated) ──
+  // ── Active Question Set (which pack the fallback content comes from) ──
+  private activeSetId: SetId = DEFAULT_SET_ID;
+
+  // ── Question Bank (admin-managed, overrides the active set when populated) ──
   private questionBank: BankQuestion[] = [];
   private levelLimits: Record<number, number> = { 1: 10, 2: 5, 3: 5, 4: 10 };
 
@@ -148,6 +152,35 @@ export class GameEngine {
         snapshotTick = 0;
       }
     }, 1500);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // QUESTION SET (which content pack the game runs)
+  // ═══════════════════════════════════════════════════════════════
+
+  getActiveSetId(): SetId {
+    return this.activeSetId;
+  }
+
+  /**
+   * Switch the active content pack. Only allowed between levels —
+   * changing packs mid-question would swap the answer key underneath
+   * players who have already been shown a prompt.
+   */
+  setActiveSet(id: string): { ok: true } | { ok: false; error: string } {
+    if (!isSetId(id)) return { ok: false, error: `Unknown question set "${id}"` };
+    if (this.phase !== 'idle' && this.phase !== 'level_complete' && this.phase !== 'game_over') {
+      return { ok: false, error: 'Cannot change question set while a level is running' };
+    }
+    if (id === this.activeSetId) return { ok: true };
+
+    this.activeSetId = id;
+    console.log(`[GameEngine] Active question set → ${id} (${getSet(id).label})`);
+
+    this.broadcastAdminStats();
+    this.io.emit('question_set_changed', { activeSetId: id });
+    this.snapshotToDb();
+    return { ok: true };
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -258,6 +291,15 @@ export class GameEngine {
     if (level < 1 || level > 5) return false;
     if (this.phase !== 'idle' && this.phase !== 'level_complete') return false;
 
+    // Refuse a level the active set cannot populate. Without this an
+    // unfinished pack would start, find no questions, and immediately
+    // end the level in front of players.
+    const hasBankQuestions = this.questionBank.some(q => q.level === level);
+    if (!hasBankQuestions && setLevelCount(this.activeSetId, level) === 0) {
+      console.warn(`[GameEngine] Refusing Level ${level}: set "${this.activeSetId}" has no questions and the bank is empty.`);
+      return false;
+    }
+
     this.currentLevel = level;
     this.currentQIndex = 0;
     this.currentAnswers.clear();
@@ -276,7 +318,7 @@ export class GameEngine {
 
     // Show intro
     this.phase = 'level_intro';
-    const intro = LEVEL_INTROS[level];
+    const intro = getSet(this.activeSetId).intros[level];
     const payload: LevelIntroPayload = {
       level, startsIn: INTRO_TIME,
       icon: intro.icon, badge: intro.badge,
@@ -300,9 +342,15 @@ export class GameEngine {
   private prepareQuestions(level: number) {
     this.questions = [];
 
+    // Content for this run comes from the active set; the admin bank
+    // still overrides it per level (see below).
+    const set = getSet(this.activeSetId);
+    const D = set.data;
+    const TIME_LIMITS = set.timeLimits;
+
     // ── Bank-first: use admin Question Bank if it has questions for this level ──
     const bankForLevel = this.questionBank.filter(q => q.level === level);
-    console.log(`[GameEngine] Preparing Level ${level}. Bank questions: ${bankForLevel.length}. Code questions: ${DATA.level1.scrambles.length + DATA.level1.riddles.length} (L1 reference)`);
+    console.log(`[GameEngine] Preparing Level ${level}. Set: ${set.id}. Bank questions: ${bankForLevel.length}. Set questions: ${setLevelCount(this.activeSetId, level)}.`);
 
     if (bankForLevel.length > 0) {
       const limit = this.levelLimits[level] || bankForLevel.length;
@@ -329,12 +377,12 @@ export class GameEngine {
       return;
     }
 
-    // ── Fallback: hard-coded gameData ──
+    // ── Fallback: the active set's content ──
     switch (level) {
       case 1: {
         const all: Level1Q[] = shuffle([
-          ...DATA.level1.scrambles.map(q => ({ ...q })),
-          ...DATA.level1.riddles.map(q => ({ ...q })),
+          ...D.level1.scrambles.map(q => ({ ...q })),
+          ...D.level1.riddles.map(q => ({ ...q })),
         ]);
         this.questions = all.map((q, i) => {
           if (q.type === 'scramble') {
@@ -364,7 +412,7 @@ export class GameEngine {
         break;
       }
       case 2: {
-        const qs = shuffle(DATA.level2.qs.map(q => ({ ...q })));
+        const qs = shuffle(D.level2.qs.map(q => ({ ...q })));
         this.questions = qs.map((q, i) => ({
           clientQ: {
             index: i, total: qs.length, type: 'image_mcq' as const,
@@ -378,7 +426,7 @@ export class GameEngine {
         break;
       }
       case 3: {
-        const chs = shuffle(DATA.level3.chs.map(c => ({ ...c })));
+        const chs = shuffle(D.level3.chs.map(c => ({ ...c })));
         this.questions = chs.map((c, i) => ({
           clientQ: {
             index: i, total: chs.length, type: 'hangman' as const,
@@ -392,7 +440,7 @@ export class GameEngine {
         break;
       }
       case 4: {
-        const qs = shuffle(DATA.level4.qs.map(q => ({ ...q })));
+        const qs = shuffle(D.level4.qs.map(q => ({ ...q })));
         this.questions = qs.map((q, i) => ({
           clientQ: {
             index: i, total: qs.length, type: 'mcq' as const,
@@ -1126,7 +1174,7 @@ export class GameEngine {
     // For level_intro, include intro data
     let levelIntro: LevelIntroPayload | null = null;
     if (this.phase === 'level_intro' && this.currentLevel > 0) {
-      const intro = LEVEL_INTROS[this.currentLevel];
+      const intro = getSet(this.activeSetId).intros[this.currentLevel];
       if (intro) {
         levelIntro = {
           level: this.currentLevel, startsIn: this.timerRemaining,
@@ -1142,6 +1190,7 @@ export class GameEngine {
       timerTotal: this.timerTotal, serverTime: Date.now(),
       leaderboard: this.getLeaderboard(), levelIntro,
       reviewData: null, myScore: ps, myAnswer: pa,
+      activeSetId: this.activeSetId,
       hangmanState, auctionState, disasterInfo,
       factionScores: this.factionScores,
       anomalyData: this.phase === 'anomaly_active' ? {
@@ -1165,6 +1214,8 @@ export class GameEngine {
       answeredCount: this.currentAnswers.size,
       totalPlayers: this.getPlayerCount(),
       bankCount: this.questionBank.length,
+      activeSetId: this.activeSetId,
+      setCatalog: getSetCatalog(),
       timerEndTime: this.endTime,
       levelLimits: this.levelLimits,
     };
@@ -1467,6 +1518,7 @@ export class GameEngine {
         {
           $set: {
             phase: this.phase,
+            activeSetId: this.activeSetId,
             currentLevel: this.currentLevel,
             currentQIndex: this.currentQIndex,
             endTime: this.endTime,
@@ -1493,6 +1545,7 @@ export class GameEngine {
       if (!snap) return;
 
       this.phase = snap.phase as GamePhase;
+      if (isSetId(snap.activeSetId)) this.activeSetId = snap.activeSetId;
       this.currentLevel = snap.currentLevel;
       this.currentQIndex = snap.currentQIndex;
       this.endTime = snap.endTime;

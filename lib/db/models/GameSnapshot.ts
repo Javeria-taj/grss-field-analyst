@@ -9,6 +9,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 export interface IGameSnapshot extends Document {
   sessionId: string;
   phase: string;
+  activeSetId: string;   // which question pack the game is running
   currentLevel: number;
   currentQIndex: number;
   endTime: number;       // epoch ms of current timer end
@@ -35,6 +36,7 @@ export interface IGameSnapshot extends Document {
 const GameSnapshotSchema = new Schema<IGameSnapshot>({
   sessionId:     { type: String, default: 'live', unique: true, index: true },
   phase:         { type: String, default: 'idle' },
+  activeSetId:   { type: String, default: 'set1' },
   currentLevel:  { type: Number, default: 0 },
   currentQIndex: { type: Number, default: 0 },
   endTime:       { type: Number, default: 0 },

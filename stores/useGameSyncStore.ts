@@ -143,6 +143,9 @@ interface GameSyncState {
   // Game over
   finalLeaderboard: LeaderboardEntry[];
 
+  // Which content pack the game is running (mirrors the server)
+  activeSetId: string;
+
   // Admin stats
   adminStats: {
     connectedCount: number; phase: GamePhase; currentLevel: number;
@@ -150,6 +153,11 @@ interface GameSyncState {
     answeredCount: number; totalPlayers: number;
     bankCount: number; timerEndTime: number;
     levelLimits: Record<number, number>;
+    activeSetId: string;
+    setCatalog: {
+      id: string; label: string; description: string;
+      inventory: Record<number, number>; total: number;
+    }[];
   } | null;
 
   adminLiveStats: {
@@ -209,6 +217,7 @@ interface GameSyncState {
   adminDeleteBankQuestion: (id: string) => void;
   adminGetBank: () => void;
   adminUpdateLevelLimit: (level: number, limit: number) => void;
+  adminSetQuestionSet: (setId: string) => void;
   adminForceEndQuestion: () => void;
   adminKickPlayer: (usn: string) => void;
   adminTriggerAnomaly: () => void;
@@ -256,6 +265,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   deployedTools: [],
   hasDeployed: false,
   finalLeaderboard: [],
+  activeSetId: 'set1',
   adminStats: null,
   adminLiveStats: null,
   bankQuestions: [],
@@ -417,6 +427,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         auctionOwned: data.auctionState?.ownedTools ?? [],
         auctionPrices: data.auctionState?.prices ?? {},
         disasterInfo: data.disasterInfo,
+        activeSetId: data.activeSetId ?? 'set1',
         activePowerups: data.activePowerups || {},
         myTelemetry: data.myScore?.telemetry || [],
         myStreak: data.myScore?.streak ?? 0,
@@ -649,7 +660,11 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
 
     // ── Admin stats ──
     socket.on('admin_stats', (data: any) => {
-      set({ adminStats: data });
+      set({ adminStats: data, ...(data?.activeSetId ? { activeSetId: data.activeSetId } : {}) });
+    });
+
+    socket.on('question_set_changed', (data: { activeSetId: string }) => {
+      set({ activeSetId: data.activeSetId });
     });
 
     socket.on('bank_questions', (data: any[]) => {
@@ -855,6 +870,11 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   adminTimerPauseResume: () => {
     const { socket } = get();
     if (socket?.connected) socket.emit('admin_timer_pause_resume');
+  },
+
+  adminSetQuestionSet: (setId) => {
+    const { socket } = get();
+    if (socket?.connected) socket.emit('admin_set_question_set', { setId });
   },
 
   adminLoadBank: (questions) => {

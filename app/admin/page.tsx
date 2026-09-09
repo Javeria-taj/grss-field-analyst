@@ -26,7 +26,8 @@ export default function AdminDashboard() {
     init, destroy, connected, phase, adminStats, leaderboard,
     adminStartLevel, adminPause, adminReset, adminBroadcast,
     timerEndTime, paused, adminTimerAdd10, adminTimerPauseResume, adminUpdateLevelLimit,
-    adminForceEndQuestion, adminKickPlayer, adminLiveStats, adminTriggerAnomaly, adminTriggerScenario
+    adminForceEndQuestion, adminKickPlayer, adminLiveStats, adminTriggerAnomaly, adminTriggerScenario,
+    adminSetQuestionSet, activeSetId
   } = useGameSyncStore();
   const [broadcastMsg, setBroadcastMsg] = useState('');
   const [localRemaining, setLocalRemaining] = useState(0);
@@ -128,6 +129,71 @@ export default function AdminDashboard() {
                 <button className="btn btn-outline btn-sm" style={{ padding: '2px 8px', fontSize: '0.7rem' }} onClick={() => adminTimerAdd10()}>+10s</button>
               </div>
             )}
+
+            {/* ── Question Set Picker ── */}
+            {(() => {
+              const catalog = adminStats?.setCatalog ?? [];
+              const active = catalog.find(c => c.id === activeSetId);
+              const bankCount = adminStats?.bankCount ?? 0;
+              return (
+                <div style={{
+                  marginBottom: 16, padding: 12, borderRadius: 12,
+                  background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
+                }}>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <label className="label" style={{ color: 'var(--accent2)', fontWeight: 700, fontSize: '0.65rem', margin: 0 }}>
+                      QUESTION SET
+                    </label>
+                    <select
+                      className="input"
+                      style={{
+                        flex: 1, minWidth: 240,
+                        border: '1px solid var(--accent2)', background: 'var(--bg)',
+                        color: canStartLevel ? 'var(--text)' : 'var(--text2)',
+                        fontSize: '0.85rem',
+                        cursor: canStartLevel ? 'pointer' : 'not-allowed',
+                        opacity: canStartLevel ? 1 : 0.6,
+                      }}
+                      disabled={!canStartLevel || catalog.length === 0}
+                      value={activeSetId}
+                      onChange={e => {
+                        SFX.click();
+                        adminSetQuestionSet(e.target.value);
+                        toast(`Question set → ${e.target.value.toUpperCase()}`, 'ok');
+                      }}
+                    >
+                      {catalog.length === 0 && <option value={activeSetId}>Loading sets…</option>}
+                      {catalog.map(c => (
+                        <option key={c.id} value={c.id} style={{ background: '#0a1428', color: 'var(--text)' }}>
+                          {c.label} — {c.total} Qs{c.total === 0 ? ' (empty)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {active && (
+                    <div style={{ marginTop: 8, fontSize: '0.7rem', color: 'var(--text2)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                      <span>{active.description}</span>
+                      <span style={{ opacity: 0.8 }}>
+                        L1 {active.inventory[1]} · L2 {active.inventory[2]} · L3 {active.inventory[3]} · L4 {active.inventory[4]}
+                      </span>
+                    </div>
+                  )}
+
+                  {!canStartLevel && (
+                    <div style={{ marginTop: 8, fontSize: '0.7rem', color: 'var(--warning)' }}>
+                      ⏸ Locked while a level is running — switch sets between levels.
+                    </div>
+                  )}
+
+                  {bankCount > 0 && (
+                    <div style={{ marginTop: 8, fontSize: '0.7rem', color: 'var(--warning)' }}>
+                      ⚠ The Question Bank holds {bankCount} question{bankCount === 1 ? '' : 's'} and overrides this set on any level it covers.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             <div style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', display: 'grid', gap: 10, marginBottom: 16 }}>
               {LEVELS.map(lv => {

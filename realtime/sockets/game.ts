@@ -182,6 +182,16 @@ export default function setupGameSockets(io: Server) {
       engine.deleteBankQuestion(data.id);
     });
 
+    socket.on('admin_set_question_set', (data: { setId: string }) => {
+      if (!isAdmin) return;
+      const res = engine.setActiveSet(data?.setId);
+      if (!res.ok) {
+        socket.emit('admin_error', { error: res.error });
+        return;
+      }
+      console.log(`📚 Question set → ${data.setId} by ${usn}`);
+    });
+
     socket.on('admin_update_level_limit', (data: { level: number; limit: number }) => {
       if (!isAdmin) return;
       engine.updateLevelLimit(data.level, data.limit);

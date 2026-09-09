@@ -211,6 +211,7 @@ export interface GameStateSync {
     ownedTools: string[];
     prices: Record<string, number>;
   } | null;
+  activeSetId: string;              // content pack the client should render
   disasterInfo: DisasterInfo | null;
   factionScores?: Record<string, number>;
   anomalyData?: AnomalyPayload | null;
@@ -229,6 +230,11 @@ export interface AdminStatsPayload {
   bankCount: number;       // number of questions currently in the bank
   timerEndTime: number;
   levelLimits: Record<number, number>;
+  activeSetId: string;                      // which content pack is live
+  setCatalog: {                             // every selectable pack (no content, no answers)
+    id: string; label: string; description: string;
+    inventory: Record<number, number>; total: number;
+  }[];
 }
 
 export interface AdminLiveStatsPayload {
