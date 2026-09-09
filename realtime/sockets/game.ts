@@ -5,7 +5,11 @@ import { GameEngine } from '../game/GameEngine';
 import dbConnect from '../../lib/db/connect';
 import { User } from '../../lib/db/models/User';
 
-const JWT_SECRET = process.env.SESSION_SECRET || 'grss_super_secret_change_in_production';
+import { getSessionSecret } from '../../lib/auth-secret';
+
+// Verifier side. Must match the secret Vercel signs with — compare the
+// fingerprint logged here against the one in the Vercel function logs.
+const JWT_SECRET = getSessionSecret('realtime');
 
 type AuthSocket = Socket & { user: jwt.JwtPayload };
 
