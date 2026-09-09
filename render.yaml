@@ -9,10 +9,10 @@
 # ─────────────────────────────────────────────────────────────────────────────
 services:
   - type: web
-    name: grss-realtime
+    name: grss-field-analyst   # must match the EXISTING Render service, or a duplicate is created
     runtime: node
     plan: starter            # paid plan = no cold-start spin-down
-    region: singapore        # pick the region closest to your players
+    region: oregon           # existing service lives here (gcp-us-west1); region cannot be changed after creation
     branch: main
 
     # --include=dev is REQUIRED: NODE_ENV=production makes npm omit devDependencies,

@@ -12,10 +12,17 @@ Browser ──HTTPS──> Vercel (Next.js UI + /api/* + Mongo)
 
 ---
 
-## 1. Create the service
+## 1. Update the existing service
 
-Push this branch, then in the Render dashboard: **New → Blueprint → select this
-repo**. Render reads `render.yaml` and pre-fills everything.
+A service already exists at `grss-field-analyst.onrender.com` (Oregon region).
+`render.yaml` is named to match it, so a Blueprint sync **updates** that service
+rather than creating a second one. Push this branch, then in the Render
+dashboard: **Blueprints → sync**, or set the fields below by hand under
+**Settings**.
+
+Region cannot be changed after a service is created. If you later want lower
+latency for players outside the US, that means creating a new service in a
+closer region and repointing `NEXT_PUBLIC_SOCKET_URL`.
 
 Prefer clicking through manually? **New → Web Service**, then:
 
@@ -61,7 +68,7 @@ reaches the DB (`/health` will report `"status":"degraded"`).
 In **Vercel → Settings → Environment Variables**:
 
 ```
-NEXT_PUBLIC_SOCKET_URL = https://grss-realtime.onrender.com
+NEXT_PUBLIC_SOCKET_URL = https://grss-field-analyst.onrender.com
 CLIENT_URL             = https://<your-app>.vercel.app
 ```
 
@@ -84,8 +91,8 @@ would otherwise break Socket.io's HTTP long-polling handshake.
 ## 6. Verify
 
 ```bash
-curl https://grss-realtime.onrender.com/health   # {"status":"ok","db":1,...}
-curl https://grss-realtime.onrender.com/ready    # 200 once Mongo is connected
+curl https://grss-field-analyst.onrender.com/health   # {"status":"ok","db":1,...}
+curl https://grss-field-analyst.onrender.com/ready    # 200 once Mongo is connected
 ```
 
 - `/health` — liveness. Returns **200 even when Mongo is down**, on purpose: a
