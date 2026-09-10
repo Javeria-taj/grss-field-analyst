@@ -4,7 +4,6 @@
 // ============================================================
 
 import type { ServerGameData, QuestionSet, LevelIntro } from './types';
-import { SET1 } from './set1';
 
 const SET2_DATA: ServerGameData = {
   level1: {
@@ -114,8 +113,83 @@ const SET2_DATA: ServerGameData = {
     ],
   },
   level2: {
-    // Level 2 retained from existing pack (per instruction: except 2nd level)
-    qs: SET1.data.level2.qs,
+    qs: [
+      {
+        img: '/images/level2/set2/false_color_infrared.jpeg',
+        q: 'In false-color satellite images, healthy farms glow bright red! Assuming they aren’t growing a million acres of red velvet cake, what invisible light are these plants actually reflecting?',
+        opts: [
+          'Thermal heat',
+          'Near-infrared radiation',
+          'Microwave signals',
+          'Atmospheric lasers',
+        ],
+        ans: 'Near-infrared radiation',
+        expl: 'Healthy chlorophyll in vegetation strongly reflects Near-Infrared (NIR) radiation. In standard false-color satellite composites, NIR is assigned to the red channel, making thriving vegetation glow bright red.',
+        pts: 150,
+        hint: 'It lies just beyond the visible red spectrum.',
+        hint2: 'Chlorophyll reflects this wavelength strongly; NDVI relies on it.',
+      },
+      {
+        img: '/images/level2/set2/lidar_forest.jpeg',
+        q: "You're flying a LiDAR scanner over a dense forest to map the hidden ground below. Since lasers don't have superhero X-ray vision, how does LiDAR pull off this magic trick?",
+        opts: [
+          'By catching multiple "echoes" (returns) as a single laser pulse sneaks through gaps in the branches and leaves',
+          'By sniffing out warm thermal radiation from the dirt',
+          'By blasting microwaves straight through the trees',
+          'By using a fancy RGB color filter to "delete" the green vegetation',
+        ],
+        ans: 'By catching multiple "echoes" (returns) as a single laser pulse sneaks through gaps in the branches and leaves',
+        expl: 'LiDAR pulses penetrate tiny gaps between leaves and branches. By recording multiple returns (echoes) from a single pulse, sensors capture both the top canopy and the bare ground floor.',
+        pts: 150,
+        hint: 'Think about laser pulses slipping through tiny gaps in foliage.',
+        hint2: 'Multiple return signals (echoes) distinguish the canopy top from the ground.',
+      },
+      {
+        img: '/images/level2/set2/squid_fishing.jpeg',
+        q: 'Mystery Ocean Lights: A hidden "mega-city" suddenly lights up in the middle of the dark, empty ocean at midnight. Who turned on the lights?',
+        opts: [
+          'Squid fishing fleets using giant spotlights',
+          'An underwater volcano having an eruption party',
+          'A massive swarm of disco jellyfish',
+          'Glowing Whale birthday Party',
+        ],
+        ans: 'Squid fishing fleets using giant spotlights',
+        expl: 'Commercial squid boats hang ultra-bright spotlights over the water to lure squid to the surface—shining so brightly they look like glowing cities from space!',
+        pts: 150,
+        hint: 'Human commercial activity out on the open sea at night.',
+        hint2: 'Fishermen use intense lighting to attract nocturnal marine life.',
+      },
+      {
+        img: '/images/level2/set2/infrared_jungle.jpeg',
+        q: 'You snap a space photo of a lush green jungle using an infrared camera—and the leaves instantly “shapeshift” on your screen. What color is the forest glowing now?',
+        opts: [
+          'Bright Neon Red / Pink',
+          'Glowing Emerald Green',
+          'Deep Electric Blue',
+          'Pitch Black',
+        ],
+        ans: 'Bright Neon Red / Pink',
+        expl: 'In standard color-infrared (CIR) imagery, near-infrared reflectance from spongy mesophyll plant tissue is mapped to the red channel, transforming green foliage into vivid neon red and pink.',
+        pts: 150,
+        hint: 'Standard color-infrared false-color mapping.',
+        hint2: 'Green chlorophyll absorption is translated to vibrant scarlet/magenta.',
+      },
+      {
+        img: '/images/level2/set2/desert_art.jpeg',
+        q: '“What On Earth Is This?” — Found somewhere in the Egyptian desert. Looks like someone gave a compass and way too much free time to a very ambitious person. What are you looking at?',
+        opts: [
+          'A giant salt evaporation facility',
+          'An ancient archaeological site',
+          'A land-art installation',
+          'A military training ground',
+        ],
+        ans: 'A land-art installation',
+        expl: "This is 'Desert Breath', an immense land-art installation constructed in 1997 in the Egyptian desert near El Gouna, comprising dual spiral cones and excavations carved into the sand.",
+        pts: 150,
+        hint: 'A monumental human artistic creation in the Sahara.',
+        hint2: 'Created by the D.A.ST. Arteam in 1997 as a spiral earthwork.',
+      },
+    ],
   },
   level3: {
     chs: [
