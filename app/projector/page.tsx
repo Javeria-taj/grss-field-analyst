@@ -519,14 +519,14 @@ export default function ProjectorPage() {
               </div>
             )}
             {currentQuestion?.scrambled && <div style={{ textAlign: 'center' }}><span className="scramble-hint">SCRAMBLE</span></div>}
-            {currentQuestion?.em ? (
+            {currentQuestion?.emoji ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
                 <div style={{ fontSize: '5rem', textShadow: '0 0 40px rgba(0, 240, 255, 0.8)', marginBottom: 10 }}>
-                  {currentQuestion.em}
+                  {currentQuestion.emoji}
                 </div>
                 {currentLevel === 3 && currentQuestion.wordLength && (
                   <div style={{ fontSize: '3rem', letterSpacing: '15px', color: 'var(--text)', textShadow: '0 0 20px rgba(255,255,255,0.5)', fontFamily: 'var(--font-mono)' }}>
-                    {'_'.repeat(currentQuestion.wordLength)}
+                    {currentQuestion.wordMask || '_'.repeat(currentQuestion.wordLength)}
                   </div>
                 )}
                 {(timerTotal || 120) - timeLeft >= 60 && currentQuestion.hint && (

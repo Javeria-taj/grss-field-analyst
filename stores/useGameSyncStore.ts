@@ -17,7 +17,7 @@ export interface ClientQuestion {
   timeLimit: number; points: number;
   scrambled?: string; question?: string; hint?: string; category?: string;
   imageUrl?: string; options?: string[];
-  emoji?: string; wordLength?: number; difficulty?: number;
+  emoji?: string; wordLength?: number; wordMask?: string; difficulty?: number;
 }
 
 export interface LeaderboardEntry {
@@ -193,6 +193,7 @@ interface GameSyncState {
 
   // Toolkit / Powerups
   activePowerups: Record<string, { type: string; removed?: number[]; distribution?: Record<string, number> }>;
+  powerupResult: { type: string; removed?: number[]; distribution?: Record<string, number> } | null;
 
   // Actions
   init: () => void;
@@ -283,6 +284,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   activeReactions: [],
   missionEvents: [],
   activePowerups: {},
+  powerupResult: null,
   focusViolation: false,
   breachCount: 0,
   setFocusViolation: (v: boolean) => set((state) => {
@@ -298,7 +300,13 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
   }),
 
   init: () => {
-    if (get().socket?.connected) return;
+    const existingSocket = get().socket;
+    if (existingSocket?.connected) return;
+    // If there's a stale socket (server restarted, nodemon reload), clean it up first
+    if (existingSocket && !existingSocket.connected) {
+      existingSocket.removeAllListeners();
+      existingSocket.disconnect();
+    }
 
     // Derive socket URL from the browser's current hostname so cross-device
     // LAN testing works (e.g., phone at 192.168.x.x reaches the server).
@@ -314,10 +322,10 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
     let authRefreshAttempted = false;
 
     const socket = io(socketUrl, {
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionAttempts: Infinity,
-      reconnectionDelay: 3000,
+      reconnectionDelay: 2000,
       reconnectionDelayMax: 10000,
       withCredentials: true,
       // auth MUST be a callback, not a static object. Socket.io evaluates a
@@ -343,7 +351,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
     });
 
     socket.on('connect_error', (err) => {
-      console.error('🔴 Socket connect_error:', err.message);
+      console.warn('⚠️ Socket connect_error:', err.message);
 
       // The JWT lives in localStorage with a 12h TTL, but the session-recovery
       // effect skips rehydrateFromCookie whenever a persisted user exists — so
@@ -461,9 +469,10 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
         // Reset hangman for new question
         hangmanGuessed: [], hangmanLives: 6, hangmanRevealed: [],
         hangmanWordLength: data.wordLength ?? 0,
-        hangmanMaskedWord: '_'.repeat(data.wordLength ?? 0),
+        hangmanMaskedWord: data.wordMask || '_'.repeat(data.wordLength ?? 0),
         hangmanSolved: false,
         activePowerups: {},
+        powerupResult: null,
       });
     });
 
@@ -747,6 +756,7 @@ export const useGameSyncStore = create<GameSyncState>((set, get) => ({
     socket.on('powerup_result', (data: any) => {
       if (data.success) {
         set(s => ({
+          powerupResult: data,
           activePowerups: { ...s.activePowerups, [data.type]: data },
           myTotalScore: data.newTotalScore ?? s.myTotalScore
         }));

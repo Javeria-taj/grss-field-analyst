@@ -404,7 +404,7 @@ export class GameEngine {
                 timeLimit: TIME_LIMITS[1], points: rq.pts,
                 question: rq.q, hint: rq.hint, hint2: rq.hint2, category: rq.cat,
               },
-              answer: normalise(rq.ans),
+              answer: rq.ans,
               explanation: rq.expl,
             };
           }
@@ -432,10 +432,11 @@ export class GameEngine {
             index: i, total: chs.length, type: 'hangman' as const,
             timeLimit: TIME_LIMITS[3], points: c.pts,
             emoji: c.em, hint: c.hint, hint2: c.hint2, wordLength: c.word.length,
+            wordMask: c.word.toUpperCase().trim().replace(/[^ ]/g, '_'),
           },
           answer: normalise(c.word),
           explanation: c.expl,
-          word: normalise(c.word),
+          word: c.word.toUpperCase().trim(),
         }));
         break;
       }
@@ -517,7 +518,9 @@ export class GameEngine {
         correct = answer === q.answer;
       }
     } else if (typeof q.answer === 'string' && typeof answer === 'string') {
-      correct = normalise(answer) === normalise(q.answer as string);
+      const variants = String(q.answer).split(/[\/,|]/).map(v => normalise(v)).filter(Boolean);
+      const userNorm = normalise(answer);
+      correct = variants.length > 0 ? variants.includes(userNorm) : userNorm === normalise(q.answer);
     } else if (typeof q.answer === 'number' && typeof answer === 'number') {
       correct = answer === q.answer;
     }

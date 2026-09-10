@@ -1,32 +1,322 @@
 // ============================================================
 // GRSS FIELD ANALYST — SET 2 (Faculty Conclave Pack)
-// Content source: GRSS_Faculty_Game_Master_Question_Pack.pdf
-// (Levels 1-3, 5) and "Level 4 latest.pdf" (Level 4).
-//
-// SCAFFOLD ONLY — questions are authored in a later phase.
-// A level with an empty array here falls through to nothing:
-// startLevel() refuses to run a level this set cannot populate,
-// so an unfinished pack can never reach players mid-event.
+// Content source: GRSS_Faculty_Game_Master_Question_Pack.md
 // ============================================================
 
 import type { ServerGameData, QuestionSet, LevelIntro } from './types';
+import { SET1 } from './set1';
 
 const SET2_DATA: ServerGameData = {
-  level1: { scrambles: [], riddles: [] },
-  level2: { qs: [] },
-  level3: { chs: [] },
-  level4: { qs: [] },
-  // Level 5 content for Set 2 lives client-side in
-  // components/game/level5/ — see the Level 5 pack work item.
-  level5: { tools: [], combos: [], disasters: [] },
+  level1: {
+    scrambles: [
+      {
+        word: 'MAP',
+        sc: 'PAM',
+        hint: 'A symbolic representation highlighting relationships between elements of space.',
+        hint2: 'Fundamental cartographic tool for navigation and spatial data.',
+        expl: 'A map is a visual representation of an entire area or a part of an area, typically on a flat surface.',
+        cat: 'GRSS',
+        pts: 100,
+        type: 'scramble',
+      },
+      {
+        word: 'ORBIT',
+        sc: 'RIBOT',
+        hint: 'The curved path of a satellite around Earth.',
+        hint2: 'Keeps satellites in continuous motion around the planet.',
+        expl: 'An orbit is the gravitationally curved trajectory of an object, such as a satellite around Earth.',
+        cat: 'GRSS',
+        pts: 100,
+        type: 'scramble',
+      },
+      {
+        word: 'SENSOR',
+        sc: 'ROSNSE',
+        hint: 'An instrument that detects and measures physical properties or radiation.',
+        hint2: 'Essential hardware onboard Earth observation satellites.',
+        expl: 'Sensors onboard satellites collect electromagnetic radiation to generate Earth observation data.',
+        cat: 'GRSS',
+        pts: 100,
+        type: 'scramble',
+      },
+      {
+        word: 'LIDAR',
+        sc: 'DIALR',
+        hint: 'Light Detection and Ranging using pulsed lasers.',
+        hint2: 'Generates high-accuracy 3D elevation and terrain models.',
+        expl: 'LiDAR uses pulsed laser light to measure variable distances to the Earth to produce precise 3D structural data.',
+        cat: 'GRSS',
+        pts: 100,
+        type: 'scramble',
+      },
+      {
+        word: 'OPTICAL',
+        sc: 'LACPTIO',
+        hint: 'Sensing that uses visible and near-infrared light from the Sun.',
+        hint2: 'Passive remote sensing that relies on solar illumination.',
+        expl: 'Optical remote sensing systems measure solar radiation reflected from the Earth surface in visible, NIR, and SWIR bands.',
+        cat: 'GRSS',
+        pts: 100,
+        type: 'scramble',
+      },
+    ],
+    riddles: [
+      {
+        q: 'A city is too large to inspect street by street. You need to understand how it has expanded over the years. You do not send thousands of people outside. What GRSS data source gives you the shortcut?',
+        ans: 'SATELLITE IMAGERY / REMOTE SENSING / EARTH OBSERVATION',
+        hint: 'High-altitude imagery captured from space over time.',
+        hint2: 'Orbiting Earth observation platforms capture this synoptic data.',
+        expl: 'Satellite imagery and Earth observation data provide repetitive, wide-area coverage to monitor urban expansion over time without manual ground surveys.',
+        cat: 'GRSS',
+        pts: 100,
+        type: 'riddle',
+      },
+      {
+        q: 'Your first image shows an empty patch of land. Your second image shows buildings. You do not need to visit the location to know something changed. What technique helps you prove it?',
+        ans: 'CHANGE DETECTION',
+        hint: 'Comparing multi-temporal images to identify surface differences.',
+        hint2: 'Core remote sensing technique for analyzing land-cover transformation.',
+        expl: 'Change detection is a technique used in remote sensing to determine the changes associated with land use and land cover properties based on co-registered multi-temporal imagery.',
+        cat: 'GRSS',
+        pts: 100,
+        type: 'riddle',
+      },
+      {
+        q: 'The field team says, “We cannot get there safely.” Your response team says, “That is exactly why we need to look from above.” What GRSS concept is behind that decision?',
+        ans: 'REMOTE SENSING / EARTH OBSERVATION',
+        hint: 'Acquiring data about an area or phenomenon without making physical contact.',
+        hint2: 'Observing Earth from satellites or airborne platforms.',
+        expl: 'Remote sensing is the process of detecting and monitoring the physical characteristics of an area by measuring its reflected and emitted radiation from a distance.',
+        cat: 'GRSS',
+        pts: 100,
+        type: 'riddle',
+      },
+      {
+        q: 'It is night. There is smoke everywhere. Your eyes are almost useless. But you still want to find where the fire is hottest. Which sensing capability becomes your best friend?',
+        ans: 'THERMAL SENSING / THERMAL INFRARED',
+        hint: 'Detects emitted heat energy rather than reflected visible light.',
+        hint2: 'Operates in darkness and penetrates atmospheric smoke.',
+        expl: 'Thermal infrared sensing detects radiation emitted as heat, making it possible to locate active fire hotspots through dense smoke and in complete darkness.',
+        cat: 'GRSS',
+        pts: 100,
+        type: 'riddle',
+      },
+      {
+        q: 'The sky is full of clouds during a flood. One sensor waits for sunlight and clear skies. Another sends out its own signal. Which one has the advantage?',
+        ans: 'RADAR / SAR / SYNTHETIC APERTURE RADAR',
+        hint: 'Active microwave sensing that penetrates clouds and rain.',
+        hint2: 'Transmits its own electromagnetic pulses day and night.',
+        expl: 'Active microwave radar (SAR) illuminates the Earth surface with its own signal, penetrating clouds, rain, and haze day and night for flood mapping.',
+        cat: 'GRSS',
+        pts: 100,
+        type: 'riddle',
+      },
+    ],
+  },
+  level2: {
+    // Level 2 retained from existing pack (per instruction: except 2nd level)
+    qs: SET1.data.level2.qs,
+  },
+  level3: {
+    chs: [
+      {
+        em: '📍🌏',
+        word: 'LOCATION',
+        hint: 'Where exactly is it?',
+        hint2: 'A specific position or coordinate on the Earth surface.',
+        expl: 'Location identifies the geographic coordinates and spatial placement of an object on Earth.',
+        pts: 150,
+      },
+      {
+        em: '🌏🛰️👀',
+        word: 'EARTH OBSERVATION',
+        hint: 'You do not go there. You watch it from above.',
+        hint2: 'Gathering information about Earth physical systems via remote sensing.',
+        expl: 'Earth Observation (EO) refers to the gathering of information about planet Earth via satellite and airborne sensors.',
+        pts: 200,
+      },
+      {
+        em: '🌱🛰️📊',
+        word: 'VEGETATION HEALTH',
+        hint: 'You are not counting trees. You are studying how healthy the green cover is.',
+        hint2: 'Assessed from orbit using spectral indices like NDVI.',
+        expl: 'Vegetation health is analyzed by measuring differential reflectance in red and near-infrared bands (e.g. NDVI).',
+        pts: 200,
+      },
+      {
+        em: '🌧️🌊🛰️🗺️',
+        word: 'FLOOD MAPPING',
+        hint: 'The water arrived faster than people could map it.',
+        hint2: 'Rapid delineation of inundated areas using satellite imagery.',
+        expl: 'Flood mapping uses multi-temporal satellite data (particularly SAR) to delineate water bodies and inundated areas rapidly during emergencies.',
+        pts: 250,
+      },
+      {
+        em: '🔥☁️📡🌳',
+        word: 'WILDFIRE MONITORING',
+        hint: 'You need to know where the fire is and how the event is spreading.',
+        hint2: 'Tracking active thermal hotspots, burn scars, and smoke progression.',
+        expl: 'Wildfire monitoring uses thermal sensors and satellite tracking to detect active fire lines, rate of spread, and post-fire burn severity.',
+        pts: 250,
+      },
+    ],
+  },
+  level4: {
+    qs: [
+      {
+        q: 'You open a map and see your position moving as you walk. Which technology is providing the positioning?',
+        opts: ['GPS/GNSS', 'LiDAR', 'Thermal imaging', 'Multispectral imaging'],
+        ans: 'GPS/GNSS',
+        expl: '[GPS/GNSS]: Global Navigation Satellite Systems provide real-time geospatial positioning to receivers on Earth.',
+        diff: 1,
+        pts: 100,
+      },
+      {
+        q: 'A satellite image looks like a giant digital picture made of tiny cells. What is one such cell called?',
+        opts: ['Pixel', 'Orbit', 'Band', 'Vector'],
+        ans: 'Pixel',
+        expl: '[Pixel]: A pixel (picture element) is the smallest discrete unit of information in a digital raster image.',
+        diff: 1,
+        pts: 100,
+      },
+      {
+        q: 'Why are satellites useful for studying a disaster compared with sending people into the affected area immediately?',
+        opts: [
+          'They can observe large areas without requiring physical access',
+          'They eliminate all field work',
+          'They automatically solve the disaster',
+          'They only work after the disaster',
+        ],
+        ans: 'They can observe large areas without requiring physical access',
+        expl: '[Wide-Area Observation]: Satellites provide synoptic overviews of dangerous disaster zones safely without requiring immediate ground access.',
+        diff: 1,
+        pts: 100,
+      },
+      {
+        q: 'A farmer wants to identify which parts of a field are doing well without inspecting every plant. Which GRSS data type is especially useful for comparing vegetation from above?',
+        opts: ['Multispectral imagery', 'Compass navigation', 'Audio processing', 'Manual surveying only'],
+        ans: 'Multispectral imagery',
+        expl: '[Multispectral imagery]: Spectral bands (like Red and Near-Infrared) allow calculation of indices like NDVI to quantify plant vigor.',
+        diff: 2,
+        pts: 150,
+      },
+      {
+        q: 'You compare satellite images of a city from 2015 and 2025 and identify newly built areas. What are you primarily studying?',
+        opts: ['Change over time', 'Satellite altitude', 'GPS accuracy', 'Atmospheric pressure'],
+        ans: 'Change over time',
+        expl: '[Change over time]: Multi-temporal satellite analysis enables change detection to track urban expansion and land-cover transformation.',
+        diff: 2,
+        pts: 150,
+      },
+      {
+        q: 'You need the height and 3D structure of buildings across a campus. Which technology becomes especially useful?',
+        opts: ['LiDAR', 'GPS alone', 'RGB photography alone', 'A compass'],
+        ans: 'LiDAR',
+        expl: '[LiDAR]: LiDAR measures laser pulse return times to generate high-density 3D point clouds of building heights and terrain.',
+        diff: 2,
+        pts: 150,
+      },
+      {
+        q: 'A wildfire is burning at night and smoke is reducing visible-light information. Which type of information would be especially valuable for locating the hottest regions?',
+        opts: ['Thermal information', 'Visible colour only', 'Road-network data', 'GPS coordinates alone'],
+        ans: 'Thermal information',
+        expl: '[Thermal information]: Thermal infrared sensors measure emitted heat radiation, penetrating smoke and functioning in darkness.',
+        diff: 3,
+        pts: 200,
+      },
+      {
+        q: 'Satellite A gives finer detail but revisits less often. Satellite B revisits more often but gives coarser detail. What trade-off are you seeing?',
+        opts: ['Spatial vs temporal resolution', 'Latitude vs longitude', 'Speed vs altitude', 'Temperature vs pressure'],
+        ans: 'Spatial vs temporal resolution',
+        expl: '[Spatial vs temporal resolution]: Spatial resolution (pixel size) versus temporal resolution (revisit rate) is a fundamental sensor design trade-off.',
+        diff: 3,
+        pts: 200,
+      },
+      {
+        q: 'A city wants to know where flooding happens repeatedly and why certain neighbourhoods are more vulnerable. Which combination is more useful?',
+        opts: ['Flood imagery + elevation/terrain information', 'GPS alone', 'One ordinary photograph', 'A population chart'],
+        ans: 'Flood imagery + elevation/terrain information',
+        expl: '[Flood imagery + elevation/terrain]: Integrating inundation extent maps with Digital Elevation Models (DEM) reveals topography-driven flood risk.',
+        diff: 3,
+        pts: 200,
+      },
+      {
+        q: 'You have one hour to respond to a large flood. Heavy clouds are present, the affected area is huge, and field access is limited. What should you prioritize?',
+        opts: [
+          'Wait for clear skies',
+          'Earth-observation data, especially radar/SAR, combined with spatial mapping',
+          'Send a manual survey team first',
+          'Use GPS alone',
+        ],
+        ans: 'Earth-observation data, especially radar/SAR, combined with spatial mapping',
+        expl: '[Radar/SAR + Spatial Mapping]: Active microwave SAR pierces cloud cover and precipitation to deliver rapid, wide-scale flood mapping.',
+        diff: 3,
+        pts: 200,
+      },
+    ],
+  },
+  level5: {
+    tools: [
+      { id: 'optical', name: 'Optical Satellite', price: 150, icon: '🔭', desc: 'Visible imagery, land cover, context', eff: { flood: 6, wildfire: 6, earthquake: 7 } },
+      { id: 'sar', name: 'SAR Satellite', price: 180, icon: '📡', desc: 'Surface observation through most weather; day/night', eff: { flood: 10, wildfire: 8, earthquake: 9 } },
+      { id: 'thermal', name: 'Thermal Sensor', price: 120, icon: '🌡️', desc: 'Heat and fire-related information', eff: { flood: 4, wildfire: 10, earthquake: 3 } },
+      { id: 'multispectral', name: 'Multispectral Sensor', price: 130, icon: '🌿', desc: 'Vegetation and land-cover signals', eff: { flood: 5, wildfire: 8, earthquake: 4 } },
+      { id: 'lidar', name: 'LiDAR', price: 200, icon: '💡', desc: 'Elevation and 3D structure', eff: { flood: 8, wildfire: 5, earthquake: 10 } },
+      { id: 'dem', name: 'DEM / Elevation Data', price: 90, icon: '⛰️', desc: 'Terrain, slope, flood/landslide context', eff: { flood: 9, wildfire: 4, earthquake: 8 } },
+      { id: 'high_res', name: 'High-Resolution Imagery', price: 220, icon: '📸', desc: 'Very fine spatial detail', eff: { flood: 7, wildfire: 7, earthquake: 8 } },
+      { id: 'gis', name: 'GIS Analysis Module', price: 100, icon: '🗺️', desc: 'Combine, analyse and map spatial information', eff: { flood: 9, wildfire: 9, earthquake: 9 } },
+    ],
+    combos: [
+      { tools: ['sar', 'dem', 'gis'], name: 'Flood Response Suite', bonus: 500, desc: 'SAR + DEM + GIS provides optimal cloud-penetrating flood intelligence!', icon: '🌊' },
+      { tools: ['thermal', 'sar', 'gis'], name: 'Wildfire Tactical System', bonus: 500, desc: 'Thermal + SAR + GIS tracks nighttime fire perimeters and smoke-obscured terrain!', icon: '🔥' },
+      { tools: ['lidar', 'dem', 'sar'], name: 'Terrain & Landslide Suite', bonus: 500, desc: 'LiDAR + DEM + SAR delivers precise 3D slope deformation and landslide modeling!', icon: '⛰️' },
+      { tools: ['thermal', 'multispectral', 'gis'], name: 'Urban Heat & Vegetation Matrix', bonus: 450, desc: 'Thermal + Multispectral + GIS pinpoints thermal hotspots and sparse vegetation!', icon: '🏙️' },
+      { tools: ['optical', 'sar', 'gis'], name: 'Coastal Dynamics Suite', bonus: 400, desc: 'Optical + SAR + GIS tracks multi-temporal shoreline migration and coastal erosion!', icon: '🏖️' },
+    ],
+    disasters: [
+      { id: 'flood', name: 'MISSION 1 - FLOOD RESPONSE', icon: '🌊', color: '#00c8ff', desc: 'A district has experienced extreme rainfall. Floodwater has spread rapidly. Heavy clouds are still present. Emergency teams need to know which areas are inundated and which low-lying regions are most vulnerable.', optTools: ['sar', 'dem', 'gis'], metrics: ['Inundation extent accuracy', 'Low-lying vulnerability analysis', 'All-weather cloud penetration', 'Emergency response routing'] },
+      { id: 'wildfire', name: 'MISSION 2 - WILDFIRE RESPONSE', icon: '🔥', color: '#ff6b35', desc: 'A wildfire is spreading through a forest at night. Smoke is reducing visibility. Your team needs to identify active/hot regions and understand the extent of the affected area.', optTools: ['thermal', 'sar', 'gis', 'multispectral'], metrics: ['Active fire perimeter mapping', 'Nighttime heat detection', 'Smoke penetration rate', 'Vegetation burn severity'] },
+      { id: 'earthquake', name: 'MISSION 3 - LANDSLIDE RESPONSE', icon: '⛰️', color: '#a0855b', desc: 'Heavy rainfall has triggered landslides across a mountainous region. The response team needs to understand terrain shape, elevation and the affected zone.', optTools: ['lidar', 'dem', 'sar'], metrics: ['3D terrain deformation mapping', 'Slope instability detection', 'Debris flow path analysis', 'Access corridor evaluation'] },
+    ],
+  },
 };
 
 const SET2_INTROS: Record<number, LevelIntro> = {
-  1: { icon: '🔤', badge: 'MISSION 01', title: 'DECODE THE EARTH', story: 'Placeholder — authored with the Set 2 content.', rules: '📋 Mission Rules\n• 10 challenges: 5 Scrambles + 5 Riddles' },
-  2: { icon: '🛰️', badge: 'MISSION 02', title: 'SEE WHAT THE SATELLITE SEES', story: 'Placeholder — authored with the Set 2 content.', rules: '📋 Mission Rules\n• 5 visual challenges' },
-  3: { icon: '🔐', badge: 'MISSION 03', title: 'CRACK THE CODE', story: 'Placeholder — authored with the Set 2 content.', rules: '📋 Mission Rules\n• 5 Emoji Hangman challenges' },
-  4: { icon: '⚡', badge: 'MISSION 04', title: 'RAPID FIRE', story: 'Placeholder — authored with the Set 2 content.', rules: '📋 Mission Rules\n• 5 high-speed MCQs' },
-  5: { icon: '🌍', badge: 'MISSION 05', title: 'PRESSURE AUCTION', story: 'Placeholder — authored with the Set 2 content.', rules: '📋 Mission Rules\n• Limited budget — prices rise every 10 seconds' },
+  1: {
+    icon: '🔤',
+    badge: 'MISSION 01',
+    title: 'DECODE THE EARTH',
+    story: 'Decode encrypted field terminology and solve geospatial riddles to unlock Earth observation intelligence.',
+    rules: '📋 Mission Rules\n• 10 challenges: 5 Scrambles + 5 Riddles\n• ⏱ 25 seconds per challenge\n• Speed is critical for high scores\n• Type and press Enter to submit',
+  },
+  2: {
+    icon: '🛰️',
+    badge: 'MISSION 02',
+    title: 'SEE WHAT THE SATELLITE SEES',
+    story: 'Analyze orbital sensor imagery to identify geographical features, environmental hazards, and imaging modes.',
+    rules: '📋 Mission Rules\n• 5 orbital image analysis tasks\n• ⏱ 25 seconds per image\n• Choose the correct identification\n• Precision and speed generate max points',
+  },
+  3: {
+    icon: '🔐',
+    badge: 'MISSION 03',
+    title: 'CRACK THE CODE',
+    story: 'Intercept and reconstruct emoji-encoded Earth observation terms before the signal decays.',
+    rules: '📋 Mission Rules\n• 5 Emoji Hangman challenges\n• ⏱ 25 seconds per challenge\n• 6 wrong guesses allowed\n• Clues provided per challenge',
+  },
+  4: {
+    icon: '⚡',
+    badge: 'MISSION 04',
+    title: 'RAPID FIRE',
+    story: 'A massive data cascade is flooding the terminal. Quickly classify remote sensing technologies, resolutions, and disaster response protocols.',
+    rules: '📋 Mission Rules\n• 10 High-speed MCQs\n• ⏱ 15 seconds per question\n• Progressive difficulty scaling\n• Base points increase with difficulty level',
+  },
+  5: {
+    icon: '🌍',
+    badge: 'MISSION 05',
+    title: 'PRESSURE AUCTION / DISASTER DASH',
+    story: 'Compete under dynamic pricing to procure Earth observation sensors and deploy the optimal toolkit for critical disaster missions.',
+    rules: '📋 Mission Rules\n• Strategic simulation with dynamic pricing\n• Prices rise every 10 seconds — buy strategically\n• Select the optimal toolkit for your assigned disaster mission',
+  },
 };
 
 const SET2_TIME_LIMITS: Record<number, number> = {
@@ -39,7 +329,7 @@ const SET2_TIME_LIMITS: Record<number, number> = {
 export const SET2: QuestionSet = {
   id: 'set2',
   label: 'Set 2 — Faculty Conclave Pack',
-  description: 'New faculty-edition pack. Content not yet authored.',
+  description: 'Faculty Edition master question pack covering Earth observation fundamentals, radar, optical, and disaster missions.',
   data: SET2_DATA,
   intros: SET2_INTROS,
   timeLimits: SET2_TIME_LIMITS,

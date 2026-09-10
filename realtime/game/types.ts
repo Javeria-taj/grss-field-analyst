@@ -108,6 +108,7 @@ export interface ClientQuestion {
   // Hangman
   emoji?: string;
   wordLength?: number;
+  wordMask?: string;
   // MCQ
   difficulty?: number;
 }
