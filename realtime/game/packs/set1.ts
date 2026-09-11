@@ -98,7 +98,7 @@ const SET1_INTROS: Record<number, LevelIntro> = {
 const SET1_TIME_LIMITS: Record<number, number> = {
   1: 25,   // 25s per question
   2: 25,   // 25s per image
-  3: 25,   // 25s per hangman
+  3: 30,   // 30s per hangman
   4: 15,   // 15s for Rapid Fire (increased intensity)
 };
 

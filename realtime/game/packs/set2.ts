@@ -375,7 +375,7 @@ const SET2_INTROS: Record<number, LevelIntro> = {
     badge: 'MISSION 03',
     title: 'CRACK THE CODE',
     story: 'Intercept and reconstruct emoji-encoded Earth observation terms before the signal decays.',
-    rules: '📋 Mission Rules\n• 5 Emoji Hangman challenges\n• ⏱ 25 seconds per challenge\n• 6 wrong guesses allowed\n• Clues provided per challenge',
+    rules: '📋 Mission Rules\n• 5 Emoji Hangman challenges\n• ⏱ 30 seconds per challenge\n• 6 wrong guesses allowed\n• Clues provided per challenge',
   },
   4: {
     icon: '⚡',
@@ -396,7 +396,7 @@ const SET2_INTROS: Record<number, LevelIntro> = {
 const SET2_TIME_LIMITS: Record<number, number> = {
   1: 25,
   2: 25,
-  3: 25,
+  3: 30,
   4: 15,
 };
 

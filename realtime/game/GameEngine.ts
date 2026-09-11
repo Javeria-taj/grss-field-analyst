@@ -509,18 +509,40 @@ export class GameEngine {
     let correct = false;
     const isMCQ = q.clientQ.type === 'mcq' || q.clientQ.type === 'image_mcq';
 
-    if (isMCQ && typeof q.answer === 'number') {
-      // If server stores index but client sends string, try to find the index
-      if (typeof answer === 'string') {
-        const idx = q.clientQ.options?.findIndex(o => normalise(o) === normalise(answer));
-        correct = idx === q.answer;
+    if (isMCQ) {
+      const userStr = String(answer).trim();
+      const ansNorm = normalise(String(q.answer));
+      const options = q.clientQ.options || [];
+      const ansIdx = typeof q.answer === 'number' 
+        ? q.answer 
+        : options.findIndex(o => normalise(o) === ansNorm);
+
+      if (typeof answer === 'number') {
+        correct = answer === ansIdx;
       } else {
-        correct = answer === q.answer;
+        const userNorm = normalise(userStr);
+        if (userNorm === ansNorm) {
+          correct = true;
+        } else {
+          // Check if user submitted option letter (A, B, C, D)
+          const letterIdx = ['A', 'B', 'C', 'D'].indexOf(userStr.toUpperCase());
+          // Check if user submitted option index string ("0", "1", "2", "3")
+          const parsedIdx = Number.isInteger(Number(userStr)) ? Number(userStr) : -1;
+          const userOptionIdx = options.findIndex(o => normalise(o) === userNorm);
+
+          if (userOptionIdx !== -1 && userOptionIdx === ansIdx) {
+            correct = true;
+          } else if (letterIdx !== -1 && letterIdx === ansIdx) {
+            correct = true;
+          } else if (parsedIdx !== -1 && parsedIdx === ansIdx) {
+            correct = true;
+          }
+        }
       }
     } else if (typeof q.answer === 'string' && typeof answer === 'string') {
       const variants = String(q.answer).split(/[\/,|]/).map(v => normalise(v)).filter(Boolean);
       const userNorm = normalise(answer);
-      correct = variants.length > 0 ? variants.includes(userNorm) : userNorm === normalise(q.answer);
+      correct = variants.length > 0 ? (variants.includes(userNorm) || userNorm === normalise(q.answer)) : userNorm === normalise(q.answer);
     } else if (typeof q.answer === 'number' && typeof answer === 'number') {
       correct = answer === q.answer;
     }
