@@ -11,7 +11,7 @@ const SET1_DATA: ServerGameData = {
   level1: {
     scrambles: [
       { word: 'EARTH', sc: 'HTRAE', hint: 'Our home planet.', hint2: 'Third planet from the Sun.', expl: 'Earth is the planet where we live.', cat: 'GRSS', pts: 100, type: 'scramble' },
-      { word: 'SENSOR', sc: 'EROSNES', hint: 'Used on satellites.', hint2: 'Collects data remotely.', expl: 'Sensors onboard satellites collect remote sensing data from Earth.', cat: 'GRSS', pts: 100, type: 'scramble' },
+      { word: 'SENSOR', sc: 'ROSNSE', hint: 'Used on satellites.', hint2: 'Collects data remotely.', expl: 'Sensors onboard satellites collect remote sensing data from Earth.', cat: 'GRSS', pts: 100, type: 'scramble' },
       { word: 'PIXEL', sc: 'LEXPI', hint: 'Smallest unit in satellite imagery.', hint2: 'Images contain millions of these.', expl: 'Pixels are the smallest image units in digital and satellite imagery.', cat: 'GRSS', pts: 100, type: 'scramble' },
       { word: 'CANYON', sc: 'NAYNCO', hint: 'A deep natural valley.', hint2: 'Usually carved by rivers over time.', expl: 'Canyons are major geological landforms studied in Earth science and terrain analysis.', cat: 'GRSS', pts: 100, type: 'scramble' },
       { word: 'DELTA', sc: 'AETLD', hint: 'Formed where rivers meet larger water bodies.', hint2: 'Often triangular and rich in sediment.', expl: 'Deltas are important geological and environmental regions studied in hydrology and remote sensing.', cat: 'GRSS', pts: 100, type: 'scramble' },

@@ -129,7 +129,7 @@ export class GameEngine {
       if (this.leaderboardDirty) {
         const fullLeaderboard = this.getLeaderboard();
         // Projectors and Admins get the FULL list for deep analysis
-        this.io.to('admins').to('spectators').emit('leaderboard_update', fullLeaderboard);
+        this.io.to(['admins', 'spectators']).emit('leaderboard_update', fullLeaderboard);
         // Players get only the Top 20 + their personal entry (handled via individual sync if needed)
         // For now, slicing at 20 drastically reduces bandwidth for the bulk room.
         this.io.to('players').emit('leaderboard_update', fullLeaderboard.slice(0, 20));
@@ -887,9 +887,11 @@ export class GameEngine {
     this.priceMulti = 1.0;
     this.auctionStates.clear();
 
+    const l5 = getSet(this.activeSetId).data.level5;
+
     // Initialize prices
     this.currentPrices = {};
-    for (const t of DATA.level5.tools) {
+    for (const t of l5.tools) {
       this.currentPrices[t.id] = t.price;
     }
 
@@ -901,7 +903,7 @@ export class GameEngine {
     }
 
     // Send tool catalog (without effectiveness values)
-    const toolCatalog = DATA.level5.tools.map(t => ({
+    const toolCatalog = l5.tools.map(t => ({
       id: t.id, name: t.name, price: t.price, icon: t.icon, desc: t.desc,
     }));
     this.io.emit('auction_start', { tools: toolCatalog, prices: this.currentPrices, timeLimit: AUCTION_TIME });
@@ -910,7 +912,7 @@ export class GameEngine {
     // Price tick every 20s
     this.priceTickInterval = setInterval(() => {
       this.priceMulti += 0.1;
-      for (const t of DATA.level5.tools) {
+      for (const t of l5.tools) {
         this.currentPrices[t.id] = Math.round(t.price * this.priceMulti);
       }
       this.io.emit('auction_price_tick', { prices: this.currentPrices, multiplier: this.priceMulti });
@@ -969,8 +971,10 @@ export class GameEngine {
     this.phase = 'disaster_active';
     this.l5phase = 'disaster';
 
+    const l5 = getSet(this.activeSetId).data.level5;
+
     // Pick random disaster
-    const disasters = DATA.level5.disasters;
+    const disasters = l5.disasters;
     this.currentDisaster = disasters[Math.floor(Math.random() * disasters.length)];
 
     // Reset deployment for all
@@ -1019,12 +1023,13 @@ export class GameEngine {
     this.phase = 'level_complete'; // Change phase immediately to lock this method
 
     const disasterId = this.currentDisaster.id as 'flood' | 'wildfire' | 'earthquake';
+    const l5 = getSet(this.activeSetId).data.level5;
 
     for (const [usn, as] of this.auctionStates) {
       // Tool effectiveness score
       let effScore = 0;
       for (const toolId of as.deployed) {
-        const tool = DATA.level5.tools.find(t => t.id === toolId);
+        const tool = l5.tools.find(t => t.id === toolId);
         if (tool) effScore += tool.eff[disasterId] * 20;
       }
 
@@ -1524,7 +1529,7 @@ export class GameEngine {
       }
     }
     // Also send to admins/spectators with a generic payload
-    this.io.to('admins').to('spectators').emit('game_state_sync', this.getStateForClient(''));
+    this.io.to(['admins', 'spectators']).emit('game_state_sync', this.getStateForClient(''));
 
     this.io.emit('anomaly_cleared', { phase: this.phase });
     this.leaderboardDirty = true;
