@@ -11,7 +11,7 @@ const JWT_SECRET = getSessionSecret('login');
 
 const authSchema = z.object({
   name: z.string().min(2).max(50).trim(),
-  usn: z.string().min(4).max(50).trim(),
+  usn: z.string().min(4).max(100).trim(),
 });
 
 export async function POST(req: NextRequest) {

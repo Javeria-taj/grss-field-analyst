@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.SESSION_SECRET || 'grss_super_secret_change_in_pr
 
 const authSchema = z.object({
   name: z.string().min(2).max(50).trim(),
-  usn: z.string().min(4).max(50).trim(),
+  usn: z.string().min(4).max(100).trim(),
 });
 
 export async function POST(req: NextRequest) {

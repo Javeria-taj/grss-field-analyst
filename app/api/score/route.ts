@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.SESSION_SECRET || 'grss_super_secret_change_in_pr
 
 const scoreSchema = z.object({
   name: z.string().min(2).max(50).trim(),
-  usn: z.string().min(4).max(20).trim().toUpperCase(),
+  usn: z.string().min(4).max(100).trim().toUpperCase(),
   score: z.number().int().nonnegative().max(9999),
   progress: z.object({
     unlocked: z.array(z.number()).optional(),

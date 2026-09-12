@@ -247,14 +247,14 @@ export default function AuthPage() {
             </div>
 
             <div style={{ marginBottom: 19 }}>
-              <div className="label" style={{ marginBottom: 5 }}>USN / Reg. No.</div>
+              <div className="label" style={{ marginBottom: 5 }}>USN / Email</div>
               <motion.div
                 animate={focused === 'usn' ? { scale: 1.01 } : { scale: 1 }}
                 transition={{ type: 'spring', stiffness: 600 }}
               >
                 <input
                   className={`input input-lg ${usnError ? 'input-error' : ''}`}
-                  placeholder="e.g. 1MS21CS001"
+                  placeholder="e.g. 1MS21CS001 or name@email.com"
                   value={usn}
                   onChange={e => { setUsn(e.target.value); setUsnError(false); }}
                   onKeyDown={handleKeyDown}
@@ -262,8 +262,8 @@ export default function AuthPage() {
                   onBlur={() => setFocused(null)}
                   id="authUsn"
                   autoComplete="off"
-                  autoCapitalize="characters"
-                  aria-label="University Seat Number"
+                  autoCapitalize="none"
+                  aria-label="USN or Email"
                   aria-invalid={usnError}
                   aria-required="true"
                 />
